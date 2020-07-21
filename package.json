@@ -1,0 +1,25 @@
+{
+  "name": "webgl-lint",
+  "version": "1.0.0",
+  "description": "A semi strict WebGL checker",
+  "main": "webgl-lint.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/greggman/webgl-lint.git"
+  },
+  "keywords": [
+    "webgl"
+  ],
+  "author": "Gregg Tavares",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/greggman/webgl-lint/issues"
+  },
+  "homepage": "https://github.com/greggman/webgl-lint#readme",
+  "devDependencies": {
+    "eslint": "^7.5.0"
+  }
+}
