@@ -117,7 +117,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     return startOffset + vertCount - 1;
   }
 
-  function getLastUsedIndexForDrawElements(gl, funcName, startOffset, vertCount, instances, indexType, errors) {
+  function getLastUsedIndexForDrawElements(gl, funcName, startOffset, vertCount, instances, indexType, getWebGLObjectString, errors) {
     const elementBuffer = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
     if (!elementBuffer) {
       errors.push('No ELEMENT_ARRAY_BUFFER bound');
@@ -128,7 +128,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     const sizeNeeded = startOffset + vertCount * bytesPerIndex;
     if (sizeNeeded > bufferSize) {
       errors.push(`offset: ${startOffset} and count: ${vertCount} with index type: ${glEnumToString(gl, indexType)} passed to ${funcName} are out of range for current ELEMENT_ARRAY_BUFFER.
-Those parameters require ${sizeNeeded} bytes but the current ELEMENT_ARRAY_BUFFER only has ${bufferSize} bytes`);
+Those parameters require ${sizeNeeded} bytes but the current ELEMENT_ARRAY_BUFFER ${getWebGLObjectString(elementBuffer)} only has ${bufferSize} bytes`);
       return;
     }
     const buffer = bufferToIndices.get(elementBuffer);
@@ -143,7 +143,7 @@ Those parameters require ${sizeNeeded} bytes but the current ELEMENT_ARRAY_BUFFE
 
   const VERTEX_ATTRIB_ARRAY_DIVISOR = 0x88FE;
 
-  function checkAttributes(gl, funcName, args) {
+  function checkAttributes(gl, funcName, args, getWebGLObjectString) {
     const {vertCount, startOffset, indexType, instances} = funcsToArgs[funcName](...args);
     if (vertCount <=0 || instances <= 0) {
       return [];
@@ -151,7 +151,7 @@ Those parameters require ${sizeNeeded} bytes but the current ELEMENT_ARRAY_BUFFE
     const program = gl.getParameter(gl.CURRENT_PROGRAM);
     const errors = [];
     const nonInstancedLastIndex = indexType
-        ? getLastUsedIndexForDrawElements(gl, funcName, startOffset, vertCount, instances, indexType, errors) 
+        ? getLastUsedIndexForDrawElements(gl, funcName, startOffset, vertCount, instances, indexType, getWebGLObjectString, errors) 
         : computeLastUseIndexForDrawArrays(startOffset, vertCount, instances, errors);
     if (errors.length) {
       return errors;
@@ -196,10 +196,10 @@ Those parameters require ${sizeNeeded} bytes but the current ELEMENT_ARRAY_BUFFE
             : nonInstancedLastIndex;
         const sizeNeeded = offset + effectiveLastIndex * stride + bytesPerElement;
         if (sizeNeeded > bufferSize) {
-          errors.push(`buffer assigned to attribute ${ndx} used as '${name}' in current program is too small for draw parameters.
+          errors.push(`${getWebGLObjectString(buffer)} assigned to attribute ${ndx} used as attribute '${name}' in current program is too small for draw parameters.
 index of highest vertex accessed: ${effectiveLastIndex}
 attribute size: ${numComponents}, type: ${glEnumToString(gl, type)}, stride: ${specifiedStride}, offset: ${offset}, divisor: ${divisor}
-needs ${sizeNeeded} bytes for draw but buffer bound to attribute is only ${bufferSize} bytes`);
+needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         }
       }
     }
@@ -286,7 +286,7 @@ needs ${sizeNeeded} bytes for draw but buffer bound to attribute is only ${buffe
    * slow non-cached version
    * @param {WebGLRenderingContext} gl
    */
-  function checkFramebufferFeedback(gl) {
+  function checkFramebufferFeedback(gl, getWebGLObjectString) {
     const framebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
     if (!framebuffer) {
       // drawing to canvas
@@ -322,10 +322,10 @@ needs ${sizeNeeded} bytes for draw but buffer bound to attribute is only ${buffe
             ? name.substr(0, name.length - 3)
             : name;
         for (let t = 0; t < size; ++t) {
-          errors.push(...checkTextureUsage(gl, textureAttachments, program, `${baseName}[${t}]`, type));
+          errors.push(...checkTextureUsage(gl, framebuffer, textureAttachments, program, `${baseName}[${t}]`, type, getWebGLObjectString));
         }
       } else {
-        errors.push(...checkTextureUsage(gl, textureAttachments, program, name, type));
+        errors.push(...checkTextureUsage(gl, framebuffer, textureAttachments, program, name, type, getWebGLObjectString));
       }
     }
     gl.activeTexture(oldActiveTexture);
@@ -333,13 +333,13 @@ needs ${sizeNeeded} bytes for draw but buffer bound to attribute is only ${buffe
     return errors;
   }
 
-  function checkTextureUsage(gl, textureAttachments, program, uniformName, uniformType) {
+  function checkTextureUsage(gl, framebuffer, textureAttachments, program, uniformName, uniformType, getWebGLObjectString) {
     const location = gl.getUniformLocation(program, uniformName);
     const textureUnit = gl.getUniform(program, location);
     const texture = getTextureForUnit(gl, textureUnit, uniformType);
     const attachments = textureAttachments.get(texture);
     return attachments
-       ? [`texture on uniform: ${uniformName} bound to texture unit ${textureUnit} is also attached to current framebuffer on attachment: ${attachments.map(a => glEnumToString(gl, a)).join(', ')}`]
+       ? [`${getWebGLObjectString(texture)} on uniform: ${uniformName} bound to texture unit ${textureUnit} is also attached to ${getWebGLObjectString(framebuffer)} on attachment: ${attachments.map(a => glEnumToString(gl, a)).join(', ')}`]
        : [];
   }
 
@@ -1281,6 +1281,11 @@ needs ${sizeNeeded} bytes for draw but buffer bound to attribute is only ${buffe
     }
     */
 
+    function getWebGLObjectString(webglObject) {
+      const name = sharedState.webglObjectToNamesMap.get(webglObject) || '*unnamed*';
+      return `${webglObject.constructor.name}(${quoteStringOrEmpty(name)})`;
+    }
+
     /**
      * Returns the string version of a WebGL argument.
      * Attempts to convert enum arguments to strings.
@@ -1336,10 +1341,7 @@ needs ${sizeNeeded} bytes for draw but buffer bound to attribute is only ${buffe
                   if (binding) {
                     const webglObject = gl.getParameter(binding);
                     if (webglObject) {
-                      const name = sharedState.webglObjectToNamesMap.get(webglObject);
-                      if (name) {
-                        return `${webglObject.constructor.name}(${quoteStringOrEmpty(name)})`;
-                      }
+                      return getWebGLObjectString(webglObject);
                     }
                   }
                 }
@@ -1457,12 +1459,13 @@ needs ${sizeNeeded} bytes for draw but buffer bound to attribute is only ${buffe
           const msgs = [glEnumToString(ctx, err)];
           // this is draw. drawBuffers starts with draw
           if (funcName.startsWith('draw')) {
-            const program = gl.getParameter(ctx.CURRENT_PROGRAM);
+            const program = gl.getParameter(gl.CURRENT_PROGRAM);
             if (!program) {
               msgs.push('no shader program in use!');
             } else {
-              msgs.push(...checkFramebufferFeedback(gl));
-              msgs.push(...checkAttributes(gl, funcName, args));
+              msgs.push(`with ${getWebGLObjectString(program)}`);
+              msgs.push(...checkFramebufferFeedback(gl, getWebGLObjectString));
+              msgs.push(...checkAttributes(gl, funcName, args, getWebGLObjectString));
             }
           }
           reportFunctionError(ctx, funcName, args, msgs.join('\n'));
