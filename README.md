@@ -157,7 +157,7 @@ There 2 ways to configure
 
    ```html
    <script src="https://github.greggman.io/webgl-helpers/webgl-gl-error-check.js"
-           data-gman-webgl-helper='{"maxDrawCalls": 2000, "failUnsetUniformSamplers": true}'
+           data-gman-webgl-helper='{"maxDrawCalls": 2000, "failUnsetUniformSamplers": true}'>
    </script>
    ```
 
