@@ -1028,7 +1028,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       sharedState.locationsToNamesMap = new Map();
     }
 
-    function checkMaxDrawCallsAndZeroCount(gl, funcName, ...args) {
+    function checkMaxDrawCallsAndZeroCount(gl, funcName, args) {
       const {vertCount, instances} = funcsToArgs[funcName](...args);
       if (vertCount === 0) {
         console.warn(`count for ${funcName} is 0!`);
@@ -1127,8 +1127,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     function markUniformSetV(numValuesPer) {
-      return function(gl, funcName, webGLUniformLocation, ...args) {
-        let [data, srcOffset = 0, srcLength = 0] = args;
+      return function(gl, funcName, args) {
+        let [webGLUniformLocation, data, srcOffset = 0, srcLength = 0] = args;
         if (srcLength === 0) {
           srcLength = data.length - srcOffset;
         }
@@ -1141,8 +1141,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     function markUniformSetMatrixV(numValuesPer) {
-      return function(gl, funcName, webGLUniformLocation, transpose, ...args) {
-        let [data, srcOffset = 0, srcLength = 0] = args;
+      return function(gl, funcName, args) {
+        let [webGLUniformLocation, transpose, data, srcOffset = 0, srcLength = 0] = args;
         if (srcLength === 0) {
           srcLength = data.length - srcOffset;
         }
@@ -1166,7 +1166,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       };
     }
 
-    function markUniformSet(gl, funcName, webGLUniformLocation, ...args) {
+    function markUniformSet(gl, funcName, args) {
+      const [webGLUniformLocation] = args;
       markUniformRangeAsSet(webGLUniformLocation, 1);
     }
 
@@ -1177,7 +1178,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       // WebGL2:
       //   void bufferData(GLenum target, [AllowShared] ArrayBufferView srcData, GLenum usage, GLuint srcOffset,
       //                   optional GLuint length = 0);
-      bufferData(gl, funcName, target, src, usage, srcOffset = 0, length = 0) {
+      bufferData(gl, funcName, args) {
+        const [target, src, usage, srcOffset = 0, length = 0] = args;
         if (target !== gl.ELEMENT_ARRAY_BUFFER) {
           return;
         }
@@ -1200,7 +1202,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       // WebGL2
       //   void bufferSubData(GLenum target, GLintptr dstByteOffset, [AllowShared] ArrayBufferView srcData,
       //                      GLuint srcOffset, optional GLuint length = 0);
-      bufferSubData(gl, funcName, target, dstByteOffset, src, srcOffset, length = 0) {
+      bufferSubData(gl, funcName, args) {
+        const [target, dstByteOffset, src, srcOffset, length = 0] = args;
         if (target !== gl.ELEMENT_ARRAY_BUFFER) {
           return;
         }
@@ -1470,7 +1473,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           }
           reportFunctionError(ctx, funcName, args, msgs.join('\n'));
         }
-        postCheck(ctx, funcName, ...args);
+        postCheck(ctx, funcName, args);
         return result;
       };
     }
