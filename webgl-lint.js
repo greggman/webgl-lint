@@ -1159,6 +1159,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
             }
             if (allZero) {
               reportFunctionError(gl, funcName, [webGLUniformLocation, transpose, ...args], `matrix is all zeros\nSee docs at https://github.com/greggman/webgl-helpers/ for how to turn off this check`);
+              return;
             }
           }
         }
@@ -1391,10 +1392,19 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     function reportFunctionError(ctx, funcName, args, msg) {
+      const gl = sharedState.baseContext;
       const msgs = [msg];
       const funcInfos = glFunctionInfos[funcName];
       if (funcInfos && funcInfos.errorHelper) {
         msgs.push(funcInfos.errorHelper(ctx, funcName, args, sharedState));
+      }
+      if (funcName.includes('draw')) {
+        const program = gl.getParameter(gl.CURRENT_PROGRAM);
+        if (!program) {
+          msgs.push('no shader program in use!');
+        } else {
+          msgs.push(`with ${getWebGLObjectString(program)} as current program`);
+        }
       }
       if (funcName.includes('vertexAttrib') || funcName.startsWith('draw')) {
         const vao = getCurrentVertexArray(ctx);
@@ -1407,32 +1417,30 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       reportError(errorMsg);
     }
 
-    // Makes a function that calls a WebGL function and then calls getError.
-    function makeErrorWrapper(ctx, funcName) {
-      const origFn = ctx[funcName];
-      const preCheck = preChecks[funcName] || noop;
-      const postCheck = postChecks[funcName] || noop;
-      ctx[funcName] = function(...args) {
-        preCheck(ctx, funcName, args);
-        const funcInfos = glFunctionInfos[funcName];
-        if (funcInfos) {
-          const {numbers = {}, arrays = {}} = funcInfos[args.length];
+    function checkArgs(ctx, funcName, args) {
+      const funcInfos = glFunctionInfos[funcName];
+      if (funcInfos) {
+        const funcInfo = funcInfos[args.length];
+        if (!funcInfo) {
+          return reportFunctionError(ctx, funcName, args, `no version of function '${funcName}' takes ${args.length} arguments`);
+        } else {
+          const {numbers = {}, arrays = {}} = funcInfo;
           for (let ndx = 0; ndx < args.length; ++ndx) {
             const arg = args[ndx];
             // check the no arguments are undefined
             if (arg === undefined) {
-              reportFunctionError(ctx, funcName, args, `argument ${ndx} is undefined`);
+              return reportFunctionError(ctx, funcName, args, `argument ${ndx} is undefined`);
             }
             if (numbers[ndx] !== undefined) {
               if (numbers[ndx] >= 0)  {
                 // check that argument that is number (positive) is a number
                 if ((typeof arg !== 'number' && !(arg instanceof Number) && arg !== false && arg !== true) || isNaN(arg)) {
-                  reportFunctionError(ctx, funcName, args, `argument ${ndx} is not a number`);
+                  return reportFunctionError(ctx, funcName, args, `argument ${ndx} is not a number`);
                 }
               } else {
                 // check that argument that maybe is a number (negative) is not NaN
                 if (!arg instanceof Object && isNaN(arg)) {
-                  reportFunctionError(ctx, funcName, args, `argument ${ndx} is NaN`);
+                  return reportFunctionError(ctx, funcName, args, `argument ${ndx} is NaN`);
                 }
               }
             }
@@ -1441,23 +1449,32 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
               const isArrayLike = Array.isArray(arg) || isTypedArray(arg);
               if (arrays[ndx] >= 0) {
                 if (!isArrayLike) {
-                  reportFunctionError(ctx, funcName, args, `argument ${ndx} is not a array or typedarray`);
+                  return reportFunctionError(ctx, funcName, args, `argument ${ndx} is not a array or typedarray`);
                 }
               }
               if (isArrayLike && isArrayThatCanHaveBadValues(arg)) {
                 for (let i = 0; i < arg.length; ++i) {
                   if (arg[i] === undefined) {
-                    reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is undefined`);
-                  }
-                  if (isNaN(arg[i])) {
-                    reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is NaN`);
+                    return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is undefined`);
+                  } else if (isNaN(arg[i])) {
+                    return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is NaN`);
                   }
                 }
               }
             }
           }
         }
+      }
+    }
 
+    // Makes a function that calls a WebGL function and then calls getError.
+    function makeErrorWrapper(ctx, funcName) {
+      const origFn = ctx[funcName];
+      const preCheck = preChecks[funcName] || noop;
+      const postCheck = postChecks[funcName] || noop;
+      ctx[funcName] = function(...args) {
+        preCheck(ctx, funcName, args);
+        checkArgs(ctx, funcName, args);
         const result = origFn.call(ctx, ...args);
         const gl = sharedState.baseContext;
         const err = origGLErrorFn.call(gl);
@@ -1467,10 +1484,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           // this is draw. drawBuffers starts with draw
           if (funcName.startsWith('draw')) {
             const program = gl.getParameter(gl.CURRENT_PROGRAM);
-            if (!program) {
-              msgs.push('no shader program in use!');
-            } else {
-              msgs.push(`with ${getWebGLObjectString(program)}`);
+            if (program) {
               msgs.push(...checkFramebufferFeedback(gl, getWebGLObjectString));
               msgs.push(...checkAttributes(gl, funcName, args, getWebGLObjectString));
             }
@@ -1775,7 +1789,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           const str = elem.dataset.gmanDebugHelper;
           let config;
           try {
-            config = JSON.parse();
+            config = JSON.parse(str);
           } catch (e) {
             e.message += `\n${str}\nfailed to parse data-gman-debug-helper as JSON in: ${elem.outerHTML}`;
             throw e;

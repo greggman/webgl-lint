@@ -8,6 +8,10 @@ const clearVertexArray = vaoExt ? () => { vaoExt.bindVertexArrayOES(null); } : (
 const tagObject = ext ? ext.tagObject.bind(ext) : () => {};
 const settings = Object.fromEntries(new URLSearchParams(window.location.search).entries());
 const testGrepRE = new RegExp(escapeRE(settings.grep || ''));
+const config = {};
+document.querySelectorAll('[data-gman-debug-helper]').forEach(elem => {
+  Object.assign(config, JSON.parse(elem.dataset.gmanDebugHelper));
+});
 
 const tests = [
   { desc: "test drawing",
@@ -95,7 +99,7 @@ const tests = [
       gl.uniform4fv(loc, value);
     },
   },
-  { desc: "test bad ENUM 1",
+  { desc: "test bad enum 1",
     expect: [/argument.*?is undefined/],
     func() {
       const buf = gl.createBuffer();
@@ -687,6 +691,57 @@ const tests = [
       ext.drawArraysInstancedANGLE(gl.TRIANGLES, 0, 3, 4); // 1 too many instances
     },
   },
+  {
+    desc: 'test wrong number of args',
+    expect: [/'enable'.*?2 arguments/],
+    func() {
+      gl.enable(gl.DEPTH_TEST, 0);  // wrong number of args
+    },
+  },
+  {
+    desc: 'test unnamed buffer is called unnamed',
+    expect: [/\*unnamed\*/],
+    func() {
+      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+      gl.bufferData(gl.ARRAY_BUFFER, 3, gl.BLEND);
+    },
+  },
+  {
+    desc: 'test drawArrays with bad enum reports program and vao',
+    expect: [/drawArraysBE/, /"vaoBE"/],
+    func() {
+      const gl = document.createElement('canvas').getContext('webgl2');
+      if (!gl) {
+        throw new Error('drawArraysBE vaoBE');
+      }
+      const ext = gl.getExtension('GMAN_debug_helper');
+      const tagObject = ext ? ext.tagObject.bind(ext) : () => {};
+      
+      const vs = `
+      attribute vec4 position;
+
+      void main() {
+        gl_Position = position;
+      }
+      `;
+
+      const fs = `
+      precision mediump float;
+      void main() {
+        gl_FragColor = vec4(0);
+      }
+      `;
+
+      const vao = gl.createVertexArray();
+      tagObject(vao, 'vaoBE');
+      gl.bindVertexArray(vao);
+      const prg = twgl.createProgram(gl, [vs, fs]);
+      tagObject(prg, 'drawArraysBE');
+
+      gl.useProgram(prg);
+      gl.drawArrays(gl.TRAINGLES, 0, 1); // error, TRIANGLES misspelled.
+    },
+  },
 ];
 
 function escapeRE(str) {
@@ -731,13 +786,27 @@ for (const {desc, expect, func} of tests) {
   if (!testGrepRE.test(desc)) {
     continue;
   }
+  console.log(`\n\n--------------[ ${desc} ]---------------`);
   let actual = 'undefined';
-  try {
-    console.log(`\n\n--------------[ ${desc} ]---------------`);
+  if (config.throwOnError === false) {
+    const origFn = console.error;
+    let errors = [];
+    console.error = function(...args) {
+      errors.push(args.join(' '));
+    };
     func();
-  } catch(e) {
-    console.error(e);
-    actual = e.toString();
+    console.error = origFn;
+    if (errors.length) {
+      actual = errors.join('\n');
+      console.error(actual);
+    }
+  } else {
+    try {
+      func();
+    } catch(e) {
+      console.error(e);
+      actual = e.toString();
+    }
   }
   
   if (check(expect, actual, desc)) {
