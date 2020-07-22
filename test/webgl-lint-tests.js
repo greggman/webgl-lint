@@ -708,7 +708,7 @@ const tests = [
   },
   {
     desc: 'test drawArrays with bad enum reports program and vao',
-    expect: [/drawArraysBE/, /"vaoBE"/],
+    expect: [/drawArraysBE/, /WebGLVertexArrayObject\("\*unnamed\*"\)/],
     func() {
       const gl = document.createElement('canvas').getContext('webgl2');
       if (!gl) {
@@ -733,7 +733,7 @@ const tests = [
       `;
 
       const vao = gl.createVertexArray();
-      tagObject(vao, 'vaoBE');
+//      tagObject(vao, 'vaoBE');
       gl.bindVertexArray(vao);
       const prg = twgl.createProgram(gl, [vs, fs]);
       tagObject(prg, 'drawArraysBE');

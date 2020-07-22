@@ -1409,7 +1409,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       if (funcName.includes('vertexAttrib') || funcName.startsWith('draw')) {
         const vao = getCurrentVertexArray(ctx);
         const name = sharedState.webglObjectToNamesMap.get(vao);
-        const vaoName = `WebGLVertexArrayObject(${quoteStringOrEmpty(name)})`;
+        const vaoName = `WebGLVertexArrayObject(${quoteStringOrEmpty(name || '*unnamed*')})`;
         msgs.push(`with ${vao ? vaoName : 'the default vertex array'} bound`);
       }
       const stringifiedArgs = glFunctionArgsToString(ctx, funcName, args);
