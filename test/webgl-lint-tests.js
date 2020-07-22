@@ -70,6 +70,31 @@ const tests = [
       gl.uniform4fv(loc, [1, 2, 3/'foo', 4]);
     },
   },
+  { desc: "test large uniform",
+    expect: [/diffuseColors.*?NaN/],
+    func() {
+      const prg = twgl.createProgram(gl, [
+        `
+          void main() {
+             gl_Position = vec4(0);
+          }
+        `,
+        `
+          precision mediump float;
+          uniform vec4 diffuseColors[9];
+          void main() {
+            gl_FragColor = diffuseColors[8];
+          }
+        `,
+      ]);
+      tagObject(prg, 'simple program');
+      gl.useProgram(prg);
+      const loc = gl.getUniformLocation(prg, 'diffuseColors');
+      const value = new Array(36).fill(0);
+      value[33] = 3 / 'foo';
+      gl.uniform4fv(loc, value);
+    },
+  },
   { desc: "test bad ENUM 1",
     expect: [/argument.*?is undefined/],
     func() {
@@ -97,14 +122,16 @@ const tests = [
     },
   },
   { desc: 'test bad vertex data',
-    expect: [/positions-buffer.*?NaN/],
+    expect: [/positions-buffer.*?NaN/, /Float32Array/],
     func() {
       const buf = gl.createBuffer();
       tagObject(buf, 'positions-buffer')
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
       gl.bufferData(gl.ARRAY_BUFFER, 12, gl.STATIC_DRAW);
       gl.bufferData(gl.ARRAY_BUFFER, new ArrayBuffer(13), gl.STATIC_DRAW);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([1, 2, 3/'foo', 4]), gl.STATIC_DRAW);  // error
+      const data = new Float32Array(40000);
+      data[34567] = 3 / 'foo';
+      gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);  // error
     },
   },
   { desc: 'test bad texture data',
@@ -119,6 +146,24 @@ const tests = [
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.FLOAT, null);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.FLOAT, new Float32Array([1, 2, 3/'foo', 4]));  // error
+    },
+  },
+  { desc: 'test good data with DataView',
+    expect: [/undefined/],
+    func() {
+      const buf = gl.createBuffer();
+      tagObject(buf, 'positions-buffer')
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new DataView(new ArrayBuffer(13)), gl.STATIC_DRAW);
+    },
+  },
+  { desc: 'test bad enum with DataView',
+    expect: [/positions-buffer/, /INVALID_ENUM/, /DataView/],
+    func() {
+      const buf = gl.createBuffer();
+      tagObject(buf, 'positions-buffer')
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new DataView(new ArrayBuffer(13)), gl.BLEND);
     },
   },
   {
