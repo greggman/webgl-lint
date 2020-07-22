@@ -99,7 +99,7 @@ for special needs.
 * `failZeroMatrixUniforms`: (default: true)
 
   Checks that a uniform matrix not all zeros. It's a common source of errors to
-  forget to set a matrix to the identity and tt seems uncommon to have an all
+  forget to set a matrix to the identity and it seems uncommon to have an all
   zero matrix. If you have a reason a matrix needs to be all zeros you may want
   to turn this off. 
 
@@ -256,15 +256,15 @@ instead of just that you got an error.
        const name = `create${suffix}`;
        api[name] = (ext && gl[name])
            ? function(...args) {
-               const obj = origFn.call(this, ...args);
+               const obj = gl[name](...args);
                if (obj) {
                  ext.tagObject(obj, args[args.length - 1] || '*unknown*');
                }
                return obj;
              }
            : function(...args) {
-             return gl[name].call(this, ...args);
-           };
+               return gl[name](...args);
+             };
     });
     ```
 
