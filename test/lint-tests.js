@@ -556,10 +556,10 @@ const tests = [
         gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
       }
 
-      const positions = new Float32Array([0, 0, 1, 0, 0, 1]);
-      const texcoords = new Float32Array([0, 0, 1, 0, 0, 1]);
-      const colors = new Float32Array([1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1]);
-      const indices = new Uint16Array([0, 1, 3]);  // 3 is out of bounds
+      const positions = new Float32Array([0, 0, 1, 0, 0, 1, 0, 0]);  // 4 entries
+      const texcoords = new Float32Array([0, 0, 1, 0, 0, 1]);  // 3 entries
+      const colors = new Float32Array([1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1]);  // 4 entries
+      const indices = new Uint16Array([0, 1, 3]);  // 3 is out of bounds for texcoord
 
       makeBufferAndSetAttrib(gl, prg, 'position', 2, positions);
       makeBufferAndSetAttrib(gl, prg, 'texcoord', 2, texcoords);
