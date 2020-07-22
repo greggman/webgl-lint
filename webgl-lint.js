@@ -1359,7 +1359,11 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       } else if (value === undefined) {
         return 'undefined';
       } else if (Array.isArray(value) || isTypedArray(value)) {
-        return `[${Array.from(value.slice(0, 32)).join(', ')}]`;
+        if (value.length <= 32) {
+          return `[${Array.from(value.slice(0, 32)).join(', ')}]`;
+        } else {
+          return `${value.constructor.name}(${value.length !== undefined ? value.length : value.byteLength})`;
+        }
       } else {
         return value.toString();
       }
