@@ -156,12 +156,20 @@ There 2 ways to configure
    Example:
 
    ```html
-   <script src="https://github.greggman.io/webgl-helpers/webgl-gl-error-check.js"
-           data-gman-webgl-helper='{"maxDrawCalls": 2000, "failUnsetUniformSamplers": true}'>
+   <script
+     src="https://github.greggman.io/webgl-helpers/webgl-gl-error-check.js"
+     data-gman-webgl-helper='
+       {
+         "maxDrawCalls": 2000, 
+         "failUnsetUniformSamplers": true
+       }
+     '>
    </script>
    ```
 
-   Note: (1) the setting string must be valid JSON. (2) any tag will do, `<div>`, `<span>` etc...
+   Note: (1) the setting string must be valid JSON. (2) any tag will do, `<div>`, `<span>`, etc. as the
+   script just applies all tags it finds with `querySelector('[data-gman-webgl-helper]')` and applies
+   the options in the order found.
 
 ### Naming your WebGL objects (buffers, textures, programs, etc..)
 
@@ -199,30 +207,20 @@ instead of just that you got an error.
     ```js
     const ext = gl.getExtension('GMAN_debug_helper');
     if (ext) {
-      ['Texture', 
-       'Buffer',
-       'Framebuffer',
-       'Renderbuffer',
-       'Shader',
-       'Program',
-       'Query',
-       'Sampler',
-       'Sync',
-       'TransformFeedback',
-       'VertexArray',
-      ].forEach(suffix => {
-         const name = `create${suffix}`;
-         const origFn = gl[name];
-         if (origFn) {
-           gl[name] = function(...args) {
-             const obj = origFn.call(this, ...args);
-             if (obj) {
-               ext.tagObject(obj, args[args.length - 1] || '*unknown*');
-             }
-             return obj;
-           }
-         }
-      });
+      Object.keys(gl.__proto__)
+        .filter(name => name.startsWith('create'))
+        .forEach(name => {
+          const origFn = gl[name];
+          if (origFn) {
+            gl[name] = function(...args) {
+              const obj = origFn.call(this, ...args);
+              if (obj) {
+                ext.tagObject(obj, args[args.length - 1] || '*unknown*');
+              }
+              return obj;
+            }
+          }
+        });
     }
     ```
 
@@ -240,32 +238,23 @@ instead of just that you got an error.
 
     ```js
     const ext = gl.getExtension('GMAN_debug_helper');
-    const api = {};
-    ['Texture', 
-     'Buffer',
-     'Framebuffer',
-     'Renderbuffer',
-     'Shader',
-     'Program',
-     'Query',
-     'Sampler',
-     'Sync',
-     'TransformFeedback',
-     'VertexArray',
-    ].forEach(suffix => {
-       const name = `create${suffix}`;
-       api[name] = (ext && gl[name])
-           ? function(...args) {
-               const obj = gl[name](...args);
-               if (obj) {
-                 ext.tagObject(obj, args[args.length - 1] || '*unknown*');
-               }
-               return obj;
-             }
-           : function(...args) {
-               return gl[name](...args);
-             };
-    });
+    const api = Object.fromEntries(
+        Object.keys(gl.__proto__)
+          .filter(name => name.startsWith('create'))
+          .map(name => {
+            const func = (ext && gl[name])
+              ? function(...args) {
+                  const obj = gl[name](...args);
+                  if (obj) {
+                    ext.tagObject(obj, args[args.length - 1] || '*unknown*');
+                  }
+                  return obj;
+                }
+              : function(...args) {
+                  return gl[name](...args);
+                };
+            return [name, func];
+          }));
     ```
 
     Which you use like this
