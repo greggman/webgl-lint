@@ -24,8 +24,16 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 (function() {
   'use strict';  // eslint-disable-line
 
+  /* global document */
+  /* global navigator */
+  /* global HTMLCanvasElement */
+  /* global OffscreenCanvas */
+  /* global WebGL2RenderingContext */
+  /* global WebGLTexture */
+  /* global WebGLUniformLocation */
+
   // get errors if these are accessed
-  const gl = undefined;
+  const gl = undefined;  // eslint-disable-line
   const ctx = undefined;  // eslint-disable-line
   const ext = undefined;  // eslint-disable-line
 
@@ -169,6 +177,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     drawRangeElements(primType, start, end, vertCount, indexType, startOffset) { return {startOffset, vertCount, instances: 1, indexType}; },
   };
 
+  function isDrawFunction(funcName) {
+    return !!funcsToArgs[funcName];
+  }
+
   const glTypeToTypedArray = {}
   glTypeToTypedArray[UNSIGNED_BYTE] = Uint8Array;
   glTypeToTypedArray[UNSIGNED_SHORT] = Uint16Array;
@@ -176,7 +188,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
   const bufferToIndices = new Map();
 
-  function computeLastUseIndexForDrawArrays(startOffset, vertCount, instances, errors) {
+  function computeLastUseIndexForDrawArrays(startOffset, vertCount/*, instances, errors*/) {
     return startOffset + vertCount - 1;
   }
 
@@ -231,7 +243,7 @@ Those parameters require ${sizeNeeded} bytes but the current ELEMENT_ARRAY_BUFFE
         continue;
       }
       const index = gl.getAttribLocation(program, name);
-      const {size, count} = {count: 1, ...attrTypeMap[type]};
+      const {count} = {count: 1, ...attrTypeMap[type]};
       for (let jj = 0; jj < count; ++jj) {
         const ndx = index + jj;
         const enabled = gl.getVertexAttrib(ndx, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
@@ -645,7 +657,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
             },
             setConfiguration(config) {
               for (const [key, value] of Object.entries(config)) {
-                if (!key in sharedState.config) {
+                if (!(key in sharedState.config)) {
                   throw new Error(`unknown configuration option: ${key}`);
                 }
                 sharedState.config[key] = value;
@@ -744,20 +756,20 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       'texImage2D': {
         9: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5], arrays: [-8] },
         6: { enums: [0, 2, 3, 4] },
-        10: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5, 9], arrays: [-8] }, // WebGL2
+        10: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5, 9], arrays: {8: checkOptionalTypedArrayWithOffset }}, // WebGL2
       },
       'texImage3D': {
         10: { enums: [0, 2, 7, 8], numbers: [1, 3, 4, 5] },  // WebGL2
-        11: { enums: [0, 2, 7, 8], numbers: [1, 3, 4, 5, 10] },  // WebGL2
+        11: { enums: [0, 2, 7, 8], numbers: [1, 3, 4, 5, 10], arrays: {9: checkTypedArrayWithOffset}},  // WebGL2
       },
       'texSubImage2D': {
         9: { enums: [0, 6, 7], numbers: [1, 2, 3, 4, 5] },
         7: { enums: [0, 4, 5], numbers: [1, 2, 3] },
-        10: { enums: [0, 6, 7], numbers: [1, 2, 3, 4, 5, 9] },  // WebGL2
+        10: { enums: [0, 6, 7], numbers: [1, 2, 3, 4, 5, 9], arrays: {9: checkTypedArrayWithOffset} },  // WebGL2
       },
       'texSubImage3D': {
         11: { enums: [0, 8, 9], numbers: [1, 2, 3, 4, 5, 6, 7] },  // WebGL2
-        12: { enums: [0, 8, 9], numbers: [1, 2, 3, 4, 5, 6, 7, 11] },  // WebGL2
+        12: { enums: [0, 8, 9], numbers: [1, 2, 3, 4, 5, 6, 7, 11], arrays: {10: checkTypedArrayWithOffset} },  // WebGL2
       },
       'texStorage2D': { 5: { enums: [0, 2], numbers: [1, 3, 4] }},  // WebGL2
       'texStorage3D': { 6: { enums: [0, 2], numbers: [1, 3, 4, 6] }},  // WebGL2
@@ -768,6 +780,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       'compressedTexImage2D': {
         7: { enums: [0, 2], numbers: [1, 3, 4, 5] },
         8: { enums: [0, 2], numbers: [1, 3, 4, 5, 7] },  // WebGL2
+        9: { enums: [0, 2], numbers: [1, 3, 4, 5, 7, 8] },  // WebGL2
       },
       'compressedTexSubImage2D': {
         8: { enums: [0, 6], numbers: [1, 2, 3, 4, 5] },
@@ -790,16 +803,16 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       'bindBuffer': {2: { enums: [0] }},
       'bufferData': {
         3: { enums: [0, 2], numbers: [-1], arrays: [-1] },
-        4: { enums: [0, 2], numbers: [-1, 3], arrays: [-1] },  // WebGL2
-        5: { enums: [0, 2], numbers: [-1, 3, 4], arrays: [-1] },  // WebGL2
+        4: { enums: [0, 2], numbers: [-1, 3], arrays: { 1: checkBufferSourceWithOffset } },  // WebGL2
+        5: { enums: [0, 2], numbers: [-1, 3, 4], arrays: { 1: checkBufferSourceWithOffsetAndLength } },  // WebGL2
       },
       'bufferSubData': {
         3: { enums: [0], numbers: [1], arrays: [2] },
-        4: { enums: [0], numbers: [1, 3], arrays: [2] },  // WebGL2
-        5: { enums: [0], numbers: [1, 3, 4], arrays: [2] },  // WebGL2
+        4: { enums: [0], numbers: [1, 3], arrays: {2: checkBufferSourceWithOffset} },  // WebGL2
+        5: { enums: [0], numbers: [1, 3, 4], arrays: {2: checkBufferSourceWithOffsetAndLength} },  // WebGL2
       },
       'copyBufferSubData': {
-        5: { enums: [0], numbers: [2, 3, 4] },  // WeBGL2
+        5: { enums: [0], numbers: [2, 3, 4] },  // WebGL2
       },
       'getBufferParameter': {2: { enums: [0, 1] }},
       'getBufferSubData': {
@@ -1089,11 +1102,11 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     function checkMaxDrawCallsAndZeroCount(gl, funcName, args) {
       const {vertCount, instances} = funcsToArgs[funcName](...args);
       if (vertCount === 0) {
-        console.warn(`count for ${funcName} is 0!`);
+        console.warn(`count for ${funcName} is 0!`);  // eslint-disable-line
       }
 
       if (instances === 0) {
-        console.warn(`instanceCount for ${funcName} is 0!`);
+        console.warn(`instanceCount for ${funcName} is 0!`);  // eslint-disable-line
       }
 
       if (sharedState.maxDrawCalls === 0) {
@@ -1113,7 +1126,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       if (sharedState.config.throwOnError) {
         throw new Error(msg);
       } else {
-        console.error(msg);
+        console.error(msg);  // eslint-disable-line
       }
     }
 
@@ -1124,7 +1137,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
     const VERTEX_ARRAY_BINDING = 0x85B5;
 
-    function getCurrentVertexArray(ctx) {
+    function getCurrentVertexArray() {
       const gl = sharedState.baseContext;
       return (gl instanceof WebGL2RenderingContext || sharedState.wrappers.oes_vertex_array_object)
          ? gl.getParameter(VERTEX_ARRAY_BINDING)
@@ -1238,7 +1251,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       //   void bufferData(GLenum target, [AllowShared] ArrayBufferView srcData, GLenum usage, GLuint srcOffset,
       //                   optional GLuint length = 0);
       bufferData(gl, funcName, args) {
-        const [target, src, usage, srcOffset = 0, length = 0] = args;
+        const [target, src, /* usage */, srcOffset = 0, length = 0] = args;
         if (target !== gl.ELEMENT_ARRAY_BUFFER) {
           return;
         }
@@ -1428,6 +1441,62 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       }
     }
 
+    function checkTypedArray(ctx, funcName, args, arg, ndx, offset, length) {
+      if (!isTypedArray(arg)) {
+          return reportFunctionError(ctx, funcName, args, `argument ${ndx} must be a TypedArray`);
+      }
+      if (!isArrayThatCanHaveBadValues(arg)) {
+        return;
+      }
+      const start = offset;
+      const end = offset + length;
+      for (let i = start; i < end; ++i) {
+        if (arg[i] === undefined) {
+          return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is undefined`);
+        } else if (isNaN(arg[i])) {
+          return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is NaN`);
+        }
+      }
+    }
+
+    function checkTypedArrayWithOffset(ctx, funcName, args, arg, ndx) {
+      const offset = args[args.length - 1];
+      const length = arg.length - offset;
+      checkTypedArray(ctx, funcName, args, arg, ndx, offset, length);
+    }
+
+    function checkBufferSourceWithOffset(ctx, funcName, args, arg, ndx) {
+      if (isTypedArray(arg) && isArrayThatCanHaveBadValues(arg)) {
+        const offset = args[args.length - 1];
+        const length = arg.length - offset;
+        checkTypedArray(ctx, funcName, args, arg, ndx, offset, length);
+      } else {
+        if (Array.isArray(arg)) {
+          reportFunctionError(ctx, funcName, args, `argument ${ndx} is not an ArrayBufferView or ArrayBuffer`);
+        }
+      }
+    }
+
+    function checkBufferSourceWithOffsetAndLength(ctx, funcName, args, arg, ndx) {
+      if (isTypedArray(arg) && isArrayThatCanHaveBadValues(arg)) {
+        const offset = args[args.length - 2];
+        const length = args[args.length - 1];
+        checkTypedArray(ctx, funcName, args, arg, ndx, offset, length);
+      } else {
+        if (Array.isArray(arg)) {
+          reportFunctionError(ctx, funcName, args, `argument ${ndx} is not an ArrayBufferView or ArrayBuffer`);
+        }
+      }
+    }
+
+    function checkOptionalTypedArrayWithOffset(ctx, funcName, args, arg, ndx) {
+      if (Array.isArray(arg) || isTypedArray(arg)) {
+        const offset = args[args.length - 1];
+        const length = arg.length - offset;
+        checkTypedArray(ctx, funcName, args, arg, ndx, offset, length);
+      }
+    }
+
     function checkArrayForUniformImpl(ctx, funcName, args, arg, ndx, offset, length, valuesPerElementFunctionRequires) {
       const webglUniformLocation = args[0];
       if (!webglUniformLocation) {
@@ -1521,7 +1590,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           msgs.push(`with ${getWebGLObjectString(program)} as current program`);
         }
       }
-      if (funcName.includes('vertexAttrib') || funcName.startsWith('draw')) {
+      if (funcName.includes('vertexAttrib') || isDrawFunction(funcName)) {
         const vao = getCurrentVertexArray(ctx);
         const name = sharedState.webglObjectToNamesMap.get(vao);
         const vaoName = `WebGLVertexArrayObject(${quoteStringOrEmpty(name || '*unnamed*')})`;
@@ -1554,7 +1623,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
                 }
               } else {
                 // check that argument that maybe is a number (negative) is not NaN
-                if (!arg instanceof Object && isNaN(arg)) {
+                if (!(arg instanceof Object) && isNaN(arg)) {
                   return reportFunctionError(ctx, funcName, args, `argument ${ndx} is NaN`);
                 }
               }
@@ -1601,8 +1670,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         if (err !== 0) {
           glErrorShadow[err] = true;
           const msgs = [glEnumToString(ctx, err)];
-          // this is draw. drawBuffers starts with draw
-          if (funcName.startsWith('draw')) {
+          if (isDrawFunction(funcName)) {
             const program = gl.getParameter(gl.CURRENT_PROGRAM);
             if (program) {
               msgs.push(...checkFramebufferFeedback(gl, getWebGLObjectString));
@@ -1703,7 +1771,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
               }
 
               const addUnsetUniform = 
-                  (!isSampler(type) || sharedState.config.failUnsetUniformSamplers)
+                  (!isSampler(type) || sharedState.config.failUnsetSamplerUniforms)
                   && !sharedState.ignoredUniforms.has(name);
 
               const unset = new Set(range(0, size));
@@ -1931,7 +1999,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       }
       return ctx;
     };
-  };
+  }
 
   if (typeof HTMLCanvasElement !== "undefined") {
     wrapGetContext(HTMLCanvasElement);
