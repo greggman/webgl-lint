@@ -1,3 +1,4 @@
+/* global console */
 /* global document */
 
 export const gl = document.createElement('canvas').getContext('webgl');
@@ -8,6 +9,11 @@ const ext2 = gl2 ? gl2.getExtension('GMAN_debug_helper') : null;
 const vaoExt = gl.getExtension('OES_vertex_array_object');
 export const tagObject = ext ? ext.tagObject.bind(ext) : () => {};
 export const tagObject2 = ext2 ? ext2.tagObject.bind(ext2) : () => {};
+
+export const config = {};
+document.querySelectorAll('[data-gman-debug-helper]').forEach(elem => {
+  Object.assign(config, JSON.parse(elem.dataset.gmanDebugHelper));
+});
 
 export function resetContexts() {
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -22,7 +28,7 @@ export function resetContexts() {
 }
 
 export function escapeRE(str) {
-    return str.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    return str.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
 }
 
 export function not(str) {
@@ -31,11 +37,26 @@ export function not(str) {
 
 export function assertThrowsWith(func, expectations) {
   let error;
-  try {
+  if (config.throwOnError === false) {
+    const origFn = console.error;
+    let errors = [];
+    console.error = function(...args) {
+      errors.push(args.join(' '));
+    };
     func();
-  } catch (e) {
-    console.error(e);  // eslint-disable-line
-    error = e;
+    console.error = origFn;
+    if (errors.length) {
+      error = errors.join('\n');
+      console.error(error);
+    }
+  } else {
+    try {
+      func();
+    } catch (e) {
+      console.error(e);  // eslint-disable-line
+      error = e;
+    }
+
   }
   for (const expectation of expectations) {
     if (expectation instanceof RegExp) {

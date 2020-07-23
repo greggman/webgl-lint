@@ -3,14 +3,10 @@
 /* global URLSearchParams */
 /* global window */
 
-import {resetContexts, escapeRE} from './shared.js';
+import {resetContexts, escapeRE, config} from './shared.js';
 
 const settings = Object.fromEntries(new URLSearchParams(window.location.search).entries());
 const testGrepRE = new RegExp(escapeRE(settings.grep || ''));
-const config = {};
-document.querySelectorAll('[data-gman-debug-helper]').forEach(elem => {
-  Object.assign(config, JSON.parse(elem.dataset.gmanDebugHelper));
-});
 
 import drawingTests from './tests/drawing-test.js';
 import namingTests from './tests/naming-tests.js';
