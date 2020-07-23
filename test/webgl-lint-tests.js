@@ -1,5 +1,6 @@
 /* global console */
 /* global document */
+/* global setTimeout */
 /* global URLSearchParams */
 /* global window */
 
@@ -80,48 +81,54 @@ function check(expect, actual, desc) {
   return true;
 }
 
-for (const {desc, expect, func, test} of tests) {
-  if (!testGrepRE.test(desc)) {
-    continue;
-  }
-  console.log(`\n\n--------------[ ${desc} ]---------------`);
-  if (func) {
-    let actual = 'undefined';
-    if (config.throwOnError === false) {
-      const origFn = console.error;
-      let errors = [];
-      console.error = function(...args) {
-        errors.push(args.join(' '));
-      };
-      func();
-      console.error = origFn;
-      if (errors.length) {
-        actual = errors.join('\n');
-        console.error(actual);
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function runTests() {
+  for (const {desc, expect, func, test} of tests) {
+    if (!testGrepRE.test(desc)) {
+      continue;
+    }
+    console.log(`\n\n--------------[ ${desc} ]---------------`);
+    if (func) {
+      let actual = 'undefined';
+      if (config.throwOnError === false) {
+        const origFn = console.error;
+        let errors = [];
+        console.error = function(...args) {
+          errors.push(args.join(' '));
+        };
+        func();
+        console.error = origFn;
+        if (errors.length) {
+          actual = errors.join('\n');
+          console.error(actual);
+        }
+      } else {
+        try {
+          func();
+        } catch(e) {
+          console.error(e);
+          actual = e.toString();
+        }
+      }
+      
+      if (check(expect, actual, desc)) {
+        pass(desc);
+      }
+    } else if (test) {
+      try {
+        test();
+        pass(desc);
+      } catch (e) {
+        console.error(e);
+        fail(desc, e);
       }
     } else {
-      try {
-        func();
-      } catch(e) {
-        console.error(e);
-        actual = e.toString();
-      }
+      fail(desc, 'no test');
     }
-    
-    if (check(expect, actual, desc)) {
-      pass(desc);
-    }
-  } else if (test) {
-    try {
-      test();
-      pass(desc);
-    } catch (e) {
-      console.error(e);
-      fail(desc, e);
-    }
-  } else {
-    fail(desc, 'no test');
-  }
 
-  resetContexts();
+    resetContexts();
+    await wait();
+  }
 }
+runTests();
