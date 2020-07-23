@@ -54,10 +54,31 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   const FLOAT_MAT2                    = 0x8B5A;
   const FLOAT_MAT3                    = 0x8B5B;
   const FLOAT_MAT4                    = 0x8B5C;
+  const SAMPLER_2D                    = 0x8B5E;
+  const SAMPLER_CUBE                  = 0x8B60;
+  const SAMPLER_3D                    = 0x8B5F;
+  const SAMPLER_2D_SHADOW             = 0x8B62;
+  const FLOAT_MAT2x3                  = 0x8B65;
+  const FLOAT_MAT2x4                  = 0x8B66;
+  const FLOAT_MAT3x2                  = 0x8B67;
+  const FLOAT_MAT3x4                  = 0x8B68;
+  const FLOAT_MAT4x2                  = 0x8B69;
+  const FLOAT_MAT4x3                  = 0x8B6A;
+  const SAMPLER_2D_ARRAY              = 0x8DC1;
+  const SAMPLER_2D_ARRAY_SHADOW       = 0x8DC4;
+  const SAMPLER_CUBE_SHADOW           = 0x8DC5;
   const UNSIGNED_INT                  = 0x1405;
   const UNSIGNED_INT_VEC2             = 0x8DC6;
   const UNSIGNED_INT_VEC3             = 0x8DC7;
   const UNSIGNED_INT_VEC4             = 0x8DC8;
+  const INT_SAMPLER_2D                = 0x8DCA;
+  const INT_SAMPLER_3D                = 0x8DCB;
+  const INT_SAMPLER_CUBE              = 0x8DCC;
+  const INT_SAMPLER_2D_ARRAY          = 0x8DCF;
+  const UNSIGNED_INT_SAMPLER_2D       = 0x8DD2;
+  const UNSIGNED_INT_SAMPLER_3D       = 0x8DD3;
+  const UNSIGNED_INT_SAMPLER_CUBE     = 0x8DD4;
+  const UNSIGNED_INT_SAMPLER_2D_ARRAY = 0x8DD7;
 
   const attrTypeMap = {};
   attrTypeMap[FLOAT]             = { size:  4, };
@@ -79,6 +100,48 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   attrTypeMap[FLOAT_MAT2]        = { size:  4, count: 2, };
   attrTypeMap[FLOAT_MAT3]        = { size:  9, count: 3, };
   attrTypeMap[FLOAT_MAT4]        = { size: 16, count: 4, };
+
+  const uniformTypeMap = {};
+  uniformTypeMap[FLOAT]                         = { size:  1, name: 'float', };
+  uniformTypeMap[FLOAT_VEC2]                    = { size:  2, name: 'vec2', };
+  uniformTypeMap[FLOAT_VEC3]                    = { size:  3, name: 'vec3', };
+  uniformTypeMap[FLOAT_VEC4]                    = { size:  4, name: 'vec4', };
+  uniformTypeMap[INT]                           = { size:  1, name: 'int', };
+  uniformTypeMap[INT_VEC2]                      = { size:  2, name: 'ivec2', };
+  uniformTypeMap[INT_VEC3]                      = { size:  3, name: 'ivec3', };
+  uniformTypeMap[INT_VEC4]                      = { size:  4, name: 'ivec4', };
+  uniformTypeMap[UNSIGNED_INT]                  = { size:  1, name: 'uint', };
+  uniformTypeMap[UNSIGNED_INT_VEC2]             = { size:  2, name: 'uvec2', };
+  uniformTypeMap[UNSIGNED_INT_VEC3]             = { size:  3, name: 'uvec3', };
+  uniformTypeMap[UNSIGNED_INT_VEC4]             = { size:  4, name: 'uvec4', };
+  uniformTypeMap[BOOL]                          = { size:  1, name: 'bool', };
+  uniformTypeMap[BOOL_VEC2]                     = { size:  2, name: 'bvec2', };
+  uniformTypeMap[BOOL_VEC3]                     = { size:  3, name: 'bvec3', };
+  uniformTypeMap[BOOL_VEC4]                     = { size:  4, name: 'bvec4', };
+  uniformTypeMap[FLOAT_MAT2]                    = { size:  4, name: 'mat2', };
+  uniformTypeMap[FLOAT_MAT3]                    = { size:  9, name: 'mat3', };
+  uniformTypeMap[FLOAT_MAT4]                    = { size: 16, name: 'mat4', };
+  uniformTypeMap[FLOAT_MAT2x3]                  = { size:  6, name: 'mat2x3', };
+  uniformTypeMap[FLOAT_MAT2x4]                  = { size:  8, name: 'mat2x4', };
+  uniformTypeMap[FLOAT_MAT3x2]                  = { size:  6, name: 'mat3x2', };
+  uniformTypeMap[FLOAT_MAT3x4]                  = { size: 12, name: 'mat3x4', };
+  uniformTypeMap[FLOAT_MAT4x2]                  = { size:  8, name: 'mat4x2', };
+  uniformTypeMap[FLOAT_MAT4x3]                  = { size: 12, name: 'mat4x3', };
+  uniformTypeMap[SAMPLER_2D]                    = { size:  1, name: 'sampler2D', };
+  uniformTypeMap[SAMPLER_CUBE]                  = { size:  1, name: 'samplerCube', };
+  uniformTypeMap[SAMPLER_3D]                    = { size:  1, name: 'sampler3D', };
+  uniformTypeMap[SAMPLER_2D_SHADOW]             = { size:  1, name: 'sampler2DShadow', };
+  uniformTypeMap[SAMPLER_2D_ARRAY]              = { size:  1, name: 'sampler2DArray', };
+  uniformTypeMap[SAMPLER_2D_ARRAY_SHADOW]       = { size:  1, name: 'sampler2DArrayShadow', };
+  uniformTypeMap[SAMPLER_CUBE_SHADOW]           = { size:  1, name: 'samplerCubeShadow', };
+  uniformTypeMap[INT_SAMPLER_2D]                = { size:  1, name: 'isampler2D', };
+  uniformTypeMap[INT_SAMPLER_3D]                = { size:  1, name: 'isampler3D', };
+  uniformTypeMap[INT_SAMPLER_CUBE]              = { size:  1, name: 'isamplerCube', };
+  uniformTypeMap[INT_SAMPLER_2D_ARRAY]          = { size:  1, name: 'isampler2DArray', };
+  uniformTypeMap[UNSIGNED_INT_SAMPLER_2D]       = { size:  1, name: 'usampler2D', };
+  uniformTypeMap[UNSIGNED_INT_SAMPLER_3D]       = { size:  1, name: 'usampler3D', };
+  uniformTypeMap[UNSIGNED_INT_SAMPLER_CUBE]     = { size:  1, name: 'usamplerCube', };
+  uniformTypeMap[UNSIGNED_INT_SAMPLER_2D_ARRAY] = { size:  1, name: 'usampler2DArray', };
 
   const BYTE                         = 0x1400;
   const UNSIGNED_BYTE                = 0x1401;
@@ -209,13 +272,6 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
   // ---------------------------------
 
-  const SAMPLER_2D                    = 0x8B5E;
-  const SAMPLER_CUBE                  = 0x8B60;
-  const SAMPLER_3D                    = 0x8B5F;
-  const SAMPLER_2D_SHADOW             = 0x8B62;
-  const SAMPLER_2D_ARRAY              = 0x8DC1;
-  const SAMPLER_2D_ARRAY_SHADOW       = 0x8DC4;
-  const SAMPLER_CUBE_SHADOW           = 0x8DC5;
   const samplers = new Set([
     SAMPLER_2D,
     SAMPLER_CUBE,
@@ -476,403 +532,6 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     'STENCIL_BUFFER_BIT',
  ]);
 
-  /**
-   * Info about functions based on the number of arguments to the function.
-   * 
-   * enums specifies which arguments are enums
-   * 
-   *    'texImage2D': {
-   *       9: { enums: [0, 2, 6, 7 ] },
-   *       6: { enums: [0, 2, 3, 4 ] },
-   *    },
-   *
-   * means if there are 9 arguments then 6 and 7 are enums, if there are 6
-   * arguments 3 and 4 are enums. You can provide a function instead in
-   * which case you should use object format. For example
-   * 
-   *     `clear`: {
-   *       1: { enums: { 0: convertClearBitsToString }},
-   *     },
-   *
-   * numbers specifies which arguments are numbers, if an argument is negative that
-   * argument might not be a number so we can check only check for NaN 
-   * arrays specifies which arguments are arrays
-   * 
-   * @type {!Object.<number, (!Object.<number, string>|function)}
-   */
-  const glFunctionInfos = {
-    // Generic setters and getters
-
-    'enable': {1: { enums: [0] }},
-    'disable': {1: { enums: [0] }},
-    'getParameter': {1: { enums: [0] }},
-
-    // Rendering
-
-    'drawArrays': {3:{ enums: [0], numbers: [1, 2] }},
-    'drawElements': {4:{ enums: [0, 2], numbers: [1, 3] }},
-    'drawArraysInstanced': {4: { enums: [0], numbers: [1, 2, 3] }},
-    'drawElementsInstanced': {5: { enums: [0, 2], numbers: [1, 3, 4] }},
-    'drawRangeElements': {6: { enums: [0, 4], numbers: [1, 2, 3, 5] }},
-
-    // Shaders
-
-    'createShader': {1: { enums: [0] }},
-    'getActiveAttrib': {2: { numbers: [1] }},
-    'getActiveUniform': {2: { numbers: [1] }},
-    'getShaderParameter': {2: { enums: [1] }},
-    'getProgramParameter': {2: { enums: [1] }},
-    'getShaderPrecisionFormat': {2: { enums: [0, 1] }},
-    'bindAttribLocation': {3: {numbers: [1]}},
-
-    // Vertex attributes
-
-    'getVertexAttrib': {2: { enums: [1], numbers: [0] }},
-    'vertexAttribPointer': {6: { enums: [2], numbers: [0, 1, 4, 5] }},
-    'vertexAttribIPointer': {5: { enums: [2], numbers: [0, 1, 3, 4] }},  // WebGL2
-    'vertexAttribDivisor': {2: { numbers: [0, 1] }}, // WebGL2
-    'disableVertexAttribArray': {1: {numbers: [0] }},
-    'enableVertexAttribArray': {1: {numbers: [0] }},
-
-    // Textures
-
-    'bindTexture': {2: { enums: [0] }},
-    'activeTexture': {1: { enums: [0, 1] }},
-    'getTexParameter': {2: { enums: [0, 1] }},
-    'texParameterf': {3: { enums: [0, 1] }},
-    'texParameteri': {3: { enums: [0, 1, 2] }},
-    'texImage2D': {
-      9: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5], arrays: [-8] },
-      6: { enums: [0, 2, 3, 4] },
-      10: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5, 9], arrays: [-8] }, // WebGL2
-    },
-    'texImage3D': {
-      10: { enums: [0, 2, 7, 8], numbers: [1, 3, 4, 5] },  // WebGL2
-      11: { enums: [0, 2, 7, 8], numbers: [1, 3, 4, 5, 10] },  // WebGL2
-    },
-    'texSubImage2D': {
-      9: { enums: [0, 6, 7], numbers: [1, 2, 3, 4, 5] },
-      7: { enums: [0, 4, 5], numbers: [1, 2, 3] },
-      10: { enums: [0, 6, 7], numbers: [1, 2, 3, 4, 5, 9] },  // WebGL2
-    },
-    'texSubImage3D': {
-      11: { enums: [0, 8, 9], numbers: [1, 2, 3, 4, 5, 6, 7] },  // WebGL2
-      12: { enums: [0, 8, 9], numbers: [1, 2, 3, 4, 5, 6, 7, 11] },  // WebGL2
-    },
-    'texStorage2D': { 5: { enums: [0, 2], numbers: [1, 3, 4] }},  // WebGL2
-    'texStorage3D': { 6: { enums: [0, 2], numbers: [1, 3, 4, 6] }},  // WebGL2
-    'copyTexImage2D': {8: { enums: [0, 2], numbers: [1, 3, 4, 5, 6, 7] }},
-    'copyTexSubImage2D': {8: { enums: [0], numbers: [1, 2, 3, 4, 5, 6, 7]}},
-    'copyTexSubImage3D': {9: { enums: [0], numbers: [1, 2, 3, 4, 5, 6, 7, 8] }},  // WebGL2
-    'generateMipmap': {1: { enums: [0] }},
-    'compressedTexImage2D': {
-      7: { enums: [0, 2], numbers: [1, 3, 4, 5] },
-      8: { enums: [0, 2], numbers: [1, 3, 4, 5, 7] },  // WebGL2
-    },
-    'compressedTexSubImage2D': {
-      8: { enums: [0, 6], numbers: [1, 2, 3, 4, 5] },
-      9: { enums: [0, 6], numbers: [1, 2, 3, 4, 5, 8] },  // WebGL2
-    },
-    'compressedTexImage3D': {
-      8: { enums: [0, 2], numbers: [1, 3, 4, 5, 6] },  // WebGL2
-      9: { enums: [0, 2], numbers: [1, 3, 4, 5, 6, -7, 8] },  // WebGL2
-      10: { enums: [0, 2], numbers: [1, 3, 4, 5, 6, 8, 9] },  // WebGL2
-    },
-    'compressedTexSubImage3D': {
-      12: { enums: [0, 8], numbers: [1, 2, 3, 4, 5, 6, 7, 8, 10, 11] },  // WebGL2
-      11: { enums: [0, 8], numbers: [1, 2, 3, 4, 5, 6, 7, 8, -9, 10] },  // WebGL2
-      10: { enums: [0, 8], numbers: [1, 2, 3, 4, 5, 6, 7, 8] },  // WebGL2
-    },
-
-    // Buffer objects
-
-    'bindBuffer': {2: { enums: [0] }},
-    'bufferData': {
-      3: { enums: [0, 2], numbers: [-1], arrays: [-1] },
-      4: { enums: [0, 2], numbers: [-1, 3], arrays: [-1] },  // WebGL2
-      5: { enums: [0, 2], numbers: [-1, 3, 4], arrays: [-1] },  // WebGL2
-    },
-    'bufferSubData': {
-      3: { enums: [0], numbers: [1], arrays: [2] },
-      4: { enums: [0], numbers: [1, 3], arrays: [2] },  // WebGL2
-      5: { enums: [0], numbers: [1, 3, 4], arrays: [2] },  // WebGL2
-    },
-    'copyBufferSubData': {
-      5: { enums: [0], numbers: [2, 3, 4] },  // WeBGL2
-    },
-    'getBufferParameter': {2: { enums: [0, 1] }},
-    'getBufferSubData': {
-      3: { enums: [0], numbers: [1] },  // WebGL2
-      4: { enums: [0], numbers: [1, 3] },  // WebGL2
-      5: { enums: [0], numbers: [1, 3, 4] },  // WebGL2
-    },
-
-    // Renderbuffers and framebuffers
-
-    'pixelStorei': {2: { enums: [0, 1], numbers: [1] }},
-    'readPixels': {
-      7: { enums: [4, 5], numbers: [0, 1, 2, 3, -6] },
-      8: { enums: [4, 5], numbers: [0, 1, 2, 3, 7] },  // WebGL2
-    },
-    'bindRenderbuffer': {2: { enums: [0] }},
-    'bindFramebuffer': {2: { enums: [0] }},
-    'blitFramebuffer': {10: { enums: { 8: destBufferBitFieldToString, 9:true }, numbers: [0, 1, 2, 3, 4, 5, 6, 7]}},  // WebGL2
-    'checkFramebufferStatus': {1: { enums: [0] }},
-    'framebufferRenderbuffer': {4: { enums: [0, 1, 2], }},
-    'framebufferTexture2D': {5: { enums: [0, 1, 2], numbers: [4] }},
-    'framebufferTextureLayer': {5: { enums: [0, 1], numbers: [3, 4] }},  // WebGL2
-    'getFramebufferAttachmentParameter': {3: { enums: [0, 1, 2] }},
-    'getInternalformatParameter': {3: { enums: [0, 1, 2] }},  // WebGL2
-    'getRenderbufferParameter': {2: { enums: [0, 1] }},
-    'invalidateFramebuffer': {2: { enums: { 0: true, 1: enumArrayToString, } }},  // WebGL2
-    'invalidateSubFramebuffer': {6: { enums: { 0: true, 1: enumArrayToString, }, numbers: [2, 3, 4, 5] }},  // WebGL2
-    'readBuffer': {1: { enums: [0] }},  // WebGL2
-    'renderbufferStorage': {4: { enums: [0, 1], numbers: [2, 3] }},
-    'renderbufferStorageMultisample': {5: { enums: [0, 2], numbers: [1, 3, 4] }},  // WebGL2
-
-    // Frame buffer operations (clear, blend, depth test, stencil)
-
-    'lineWidth': {1: {numbers: [0]}},
-    'polygonOffset': {2: {numbers: [0, 1]}},
-    'scissor': {4: { numbers: [0, 1, 2, 3]}},
-    'viewport': {4: { numbers: [0, 1, 2, 3]}},
-    'clear': {1: { enums: { 0: destBufferBitFieldToString } }},
-    'clearColor': {4: { numbers: [0, 1, 2, 3]}},
-    'clearDepth': {1: { numbers: [0]}},
-    'clearStencil': {1: { numbers: [0]}},
-    'depthFunc': {1: { enums: [0] }},
-    'depthRange': {2: { numbers: [0, 1]}},
-    'blendColor': {4: { numbers: [0, 1, 2, 3]}},
-    'blendFunc': {2: { enums: [0, 1] }},
-    'blendFuncSeparate': {4: { enums: [0, 1, 2, 3] }},
-    'blendEquation': {1: { enums: [0] }},
-    'blendEquationSeparate': {2: { enums: [0, 1] }},
-    'stencilFunc': {3: { enums: [0], numbers: [1, 2] }},
-    'stencilFuncSeparate': {4: { enums: [0, 1], numberS: [2, 3] }},
-    'stencilMask': {1: { numbers: [0] }},
-    'stencilMaskSeparate': {2: { enums: [0], numbers: [1] }},
-    'stencilOp': {3: { enums: [0, 1, 2] }},
-    'stencilOpSeparate': {4: { enums: [0, 1, 2, 3] }},
-
-    // Culling
-
-    'cullFace': {1: { enums: [0] }},
-    'frontFace': {1: { enums: [0] }},
-
-    // ANGLE_instanced_arrays extension
-
-    'drawArraysInstancedANGLE': {4: { enums: [0], numbers: [1, 2, 3] }},
-    'drawElementsInstancedANGLE': {5: { enums: [0, 2], numbers: [1, 3, 4] }},
-
-    // EXT_blend_minmax extension
-
-    'blendEquationEXT': {1: { enums: [0] }},
-
-    // Multiple Render Targets
-
-    'drawBuffersWebGL': {1: { enums: { 0: enumArrayToString, }, arrays: [0] }},  // WEBGL_draw_buffers
-    'drawBuffers': {1: { enums: { 0: enumArrayToString, }, arrays: [0] }},  // WebGL2
-    'clearBufferfv': {
-      3: { enums: [0], numbers: [1], arrays: [2] },  // WebGL2
-      4: { enums: [0], numbers: [1, 2], arrays: [2] },  // WebGL2
-    },
-    'clearBufferiv': {
-      3: { enums: [0], numbers: [1], arrays: [2] },  // WebGL2
-      4: { enums: [0], numbers: [1, 2], arrays: [2] },  // WebGL2
-    },
-    'clearBufferuiv': {
-      3: { enums: [0], numbers: [1], arrays: [2] },  // WebGL2
-      4: { enums: [0], numbers: [1, 2], arrays: [2] },  // WebGL2
-    },
-    'clearBufferfi': { 4: { enums: [0], numbers: [1, 2, 3] }},  // WebGL2
-
-    // uniform value setters
-    'uniform1f': { 2: {numbers: [1]} },
-    'uniform2f': { 3: {numbers: [1, 2]} },
-    'uniform3f': { 4: {numbers: [1, 2, 3]} },
-    'uniform4f': { 5: {numbers: [1, 2, 3, 4]} },
-
-    'uniform1i': { 2: {numbers: [1]} },
-    'uniform2i': { 3: {numbers: [1, 2]} },
-    'uniform3i': { 4: {numbers: [1, 2, 3]} },
-    'uniform4i': { 5: {numbers: [1, 2, 3, 4]} },
-
-    'uniform1fv': {
-      2: {arrays: [1]},
-      3: {arrays: [1], numbers: [2]},
-      4: {arrays: [1], numbers: [2, 3]},
-    },
-    'uniform2fv': {
-      2: {arrays: [1]},
-      3: {arrays: [1], numbers: [2]},
-      4: {arrays: [1], numbers: [2, 3]},
-    },
-    'uniform3fv': {
-      2: {arrays: [1]},
-      3: {arrays: [1], numbers: [2]},
-      4: {arrays: [1], numbers: [2, 3]},
-    },
-    'uniform4fv': {
-      2: {arrays: [1]},
-      3: {arrays: [1], numbers: [2]},
-      4: {arrays: [1], numbers: [2, 3]},
-    },
-
-    'uniform1iv': {
-      2: {arrays: [1]},
-      3: {arrays: [1], numbers: [2]},
-      4: {arrays: [1], numbers: [2, 3]},
-    },
-    'uniform2iv': {
-      2: {arrays: [1]},
-      3: {arrays: [1], numbers: [2]},
-      4: {arrays: [1], numbers: [2, 3]},
-    },
-    'uniform3iv': {
-      2: {arrays: [1]},
-      3: {arrays: [1], numbers: [2]},
-      4: {arrays: [1], numbers: [2, 3]},
-    },
-    'uniform4iv': {
-      2: {arrays: [1]},
-      3: {arrays: [1], numbers: [2]},
-      4: {arrays: [1], numbers: [2, 3]},
-    },
-
-    'uniformMatrix2fv': {
-      3: {arrays: [2]},
-      4: {arrays: [2], numbers: [3]},
-      5: {arrays: [2], numbers: [3, 4]},
-    },
-    'uniformMatrix3fv': {
-      3: {arrays: [2]},
-      4: {arrays: [2], numbers: [3]},
-      5: {arrays: [2], numbers: [3, 4]},
-    },
-    'uniformMatrix4fv': {
-      3: {arrays: [2]},
-      4: {arrays: [2], numbers: [3]},
-      5: {arrays: [2], numbers: [3, 4]},
-    },
-
-    'uniform1ui': { 2: {numbers: [1]} },  // WebGL2
-    'uniform2ui': { 3: {numbers: [1, 2]} },  // WebGL2
-    'uniform3ui': { 4: {numbers: [1, 2, 3]} },  // WebGL2
-    'uniform4ui': { 5: {numbers: [1, 2, 3, 4]} },  // WebGL2
-
-    'uniform1uiv': {  // WebGL2
-      2: { arrays: [1], },
-      3: { arrays: [1], numbers: [2] },
-      4: { arrays: [1], numbers: [2, 3] },
-    },
-    'uniform2uiv': {  // WebGL2
-      2: { arrays: [1], },
-      3: { arrays: [1], numbers: [2] },
-      4: { arrays: [1], numbers: [2, 3] },
-    },
-    'uniform3uiv': {  // WebGL2
-      2: { arrays: [1], },
-      3: { arrays: [1], numbers: [2] },
-      4: { arrays: [1], numbers: [2, 3] },
-    },
-    'uniform4uiv': {  // WebGL2
-      2: { arrays: [1], },
-      3: { arrays: [1], numbers: [2] },
-      4: { arrays: [1], numbers: [2, 3] },
-    },
-    'uniformMatrix3x2fv': {  // WebGL2
-      3: { arrays: [2], },
-      4: { arrays: [3], numbers: [3] },
-      5: { arrays: [4], numbers: [3, 4] },
-    },
-    'uniformMatrix4x2fv': {  // WebGL2
-      3: { arrays: [2], },
-      4: { arrays: [3], numbers: [3] },
-      5: { arrays: [4], numbers: [3, 4] },
-    },
-
-    'uniformMatrix2x3fv': {  // WebGL2
-      3: { arrays: [2], },
-      4: { arrays: [3], numbers: [3] },
-      5: { arrays: [4], numbers: [3, 4] },
-    },
-    'uniformMatrix4x3fv': {  // WebGL2
-      3: { arrays: [2], },
-      4: { arrays: [3], numbers: [3] },
-      5: { arrays: [4], numbers: [3, 4] },
-    },
-
-    'uniformMatrix2x4fv': {  // WebGL2
-      3: { arrays: [2], },
-      4: { arrays: [3], numbers: [3] },
-      5: { arrays: [4], numbers: [3, 4] },
-    },
-    'uniformMatrix3x4fv': {  // WebGL2
-      3: { arrays: [2], },
-      4: { arrays: [3], numbers: [3] },
-      5: { arrays: [4], numbers: [3, 4] },
-    },
-
-    // attribute value setters
-    'vertexAttrib1f': { 2: {numbers: [0, 1]}},
-    'vertexAttrib2f': { 3: {numbers: [0, 1, 2]}},
-    'vertexAttrib3f': { 4: {numbers: [0, 1, 2, 3]}},
-    'vertexAttrib4f': { 5: {numbers: [0, 1, 2, 3, 4]}},
-
-    'vertexAttrib1fv': { 2: {numbers: [0], arrays: [1]}},
-    'vertexAttrib2fv': { 2: {numbers: [0], arrays: [1]}},
-    'vertexAttrib3fv': { 2: {numbers: [0], arrays: [1]}},
-    'vertexAttrib4fv': { 2: {numbers: [0], arrays: [1]}},
-
-    'vertexAttribI4i': { 5: {numbers: [0, 1, 2, 3, 4]}},  // WebGL2
-    'vertexAttribI4iv': {2: {numbers: [0], arrays: [1]}},  // WebGL2
-    'vertexAttribI4ui': {5: {numbers: [0, 1, 2, 3, 4]}},  // WebGL2
-    'vertexAttribI4uiv': {2: {numbers: [0], arrays: [1]}},  // WebGL2
-
-    // QueryObjects
-
-    'beginQuery': { 2: { enums: [0] }},  // WebGL2
-    'endQuery': { 1: { enums: [0] }},  // WebGL2
-    'getQuery': { 2: { enums: [0, 1] }},  // WebGL2
-    'getQueryParameter': { 2: { enums: [1] }},  // WebGL2
-
-    //  Sampler Objects
-
-    'samplerParameteri': { 3: { enums: [1] }},  // WebGL2
-    'samplerParameterf': { 3: { enums: [1] }},  // WebGL2
-    'getSamplerParameter': { 2: { enums: [1] }},  // WebGL2
-
-    //  Sync objects
-
-    'clientWaitSync': { 3: { enums: { 1: makeBitFieldToStringFunc(['SYNC_FLUSH_COMMANDS_BIT']) }, numbers: [2] }},  // WebGL2
-    'fenceSync': { 2: { enums: [0] }},  // WebGL2
-    'getSyncParameter': { 2: { enums: [1] }},  // WebGL2
-
-    //  Transform Feedback
-
-    'bindTransformFeedback': { 2: { enums: [0] }},  // WebGL2
-    'beginTransformFeedback': { 1: { enums: [0] }},  // WebGL2
-
-    // Uniform Buffer Objects and Transform Feedback Buffers
-    'bindBufferBase': { 3: { enums: [0], numbers: [1]}},  // WebGL2
-    'bindBufferRange': { 5: { enums: [0], numbers: [1, 3, 4]}},  // WebGL2
-    'getIndexedParameter': { 2: { enums: [0], numbers: [1] }},  // WebGL2
-    'getActiveUniforms': { 3: { enums: [2] }, arrays: [1]},  // WebGL2
-    'getActiveUniformBlockParameter': { 3: { enums: [2], numbers: [1] }},  // WebGL2
-    'getActiveUniformBlockName': { 2: {numbers: [1]}}, // WebGL2
-    'uniformBlockBinding': { 3: { numbers: [1, 2]}}, // WebGL2
-  };
-  for (const [name, fnInfos] of Object.entries(glFunctionInfos)) {
-    for (const fnInfo of Object.values(fnInfos)) {
-      convertToObjectIfArray(fnInfo, 'enums');
-      convertToObjectIfArray(fnInfo, 'numbers');
-      convertToObjectIfArray(fnInfo, 'arrays');
-    }
-    if (/uniform(\d|Matrix)/.test(name)) {
-      fnInfos.errorHelper = getUniformNameErrorMsg;
-    }
-  }
-
   function convertToObjectIfArray(obj, key) {
     if (Array.isArray(obj[key])) {
       obj[key] = Object.fromEntries(obj[key].map(ndx => [Math.abs(ndx), ndx]));
@@ -1006,15 +665,414 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       //   altNames: Map<string, number>  // example <foo,0>, <foo[0],0>, <foo[1],1>, <foo[2],2>, <foo[3],3>  for `uniform vec4 foo[3]`
       //   unused: Set<number>    // this is size so for the example above it's `Set<[0, 1, 2, 3]`
       // }
-      // Both the altName array and the unused Set are shared with an entry in `programToUniformsMap`
+      // Both the altName array and the unused Set are shared with an entry in `programToUnsetUniformsMap`
       // by each name (foo, foo[0], foo[1], foo[2]). That we we can unused.delete each element of set
-      // and if set is empty then delete all altNames entries from programToUniformsMap.
+      // and if set is empty then delete all altNames entries from programToUnsetUniformsMap.
       // When programsToUniformsMap is empty all uniforms have been set.
       // Map<WebGLProgram, Map<string, UnusedUniformRef>
-      programToUniformsMap: new Map(),
+      programToUnsetUniformsMap: new Map(),
+      programToUniformInfoMap: new Map(),
     };
     options.sharedState = sharedState;
     addEnumsFromAPI(ctx);
+
+    /**
+     * Info about functions based on the number of arguments to the function.
+     * 
+     * enums specifies which arguments are enums
+     * 
+     *    'texImage2D': {
+     *       9: { enums: [0, 2, 6, 7 ] },
+     *       6: { enums: [0, 2, 3, 4 ] },
+     *    },
+     *
+     * means if there are 9 arguments then 6 and 7 are enums, if there are 6
+     * arguments 3 and 4 are enums. You can provide a function instead in
+     * which case you should use object format. For example
+     * 
+     *     `clear`: {
+     *       1: { enums: { 0: convertClearBitsToString }},
+     *     },
+     *
+     * numbers specifies which arguments are numbers, if an argument is negative that
+     * argument might not be a number so we can check only check for NaN 
+     * arrays specifies which arguments are arrays
+     * 
+     * @type {!Object.<number, (!Object.<number, string>|function)}
+     */
+    const glFunctionInfos = {
+      // Generic setters and getters
+
+      'enable': {1: { enums: [0] }},
+      'disable': {1: { enums: [0] }},
+      'getParameter': {1: { enums: [0] }},
+
+      // Rendering
+
+      'drawArrays': {3:{ enums: [0], numbers: [1, 2] }},
+      'drawElements': {4:{ enums: [0, 2], numbers: [1, 3] }},
+      'drawArraysInstanced': {4: { enums: [0], numbers: [1, 2, 3] }},
+      'drawElementsInstanced': {5: { enums: [0, 2], numbers: [1, 3, 4] }},
+      'drawRangeElements': {6: { enums: [0, 4], numbers: [1, 2, 3, 5] }},
+
+      // Shaders
+
+      'createShader': {1: { enums: [0] }},
+      'getActiveAttrib': {2: { numbers: [1] }},
+      'getActiveUniform': {2: { numbers: [1] }},
+      'getShaderParameter': {2: { enums: [1] }},
+      'getProgramParameter': {2: { enums: [1] }},
+      'getShaderPrecisionFormat': {2: { enums: [0, 1] }},
+      'bindAttribLocation': {3: {numbers: [1]}},
+
+      // Vertex attributes
+
+      'getVertexAttrib': {2: { enums: [1], numbers: [0] }},
+      'vertexAttribPointer': {6: { enums: [2], numbers: [0, 1, 4, 5] }},
+      'vertexAttribIPointer': {5: { enums: [2], numbers: [0, 1, 3, 4] }},  // WebGL2
+      'vertexAttribDivisor': {2: { numbers: [0, 1] }}, // WebGL2
+      'disableVertexAttribArray': {1: {numbers: [0] }},
+      'enableVertexAttribArray': {1: {numbers: [0] }},
+
+      // Textures
+
+      'bindTexture': {2: { enums: [0] }},
+      'activeTexture': {1: { enums: [0, 1] }},
+      'getTexParameter': {2: { enums: [0, 1] }},
+      'texParameterf': {3: { enums: [0, 1] }},
+      'texParameteri': {3: { enums: [0, 1, 2] }},
+      'texImage2D': {
+        9: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5], arrays: [-8] },
+        6: { enums: [0, 2, 3, 4] },
+        10: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5, 9], arrays: [-8] }, // WebGL2
+      },
+      'texImage3D': {
+        10: { enums: [0, 2, 7, 8], numbers: [1, 3, 4, 5] },  // WebGL2
+        11: { enums: [0, 2, 7, 8], numbers: [1, 3, 4, 5, 10] },  // WebGL2
+      },
+      'texSubImage2D': {
+        9: { enums: [0, 6, 7], numbers: [1, 2, 3, 4, 5] },
+        7: { enums: [0, 4, 5], numbers: [1, 2, 3] },
+        10: { enums: [0, 6, 7], numbers: [1, 2, 3, 4, 5, 9] },  // WebGL2
+      },
+      'texSubImage3D': {
+        11: { enums: [0, 8, 9], numbers: [1, 2, 3, 4, 5, 6, 7] },  // WebGL2
+        12: { enums: [0, 8, 9], numbers: [1, 2, 3, 4, 5, 6, 7, 11] },  // WebGL2
+      },
+      'texStorage2D': { 5: { enums: [0, 2], numbers: [1, 3, 4] }},  // WebGL2
+      'texStorage3D': { 6: { enums: [0, 2], numbers: [1, 3, 4, 6] }},  // WebGL2
+      'copyTexImage2D': {8: { enums: [0, 2], numbers: [1, 3, 4, 5, 6, 7] }},
+      'copyTexSubImage2D': {8: { enums: [0], numbers: [1, 2, 3, 4, 5, 6, 7]}},
+      'copyTexSubImage3D': {9: { enums: [0], numbers: [1, 2, 3, 4, 5, 6, 7, 8] }},  // WebGL2
+      'generateMipmap': {1: { enums: [0] }},
+      'compressedTexImage2D': {
+        7: { enums: [0, 2], numbers: [1, 3, 4, 5] },
+        8: { enums: [0, 2], numbers: [1, 3, 4, 5, 7] },  // WebGL2
+      },
+      'compressedTexSubImage2D': {
+        8: { enums: [0, 6], numbers: [1, 2, 3, 4, 5] },
+        9: { enums: [0, 6], numbers: [1, 2, 3, 4, 5, 8] },  // WebGL2
+        10: { enums: [0, 6], numbers: [1, 2, 3, 4, 5, 8, 9] },  // WebGL2
+      },
+      'compressedTexImage3D': {
+        8: { enums: [0, 2], numbers: [1, 3, 4, 5, 6] },  // WebGL2
+        9: { enums: [0, 2], numbers: [1, 3, 4, 5, 6, -7, 8] },  // WebGL2
+        10: { enums: [0, 2], numbers: [1, 3, 4, 5, 6, 8, 9] },  // WebGL2
+      },
+      'compressedTexSubImage3D': {
+        12: { enums: [0, 8], numbers: [1, 2, 3, 4, 5, 6, 7, 8, 10, 11] },  // WebGL2
+        11: { enums: [0, 8], numbers: [1, 2, 3, 4, 5, 6, 7, 8, -9, 10] },  // WebGL2
+        10: { enums: [0, 8], numbers: [1, 2, 3, 4, 5, 6, 7, 8] },  // WebGL2
+      },
+
+      // Buffer objects
+
+      'bindBuffer': {2: { enums: [0] }},
+      'bufferData': {
+        3: { enums: [0, 2], numbers: [-1], arrays: [-1] },
+        4: { enums: [0, 2], numbers: [-1, 3], arrays: [-1] },  // WebGL2
+        5: { enums: [0, 2], numbers: [-1, 3, 4], arrays: [-1] },  // WebGL2
+      },
+      'bufferSubData': {
+        3: { enums: [0], numbers: [1], arrays: [2] },
+        4: { enums: [0], numbers: [1, 3], arrays: [2] },  // WebGL2
+        5: { enums: [0], numbers: [1, 3, 4], arrays: [2] },  // WebGL2
+      },
+      'copyBufferSubData': {
+        5: { enums: [0], numbers: [2, 3, 4] },  // WeBGL2
+      },
+      'getBufferParameter': {2: { enums: [0, 1] }},
+      'getBufferSubData': {
+        3: { enums: [0], numbers: [1] },  // WebGL2
+        4: { enums: [0], numbers: [1, 3] },  // WebGL2
+        5: { enums: [0], numbers: [1, 3, 4] },  // WebGL2
+      },
+
+      // Renderbuffers and framebuffers
+
+      'pixelStorei': {2: { enums: [0, 1], numbers: [1] }},
+      'readPixels': {
+        7: { enums: [4, 5], numbers: [0, 1, 2, 3, -6] },
+        8: { enums: [4, 5], numbers: [0, 1, 2, 3, 7] },  // WebGL2
+      },
+      'bindRenderbuffer': {2: { enums: [0] }},
+      'bindFramebuffer': {2: { enums: [0] }},
+      'blitFramebuffer': {10: { enums: { 8: destBufferBitFieldToString, 9:true }, numbers: [0, 1, 2, 3, 4, 5, 6, 7]}},  // WebGL2
+      'checkFramebufferStatus': {1: { enums: [0] }},
+      'framebufferRenderbuffer': {4: { enums: [0, 1, 2], }},
+      'framebufferTexture2D': {5: { enums: [0, 1, 2], numbers: [4] }},
+      'framebufferTextureLayer': {5: { enums: [0, 1], numbers: [3, 4] }},  // WebGL2
+      'getFramebufferAttachmentParameter': {3: { enums: [0, 1, 2] }},
+      'getInternalformatParameter': {3: { enums: [0, 1, 2] }},  // WebGL2
+      'getRenderbufferParameter': {2: { enums: [0, 1] }},
+      'invalidateFramebuffer': {2: { enums: { 0: true, 1: enumArrayToString, } }},  // WebGL2
+      'invalidateSubFramebuffer': {6: { enums: { 0: true, 1: enumArrayToString, }, numbers: [2, 3, 4, 5] }},  // WebGL2
+      'readBuffer': {1: { enums: [0] }},  // WebGL2
+      'renderbufferStorage': {4: { enums: [0, 1], numbers: [2, 3] }},
+      'renderbufferStorageMultisample': {5: { enums: [0, 2], numbers: [1, 3, 4] }},  // WebGL2
+
+      // Frame buffer operations (clear, blend, depth test, stencil)
+
+      'lineWidth': {1: {numbers: [0]}},
+      'polygonOffset': {2: {numbers: [0, 1]}},
+      'scissor': {4: { numbers: [0, 1, 2, 3]}},
+      'viewport': {4: { numbers: [0, 1, 2, 3]}},
+      'clear': {1: { enums: { 0: destBufferBitFieldToString } }},
+      'clearColor': {4: { numbers: [0, 1, 2, 3]}},
+      'clearDepth': {1: { numbers: [0]}},
+      'clearStencil': {1: { numbers: [0]}},
+      'depthFunc': {1: { enums: [0] }},
+      'depthRange': {2: { numbers: [0, 1]}},
+      'blendColor': {4: { numbers: [0, 1, 2, 3]}},
+      'blendFunc': {2: { enums: [0, 1] }},
+      'blendFuncSeparate': {4: { enums: [0, 1, 2, 3] }},
+      'blendEquation': {1: { enums: [0] }},
+      'blendEquationSeparate': {2: { enums: [0, 1] }},
+      'stencilFunc': {3: { enums: [0], numbers: [1, 2] }},
+      'stencilFuncSeparate': {4: { enums: [0, 1], numberS: [2, 3] }},
+      'stencilMask': {1: { numbers: [0] }},
+      'stencilMaskSeparate': {2: { enums: [0], numbers: [1] }},
+      'stencilOp': {3: { enums: [0, 1, 2] }},
+      'stencilOpSeparate': {4: { enums: [0, 1, 2, 3] }},
+
+      // Culling
+
+      'cullFace': {1: { enums: [0] }},
+      'frontFace': {1: { enums: [0] }},
+
+      // ANGLE_instanced_arrays extension
+
+      'drawArraysInstancedANGLE': {4: { enums: [0], numbers: [1, 2, 3] }},
+      'drawElementsInstancedANGLE': {5: { enums: [0, 2], numbers: [1, 3, 4] }},
+
+      // EXT_blend_minmax extension
+
+      'blendEquationEXT': {1: { enums: [0] }},
+
+      // Multiple Render Targets
+
+      'drawBuffersWebGL': {1: { enums: { 0: enumArrayToString, }, arrays: [0] }},  // WEBGL_draw_buffers
+      'drawBuffers': {1: { enums: { 0: enumArrayToString, }, arrays: [0] }},  // WebGL2
+      'clearBufferfv': {
+        3: { enums: [0], numbers: [1], arrays: [2] },  // WebGL2
+        4: { enums: [0], numbers: [1, 2], arrays: [2] },  // WebGL2
+      },
+      'clearBufferiv': {
+        3: { enums: [0], numbers: [1], arrays: [2] },  // WebGL2
+        4: { enums: [0], numbers: [1, 2], arrays: [2] },  // WebGL2
+      },
+      'clearBufferuiv': {
+        3: { enums: [0], numbers: [1], arrays: [2] },  // WebGL2
+        4: { enums: [0], numbers: [1, 2], arrays: [2] },  // WebGL2
+      },
+      'clearBufferfi': { 4: { enums: [0], numbers: [1, 2, 3] }},  // WebGL2
+
+      // uniform value setters
+      'uniform1f': { 2: {numbers: [1]} },
+      'uniform2f': { 3: {numbers: [1, 2]} },
+      'uniform3f': { 4: {numbers: [1, 2, 3]} },
+      'uniform4f': { 5: {numbers: [1, 2, 3, 4]} },
+
+      'uniform1i': { 2: {numbers: [1]} },
+      'uniform2i': { 3: {numbers: [1, 2]} },
+      'uniform3i': { 4: {numbers: [1, 2, 3]} },
+      'uniform4i': { 5: {numbers: [1, 2, 3, 4]} },
+
+      'uniform1fv': {
+        2: {arrays: {1: checkArrayForUniform(1)}},
+        3: {arrays: {1: checkArrayForUniformWithOffset(1)}, numbers: [2]},
+        4: {arrays: {1: checkArrayForUniformWithOffsetAndLength(1)}, numbers: [2, 3]},
+      },
+      'uniform2fv': {
+        2: {arrays: {1: checkArrayForUniform(2)}},
+        3: {arrays: {1: checkArrayForUniformWithOffset(2)}, numbers: [2]},
+        4: {arrays: {1: checkArrayForUniformWithOffsetAndLength(2)}, numbers: [2, 3]},
+      },
+      'uniform3fv': {
+        2: {arrays: {1: checkArrayForUniform(3)}},
+        3: {arrays: {1: checkArrayForUniformWithOffset(3)}, numbers: [2]},
+        4: {arrays: {1: checkArrayForUniformWithOffsetAndLength(3)}, numbers: [2, 3]},
+      },
+      'uniform4fv': {
+        2: {arrays: {1: checkArrayForUniform(4)}},
+        3: {arrays: {1: checkArrayForUniformWithOffset(4)}, numbers: [2]},
+        4: {arrays: {1: checkArrayForUniformWithOffsetAndLength(4)}, numbers: [2, 3]},
+      },
+
+      'uniform1iv': {
+        2: {arrays: {1: checkArrayForUniform(1)}},
+        3: {arrays: {1: checkArrayForUniformWithOffset(1)}, numbers: [2]},
+        4: {arrays: {1: checkArrayForUniformWithOffsetAndLength(1)}, numbers: [2, 3]},
+      },
+      'uniform2iv': {
+        2: {arrays: {1: checkArrayForUniform(2)}},
+        3: {arrays: {1: checkArrayForUniformWithOffset(2)}, numbers: [2]},
+        4: {arrays: {1: checkArrayForUniformWithOffsetAndLength(2)}, numbers: [2, 3]},
+      },
+      'uniform3iv': {
+        2: {arrays: {1: checkArrayForUniform(3)}},
+        3: {arrays: {1: checkArrayForUniformWithOffset(3)}, numbers: [2]},
+        4: {arrays: {1: checkArrayForUniformWithOffsetAndLength(3)}, numbers: [2, 3]},
+      },
+      'uniform4iv': {
+        2: {arrays: {1: checkArrayForUniform(4)}},
+        3: {arrays: {1: checkArrayForUniformWithOffset(4)}, numbers: [2]},
+        4: {arrays: {1: checkArrayForUniformWithOffsetAndLength(4)}, numbers: [2, 3]},
+      },
+
+      'uniformMatrix2fv': {
+        3: {arrays: {2: checkArrayForUniform(4)}},
+        4: {arrays: {2: checkArrayForUniformWithOffset(4)}, numbers: [3]},
+        5: {arrays: {2: checkArrayForUniformWithOffsetAndLength(4)}, numbers: [3, 4]},
+      },
+      'uniformMatrix3fv': {
+        3: {arrays: {2: checkArrayForUniform(9)}},
+        4: {arrays: {2: checkArrayForUniformWithOffset(9)}, numbers: [3]},
+        5: {arrays: {2: checkArrayForUniformWithOffsetAndLength(9)}, numbers: [3, 4]},
+      },
+      'uniformMatrix4fv': {
+        3: {arrays: {2: checkArrayForUniform(16)}},
+        4: {arrays: {2: checkArrayForUniformWithOffset(16)}, numbers: [3]},
+        5: {arrays: {2: checkArrayForUniformWithOffsetAndLength(16)}, numbers: [3, 4]},
+      },
+
+      'uniform1ui': { 2: {numbers: [1]} },  // WebGL2
+      'uniform2ui': { 3: {numbers: [1, 2]} },  // WebGL2
+      'uniform3ui': { 4: {numbers: [1, 2, 3]} },  // WebGL2
+      'uniform4ui': { 5: {numbers: [1, 2, 3, 4]} },  // WebGL2
+
+      'uniform1uiv': {  // WebGL2
+        2: { arrays: {1: checkArrayForUniform(1)}, },
+        3: { arrays: {1: checkArrayForUniformWithOffset(1)}, numbers: [2] },
+        4: { arrays: {1: checkArrayForUniformWithOffsetAndLength(1)}, numbers: [2, 3] },
+      },
+      'uniform2uiv': {  // WebGL2
+        2: { arrays: {1: checkArrayForUniform(2)}, },
+        3: { arrays: {1: checkArrayForUniformWithOffset(2)}, numbers: [2] },
+        4: { arrays: {1: checkArrayForUniformWithOffsetAndLength(2)}, numbers: [2, 3] },
+      },
+      'uniform3uiv': {  // WebGL2
+        2: { arrays: {1: checkArrayForUniform(3)}, },
+        3: { arrays: {1: checkArrayForUniformWithOffset(3)}, numbers: [2] },
+        4: { arrays: {1: checkArrayForUniformWithOffsetAndLength(3)}, numbers: [2, 3] },
+      },
+      'uniform4uiv': {  // WebGL2
+        2: { arrays: {1: checkArrayForUniform(4)}, },
+        3: { arrays: {1: checkArrayForUniformWithOffset(4)}, numbers: [2] },
+        4: { arrays: {1: checkArrayForUniformWithOffsetAndLength(4)}, numbers: [2, 3] },
+      },
+      'uniformMatrix3x2fv': {  // WebGL2
+        3: { arrays: {2: checkArrayForUniform(6)}, },
+        4: { arrays: {2: checkArrayForUniformWithOffset(6)}, numbers: [3] },
+        5: { arrays: {2: checkArrayForUniformWithOffsetAndLength(6)}, numbers: [3, 4] },
+      },
+      'uniformMatrix4x2fv': {  // WebGL2
+        3: { arrays: {2: checkArrayForUniform(8)}, },
+        4: { arrays: {2: checkArrayForUniformWithOffset(8)}, numbers: [3] },
+        5: { arrays: {2: checkArrayForUniformWithOffsetAndLength(8)}, numbers: [3, 4] },
+      },
+
+      'uniformMatrix2x3fv': {  // WebGL2
+        3: { arrays: {2: checkArrayForUniform(6)}, },
+        4: { arrays: {2: checkArrayForUniformWithOffset(6)}, numbers: [3] },
+        5: { arrays: {2: checkArrayForUniformWithOffsetAndLength(6)}, numbers: [3, 4] },
+      },
+      'uniformMatrix4x3fv': {  // WebGL2
+        3: { arrays: {2: checkArrayForUniform(12)}, },
+        4: { arrays: {2: checkArrayForUniformWithOffset(12)}, numbers: [3] },
+        5: { arrays: {2: checkArrayForUniformWithOffsetAndLength(12)}, numbers: [3, 4] },
+      },
+
+      'uniformMatrix2x4fv': {  // WebGL2
+        3: { arrays: {2: checkArrayForUniform(8)}, },
+        4: { arrays: {2: checkArrayForUniformWithOffset(8)}, numbers: [3] },
+        5: { arrays: {2: checkArrayForUniformWithOffsetAndLength(8)}, numbers: [3, 4] },
+      },
+      'uniformMatrix3x4fv': {  // WebGL2
+        3: { arrays: {2: checkArrayForUniform(12)}, },
+        4: { arrays: {2: checkArrayForUniformWithOffset(12)}, numbers: [3] },
+        5: { arrays: {2: checkArrayForUniformWithOffsetAndLength(12)}, numbers: [3, 4] },
+      },
+
+      // attribute value setters
+      'vertexAttrib1f': { 2: {numbers: [0, 1]}},
+      'vertexAttrib2f': { 3: {numbers: [0, 1, 2]}},
+      'vertexAttrib3f': { 4: {numbers: [0, 1, 2, 3]}},
+      'vertexAttrib4f': { 5: {numbers: [0, 1, 2, 3, 4]}},
+
+      'vertexAttrib1fv': { 2: {numbers: [0], arrays: [1]}},
+      'vertexAttrib2fv': { 2: {numbers: [0], arrays: [1]}},
+      'vertexAttrib3fv': { 2: {numbers: [0], arrays: [1]}},
+      'vertexAttrib4fv': { 2: {numbers: [0], arrays: [1]}},
+
+      'vertexAttribI4i': { 5: {numbers: [0, 1, 2, 3, 4]}},  // WebGL2
+      'vertexAttribI4iv': {2: {numbers: [0], arrays: [1]}},  // WebGL2
+      'vertexAttribI4ui': {5: {numbers: [0, 1, 2, 3, 4]}},  // WebGL2
+      'vertexAttribI4uiv': {2: {numbers: [0], arrays: [1]}},  // WebGL2
+
+      // QueryObjects
+
+      'beginQuery': { 2: { enums: [0] }},  // WebGL2
+      'endQuery': { 1: { enums: [0] }},  // WebGL2
+      'getQuery': { 2: { enums: [0, 1] }},  // WebGL2
+      'getQueryParameter': { 2: { enums: [1] }},  // WebGL2
+
+      //  Sampler Objects
+
+      'samplerParameteri': { 3: { enums: [1] }},  // WebGL2
+      'samplerParameterf': { 3: { enums: [1] }},  // WebGL2
+      'getSamplerParameter': { 2: { enums: [1] }},  // WebGL2
+
+      //  Sync objects
+
+      'clientWaitSync': { 3: { enums: { 1: makeBitFieldToStringFunc(['SYNC_FLUSH_COMMANDS_BIT']) }, numbers: [2] }},  // WebGL2
+      'fenceSync': { 2: { enums: [0] }},  // WebGL2
+      'getSyncParameter': { 2: { enums: [1] }},  // WebGL2
+
+      //  Transform Feedback
+
+      'bindTransformFeedback': { 2: { enums: [0] }},  // WebGL2
+      'beginTransformFeedback': { 1: { enums: [0] }},  // WebGL2
+
+      // Uniform Buffer Objects and Transform Feedback Buffers
+      'bindBufferBase': { 3: { enums: [0], numbers: [1]}},  // WebGL2
+      'bindBufferRange': { 5: { enums: [0], numbers: [1, 3, 4]}},  // WebGL2
+      'getIndexedParameter': { 2: { enums: [0], numbers: [1] }},  // WebGL2
+      'getActiveUniforms': { 3: { enums: [2] }, arrays: [1]},  // WebGL2
+      'getActiveUniformBlockParameter': { 3: { enums: [2], numbers: [1] }},  // WebGL2
+      'getActiveUniformBlockName': { 2: {numbers: [1]}}, // WebGL2
+      'uniformBlockBinding': { 3: { numbers: [1, 2]}}, // WebGL2
+    };
+    for (const [name, fnInfos] of Object.entries(glFunctionInfos)) {
+      for (const fnInfo of Object.values(fnInfos)) {
+        convertToObjectIfArray(fnInfo, 'enums');
+        convertToObjectIfArray(fnInfo, 'numbers');
+        convertToObjectIfArray(fnInfo, 'arrays');
+      }
+      if (/uniform(\d|Matrix)/.test(name)) {
+        fnInfos.errorHelper = getUniformNameErrorMsg;
+      }
+    }
 
     // Holds booleans for each GL error so after we get the error ourselves
     // we can still return it to the client app.
@@ -1074,7 +1132,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     function checkUnsetUniforms(ctx, funcName, args) {
-      const unsetUniforms = sharedState.programToUniformsMap.get(sharedState.currentProgram);
+      const unsetUniforms = sharedState.programToUnsetUniformsMap.get(sharedState.currentProgram);
       if (unsetUniforms) {
         const uniformNames = [];
         for (const [name, {index, unset}] of unsetUniforms) {
@@ -1097,7 +1155,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     };
 
     function markUniformRangeAsSet(webGLUniformLocation, count) {
-      const unsetUniforms = sharedState.programToUniformsMap.get(sharedState.currentProgram);
+      const unsetUniforms = sharedState.programToUnsetUniformsMap.get(sharedState.currentProgram);
       if (!unsetUniforms) {
         // no unset uniforms
         return;
@@ -1121,7 +1179,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         // have all uniforms in this program been set?
         if (!unsetUniforms.size) {
           // yes, so no checking needed for this program anymore
-          sharedState.programToUniformsMap.delete(sharedState.currentProgram);
+          sharedState.programToUnsetUniformsMap.delete(sharedState.currentProgram);
         }
       }
     }
@@ -1370,6 +1428,63 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       }
     }
 
+    function checkArrayForUniformImpl(ctx, funcName, args, arg, ndx, offset, length, valuesPerElementFunctionRequires) {
+      const webglUniformLocation = args[0];
+      if (!webglUniformLocation) {
+        return;
+      }
+      const uniformInfos = sharedState.programToUniformInfoMap.get(sharedState.currentProgram);
+      if (!uniformInfos) {
+        return;
+      }
+      // The uniform info type might be 'vec3' but they
+      // might be calling uniform2fv. WebGL itself will catch that error but we might
+      // report the wrong error here if we check for vec3 amount of data
+      const name = sharedState.locationsToNamesMap.get(webglUniformLocation);
+      const {type, size, index} = uniformInfos.get(name);
+      const valuesPerElementUniformRequires = uniformTypeMap[type].size;
+      if (valuesPerElementFunctionRequires !== valuesPerElementUniformRequires) {
+        reportFunctionError(ctx, funcName, args, `uniform "${name}" is ${uniformTypeMap[type].name} which is wrong for ${funcName}`);
+      }
+      const maxElementsToReadFromArray = size - index;
+      const numElementsToCheck = Math.min(length / valuesPerElementFunctionRequires | 0, maxElementsToReadFromArray);
+      const numValuesToCheck = numElementsToCheck * valuesPerElementFunctionRequires;
+      
+      const start = offset;
+      const end = offset + numValuesToCheck;
+      for (let i = start; i < end; ++i) {
+        if (arg[i] === undefined) {
+          return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is undefined`);
+        } else if (isNaN(arg[i])) {
+          return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is NaN`);
+        }
+      }
+    }
+
+    function checkArrayForUniformWithOffsetAndLength(valuesPerElementFunctionRequires) {
+      return function(ctx, funcName, args, arg, ndx) {
+        const offset = args[args.length - 2];
+        const length = args[args.length - 1];
+        checkArrayForUniformImpl(ctx, funcName, args, arg, ndx, offset, length, valuesPerElementFunctionRequires);
+      };
+    }
+
+    function checkArrayForUniformWithOffset(valuesPerElementFunctionRequires) {
+      return function(ctx, funcName, args, arg, ndx) {
+        const offset = args[args.length - 1];
+        const length = arg.length - offset;
+        checkArrayForUniformImpl(ctx, funcName, args, arg, ndx, offset, length, valuesPerElementFunctionRequires);
+      };
+    }
+
+    function checkArrayForUniform(valuesPerElementFunctionRequires) {
+      return function(ctx, funcName, args, arg, ndx) {
+        const offset = 0;
+        const length = arg.length;
+        checkArrayForUniformImpl(ctx, funcName, args, arg, ndx, offset, length, valuesPerElementFunctionRequires);
+      };
+    }
+
     /**
      * Converts the arguments of a WebGL function to a string.
      * Attempts to convert enum arguments to strings.
@@ -1445,19 +1560,24 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
               }
             }
             // check that an argument that is supposed to be an array of numbers is an array and has no NaNs in the array and no undefined
-            if (arrays[ndx] !== undefined) {
+            const arraySetting = arrays[ndx];
+            if (arraySetting !== undefined) {
               const isArrayLike = Array.isArray(arg) || isTypedArray(arg);
-              if (arrays[ndx] >= 0) {
+              if (arraySetting >= 0) {
                 if (!isArrayLike) {
                   return reportFunctionError(ctx, funcName, args, `argument ${ndx} is not a array or typedarray`);
                 }
               }
               if (isArrayLike && isArrayThatCanHaveBadValues(arg)) {
-                for (let i = 0; i < arg.length; ++i) {
-                  if (arg[i] === undefined) {
-                    return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is undefined`);
-                  } else if (isNaN(arg[i])) {
-                    return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is NaN`);
+                if (typeof arraySetting === 'function') {
+                  arraySetting(ctx, funcName, args, arg, ndx);
+                } else {
+                  for (let i = 0; i < arg.length; ++i) {
+                    if (arg[i] === undefined) {
+                      return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is undefined`);
+                    } else if (isNaN(arg[i])) {
+                      return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is NaN`);
+                    }
                   }
                 }
               }
@@ -1555,17 +1675,14 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           origFn.call(this, program);
           const success = this.getProgramParameter(program, gl.LINK_STATUS);
           if (success) {
-            sharedState.programToUniformsMap.delete(program);
-            if (!sharedState.config.failUnsetUniforms) {
-              return;
-            }
+            sharedState.programToUnsetUniformsMap.delete(program);
+            sharedState.programToUniformInfoMap.delete(program);
             const unsetUniforms = new Map();
+            const uniformInfos = new Map();
             const numUniforms = this.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
             for (let ii = 0; ii < numUniforms; ++ii) {
               const {name, type, size} = gl.getActiveUniform(program, ii);
-              if (isBuiltIn(name)
-                  || (isSampler(type) && !sharedState.config.failUnsetUniformSamplers)
-                  || sharedState.ignoredUniforms.has(name)) {
+              if (isBuiltIn(name)) {
                 continue;
               }
               // skip uniform block uniforms
@@ -1584,17 +1701,30 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
                   altNames.set(`${baseName}[${s}]`, s);
                 }
               }
+
+              const addUnsetUniform = 
+                  (!isSampler(type) || sharedState.config.failUnsetUniformSamplers)
+                  && !sharedState.ignoredUniforms.has(name);
+
               const unset = new Set(range(0, size));
               for (const [name, index] of altNames) {
-                unsetUniforms.set(name, {
+                if (addUnsetUniform) {
+                  unsetUniforms.set(name, {
+                    index,
+                    unset,
+                    altNames,
+                  });
+                }
+                uniformInfos.set(name, {
                   index,
-                  unset,
-                  altNames,
-              });
+                  type,
+                  size,
+                });
               }
             }
+            sharedState.programToUniformInfoMap.set(program, uniformInfos);
             if (unsetUniforms.size) {
-              sharedState.programToUniformsMap.set(program, unsetUniforms);
+              sharedState.programToUnsetUniformsMap.set(program, unsetUniforms);
             }
           }
         }
@@ -1616,7 +1746,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
             sharedState.currentProgram = undefined;
           }
           origFn.call(this, program);
-          sharedState.programToUniformsMap.delete(program);
+          sharedState.programToUnsetUniformsMap.delete(program);
         };
       },
 
