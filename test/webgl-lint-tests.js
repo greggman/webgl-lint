@@ -1,5 +1,9 @@
-import * as twgl from './js/twgl-full.module.js';
-import {gl, tagObject, clearVertexArray, escapeRE, not} from './shared.js';
+/* global console */
+/* global document */
+/* global URLSearchParams */
+/* global window */
+
+import {resetContexts, escapeRE} from './shared.js';
 
 const settings = Object.fromEntries(new URLSearchParams(window.location.search).entries());
 const testGrepRE = new RegExp(escapeRE(settings.grep || ''));
@@ -25,6 +29,7 @@ import unnamedObjectsTests from './tests/unnamed-objects-tests.js';
 import drawReportsProgramAndVaoTests from './tests/draw-reports-program-and-vao-tests.js';
 import uniformMismatchTests from './tests/uniform-mismatch-tests.js';
 import uniformXXvTests from './tests/uniformXXv-tests.js';
+import arraysWithOffsetsTests from './tests/arrays-with-offsets-tests.js';
 
 const tests = [
   ...drawingTests,
@@ -44,6 +49,7 @@ const tests = [
   ...drawReportsProgramAndVaoTests,
   ...uniformMismatchTests,
   ...uniformXXvTests,
+  ...arraysWithOffsetsTests,
 ];
 
 function fail(...args) {
@@ -54,9 +60,11 @@ function pass(...args) {
   logImpl('green', 'PASS:', ...args);
 }
 
+/*
 function log(...args) {
   logImpl('inherit', ...args);
 }
+*/
 
 function logImpl(color, ...args) {
   const elem = document.createElement('pre');
@@ -76,37 +84,48 @@ function check(expect, actual, desc) {
   return true;
 }
 
-for (const {desc, expect, func} of tests) {
+for (const {desc, expect, func, test} of tests) {
   if (!testGrepRE.test(desc)) {
     continue;
   }
   console.log(`\n\n--------------[ ${desc} ]---------------`);
-  let actual = 'undefined';
-  if (config.throwOnError === false) {
-    const origFn = console.error;
-    let errors = [];
-    console.error = function(...args) {
-      errors.push(args.join(' '));
-    };
-    func();
-    console.error = origFn;
-    if (errors.length) {
-      actual = errors.join('\n');
-      console.error(actual);
+  if (func) {
+    let actual = 'undefined';
+    if (config.throwOnError === false) {
+      const origFn = console.error;
+      let errors = [];
+      console.error = function(...args) {
+        errors.push(args.join(' '));
+      };
+      func();
+      console.error = origFn;
+      if (errors.length) {
+        actual = errors.join('\n');
+        console.error(actual);
+      }
+    } else {
+      try {
+        func();
+      } catch(e) {
+        console.error(e);
+        actual = e.toString();
+      }
+    }
+    
+    if (check(expect, actual, desc)) {
+      pass(desc);
+    }
+  } else if (test) {
+    try {
+      test();
+      pass(desc);
+    } catch (e) {
+      console.error(e);
+      fail(desc, e);
     }
   } else {
-    try {
-      func();
-    } catch(e) {
-      console.error(e);
-      actual = e.toString();
-    }
-  }
-  
-  if (check(expect, actual, desc)) {
-    pass(desc);
+    fail(desc, 'no test');
   }
 
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  clearVertexArray();
+  resetContexts();
 }

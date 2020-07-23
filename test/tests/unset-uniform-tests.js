@@ -1,6 +1,8 @@
 import * as twgl from '../js/twgl-full.module.js';
 import {gl, tagObject, not} from '../shared.js';
 
+/* global document */
+
 export default [
   {
     desc: 'test unset uniforms',
@@ -80,7 +82,7 @@ export default [
       const gl = document.createElement('canvas').getContext('webgl');
       const ext = gl.getExtension('GMAN_debug_helper');
       if (ext) {
-        ext.setConfiguration({failUnsetUniformSamplers: true});
+        ext.setConfiguration({failUnsetSamplerUniforms: true});
       }
       const tagObject = ext ? ext.tagObject.bind(ext) : () => {};
       const prg = twgl.createProgram(gl, [
