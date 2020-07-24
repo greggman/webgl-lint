@@ -149,7 +149,7 @@ There 2 ways to configure
     if (ext) {
       ext.setConfiguration({
         maxDrawCalls: 2000,
-        failUnsetUniformSamplers: true,
+        failUnsetSamplerUniforms: true,
       });
     }
     ```
@@ -164,7 +164,7 @@ There 2 ways to configure
      data-gman-debug-helper='
        {
          "maxDrawCalls": 2000, 
-         "failUnsetUniformSamplers": true
+         "failUnsetSamplerUniforms": true
        }
      '>
    </script>
