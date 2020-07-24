@@ -15,11 +15,13 @@ to check for common WebGL errors.
 
 * Checks that all non-sampler uniforms are set. (see configuration below)
 
+* Checks that uniform arrays are not all zero.
+
 * If there is a WebGL error it tries to provide more info about why
 
   * for framebuffer feedback it will tell you which texture assigned to which uniform and which attachment
   
-  * access out of range issues, it will tell you which attribute
+  * access out of range issues, it will tell you which attribute/s are out of range
 
   * for other errors it will try print extra info where possible.
 
@@ -288,4 +290,7 @@ ext.tagObject(buf, 'normals');
 console.log(ext.getTagForObject(buf));  // prints 'normals'
 ```
 
+# Suggestions?
+
+https://github.com/greggman/webgl-lint/issues
 
