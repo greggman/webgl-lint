@@ -1135,6 +1135,16 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     const glErrorShadow = { };
     const origFuncs = {};
 
+    function discardInfoForProgram(program) {
+      const oldLocations = sharedState.programToLocationsMap.get(program);
+      if (oldLocations) {
+        oldLocations.forEach(loc => sharedState.locationsToNamesMap.delete(loc));
+      }
+      sharedState.programToLocationsMap.set(program, new Set());
+      sharedState.programToUnsetUniformsMap.delete(program);
+      sharedState.programToUniformInfoMap.delete(program);
+    }
+
     function removeChecks() {
       for (const {ctx, origFuncs} of Object.values(sharedState.apis)) {
         Object.assign(ctx, origFuncs);
@@ -1798,13 +1808,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           origFn.call(this, program);
           const success = this.getProgramParameter(program, gl.LINK_STATUS);
           if (success) {
-            const oldLocations = sharedState.programToLocationsMap.get(program);
-            if (oldLocations) {
-              oldLocations.forEach(loc => sharedState.locationsToNamesMap.delete(loc));
-            }
-            sharedState.programToLocationsMap.set(program, new Set());
-            sharedState.programToUnsetUniformsMap.delete(program);
-            sharedState.programToUniformInfoMap.delete(program);
+            discardInfoForProgram(program);
             const unsetUniforms = new Map();
             const uniformInfos = new Map();
             const numUniforms = this.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
@@ -1874,7 +1878,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
             sharedState.currentProgram = undefined;
           }
           origFn.call(this, program);
-          sharedState.programToUnsetUniformsMap.delete(program);
+          discardInfoForProgram(program);
         };
       },
 
