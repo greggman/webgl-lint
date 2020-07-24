@@ -168,7 +168,7 @@ There 2 ways to configure
    ```
 
    Note: (1) the setting string must be valid JSON. (2) any tag will do, `<div>`, `<span>`, etc. as the
-   script just applies all tags it finds with `querySelector('[data-gman-debug-helper]')` and applies
+   script just applies all tags it finds with `querySelectorAll('[data-gman-debug-helper]')` and applies
    the options in the order found.
 
 ### Naming your WebGL objects (buffers, textures, programs, etc..)
