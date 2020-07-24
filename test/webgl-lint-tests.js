@@ -96,7 +96,7 @@ async function runTests() {
       let actual = 'undefined';
       if (config.throwOnError === false) {
         const origFn = console.error;
-        let errors = [];
+        const errors = [];
         console.error = function(...args) {
           errors.push(args.join(' '));
         };
@@ -109,12 +109,12 @@ async function runTests() {
       } else {
         try {
           func();
-        } catch(e) {
+        } catch (e) {
           console.error(e);
           actual = e.toString();
         }
       }
-      
+
       if (check(expect, actual, desc)) {
         pass(desc);
       }

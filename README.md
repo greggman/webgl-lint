@@ -279,7 +279,7 @@ instead of just that you got an error.
 As a simple example, naming buffers after the attributes they'll
 be used with (eg. 'position', 'normal'), naming textures by the URL of the img where they
 get their data. Naming vertex array objects by the model ('tree', 'car', 'house'), naming
-framebuffers by their usage ('shadow-depth', 'post-processing'), naming programs by what they do ('phong-shading', 'skybox')...
+framebuffers by their usage ('shadow-depth', 'post-processing'), naming programs by what they do ('phong-shading', 'sky-box')...
 
 Just for symmetry the extension also includes `getTagForObject` if you want to look up
 what string you tagged an object with

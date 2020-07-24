@@ -1,3 +1,5 @@
+/* global document */
+
 import * as twgl from '../js/twgl-full.module.js';
 
 export default [

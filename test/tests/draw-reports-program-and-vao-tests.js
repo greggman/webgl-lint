@@ -1,3 +1,5 @@
+/* global document */
+
 import * as twgl from '../js/twgl-full.module.js';
 
 export default [
@@ -11,7 +13,7 @@ export default [
       }
       const ext = gl.getExtension('GMAN_debug_helper');
       const tagObject = ext ? ext.tagObject.bind(ext) : () => {};
-      
+
       const vs = `
       attribute vec4 position;
 
@@ -36,5 +38,5 @@ export default [
       gl.useProgram(prg);
       gl.drawArrays(gl.TRAINGLES, 0, 1); // error, TRIANGLES misspelled.
     },
-  }, 
+  },
 ];

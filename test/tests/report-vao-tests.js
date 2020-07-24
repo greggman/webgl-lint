@@ -7,7 +7,7 @@ export default [
     func() {
       const ext = gl.getExtension('OES_vertex_array_object');
       if (!ext) {
-        throw new Error ('sphere-data'); // something to satisfy test.
+        throw new Error('sphere-data'); // something to satisfy test.
       }
       const vao = ext.createVertexArrayOES();
       tagObject(vao, 'sphere-data');
@@ -24,7 +24,7 @@ export default [
     func() {
       const ext = gl.getExtension('OES_vertex_array_object');
       if (!ext) {
-        throw new Error ('sphere-data'); // something to satisfy test.
+        throw new Error('sphere-data'); // something to satisfy test.
       }
       const vao = ext.createVertexArrayOES();
       tagObject(vao, 'sphere-data');

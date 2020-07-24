@@ -2,7 +2,7 @@ import * as twgl from '../js/twgl-full.module.js';
 import {gl, tagObject} from '../shared.js';
 
 export default [
-  { desc: "test uniform mis-match",
+  { desc: 'test uniform mis-match',
     expect: [/vec4 which is wrong for uniform3fv/],
     func() {
       const prg = twgl.createProgram(gl, [

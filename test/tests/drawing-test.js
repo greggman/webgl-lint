@@ -2,7 +2,7 @@ import * as twgl from '../js/twgl-full.module.js';
 import {gl, tagObject} from '../shared.js';
 
 export default [
-  { desc: "test drawing",
+  { desc: 'test drawing',
     expect: [/^undefined$/],
     func() {
       const prg = twgl.createProgram(gl, [

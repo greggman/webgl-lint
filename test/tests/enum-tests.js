@@ -1,7 +1,7 @@
 import {gl, tagObject} from '../shared.js';
 
 export default [
-  { desc: "test bad enum 1",
+  { desc: 'test bad enum 1',
     expect: [/argument.*?is undefined/],
     func() {
       const buf = gl.createBuffer();

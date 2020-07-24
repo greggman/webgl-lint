@@ -26,7 +26,7 @@ export function assertThrowsWith(func, expectations, msg = '') {
   let error;
   if (config.throwOnError === false) {
     const origFn = console.error;
-    let errors = [];
+    const errors = [];
     console.error = function(...args) {
       errors.push(args.join(' '));
     };

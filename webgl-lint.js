@@ -24,6 +24,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 (function() {
   'use strict';  // eslint-disable-line
 
+  /* global console */
   /* global document */
   /* global navigator */
   /* global HTMLCanvasElement */
@@ -38,7 +39,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   const ext = undefined;  // eslint-disable-line
 
   function isBuiltIn(name) {
-    return name.startsWith("gl_") || name.startsWith("webgl_");
+    return name.startsWith('gl_') || name.startsWith('webgl_');
   }
 
   function isWebGL2(gl) {
@@ -168,20 +169,34 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   }
 
   const funcsToArgs = {
-    drawArrays(primType, startOffset, vertCount) { return {startOffset, vertCount, instances: 1}; },
-    drawElements(primType, vertCount, indexType, startOffset) { return {startOffset, vertCount, instances: 1, indexType}; },
-    drawArraysInstanced(primType, startOffset, vertCount, instances) { return {startOffset, vertCount, instances}; },
-    drawElementsInstanced(primType, vertCount, indexType, startOffset, instances) { return {startOffset, vertCount, instances, indexType}; },
-    drawArraysInstancedANGLE(primType, startOffset, vertCount, instances) { return {startOffset, vertCount, instances}; },
-    drawElementsInstancedANGLE(primType, vertCount, indexType, startOffset, instances) { return {startOffset, vertCount, instances, indexType}; },
-    drawRangeElements(primType, start, end, vertCount, indexType, startOffset) { return {startOffset, vertCount, instances: 1, indexType}; },
+    drawArrays(primType, startOffset, vertCount) {
+      return {startOffset, vertCount, instances: 1};
+    },
+    drawElements(primType, vertCount, indexType, startOffset) {
+      return {startOffset, vertCount, instances: 1, indexType};
+    },
+    drawArraysInstanced(primType, startOffset, vertCount, instances) {
+      return {startOffset, vertCount, instances};
+      },
+    drawElementsInstanced(primType, vertCount, indexType, startOffset, instances) {
+      return {startOffset, vertCount, instances, indexType};
+      },
+    drawArraysInstancedANGLE(primType, startOffset, vertCount, instances) {
+      return {startOffset, vertCount, instances};
+      },
+    drawElementsInstancedANGLE(primType, vertCount, indexType, startOffset, instances) {
+      return {startOffset, vertCount, instances, indexType};
+      },
+    drawRangeElements(primType, start, end, vertCount, indexType, startOffset) {
+      return {startOffset, vertCount, instances: 1, indexType};
+      },
   };
 
   function isDrawFunction(funcName) {
     return !!funcsToArgs[funcName];
   }
 
-  const glTypeToTypedArray = {}
+  const glTypeToTypedArray = {};
   glTypeToTypedArray[UNSIGNED_BYTE] = Uint8Array;
   glTypeToTypedArray[UNSIGNED_SHORT] = Uint16Array;
   glTypeToTypedArray[UNSIGNED_INT] = Uint32Array;
@@ -196,7 +211,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     const elementBuffer = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
     if (!elementBuffer) {
       errors.push('No ELEMENT_ARRAY_BUFFER bound');
-      return;
+      return undefined;
     }
     const bytesPerIndex = getBytesPerValueForGLType(indexType);
     const bufferSize = gl.getBufferParameter(gl.ELEMENT_ARRAY_BUFFER, gl.BUFFER_SIZE);
@@ -204,7 +219,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     if (sizeNeeded > bufferSize) {
       errors.push(`offset: ${startOffset} and count: ${vertCount} with index type: ${glEnumToString(gl, indexType)} passed to ${funcName} are out of range for current ELEMENT_ARRAY_BUFFER.
 Those parameters require ${sizeNeeded} bytes but the current ELEMENT_ARRAY_BUFFER ${getWebGLObjectString(elementBuffer)} only has ${bufferSize} bytes`);
-      return;
+      return undefined;
     }
     const buffer = bufferToIndices.get(elementBuffer);
     const Type = glTypeToTypedArray[indexType];
@@ -220,13 +235,13 @@ Those parameters require ${sizeNeeded} bytes but the current ELEMENT_ARRAY_BUFFE
 
   function checkAttributes(gl, funcName, args, getWebGLObjectString) {
     const {vertCount, startOffset, indexType, instances} = funcsToArgs[funcName](...args);
-    if (vertCount <=0 || instances <= 0) {
+    if (vertCount <= 0 || instances <= 0) {
       return [];
     }
     const program = gl.getParameter(gl.CURRENT_PROGRAM);
     const errors = [];
     const nonInstancedLastIndex = indexType
-        ? getLastUsedIndexForDrawElements(gl, funcName, startOffset, vertCount, instances, indexType, getWebGLObjectString, errors) 
+        ? getLastUsedIndexForDrawElements(gl, funcName, startOffset, vertCount, instances, indexType, getWebGLObjectString, errors)
         : computeLastUseIndexForDrawArrays(startOffset, vertCount, instances, errors);
     if (errors.length) {
       return errors;
@@ -362,7 +377,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     // get framebuffer texture attachments
-    const maxColorAttachments = getMaxColorAttachments(gl)
+    const maxColorAttachments = getMaxColorAttachments(gl);
     const textureAttachments = new Map();
     for (let i = 0; i < maxColorAttachments; ++i) {
       addTextureAttachment(gl, gl.COLOR_ATTACHMENT0 + i, textureAttachments);
@@ -386,7 +401,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       }
 
       if (size > 1) {
-        let baseName = (name.substr(-3) === "[0]")
+        const baseName = (name.substr(-3) === '[0]')
             ? name.substr(0, name.length - 3)
             : name;
         for (let t = 0; t < size; ++t) {
@@ -425,7 +440,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
   const RENDERBUFFER_BINDING           = 0x8CA7;
   const TRANSFORM_FEEDBACK_BUFFER      = 0x8C8E;
   const TRANSFORM_FEEDBACK_BUFFER_BINDING = 0x8C8F;
-  const DRAW_FRAMEBUFFER               = 0x8CA9;  
+  const DRAW_FRAMEBUFFER               = 0x8CA9;
   const READ_FRAMEBUFFER               = 0x8CA8;
   const READ_FRAMEBUFFER_BINDING       = 0x8CAA;
   const UNIFORM_BUFFER                 = 0x8A11;
@@ -577,7 +592,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
   /** @type Map<int, Set<string>> */
   const enumToStringsMap = new Map();
   function addEnumsFromAPI(api) {
-    for (let key in api) {
+    for (const key in api) {
       const value = api[key];
       if (typeof value === 'number') {
         if (!enumToStringsMap.has(value)) {
@@ -615,7 +630,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     const msgs = [];
     if (name) {
       msgs.push(`trying to set uniform '${name}'`);
-    } 
+    }
     if (prg) {
       const name = sharedState.webglObjectToNamesMap.get(prg);
       if (name) {
@@ -629,7 +644,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
   /**
    * Given a WebGL context replaces all the functions with wrapped functions
-   * that call gl.getError after every command 
+   * that call gl.getError after every command
    *
    * @param {WebGLRenderingContext|Extension} ctx The webgl context to wrap.
    * @param {string} nameOfClass (eg, webgl, webgl2, OES_texture_float)
@@ -673,29 +688,54 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         },
       },
       ignoredUniforms: new Set(),
+      // Okay or bad? This is a map of all WebGLUniformLocation object looked up
+      // by the user via getUniformLocation. We use this to map a location back to
+      // a name and unfortunately a WebGLUniformLocation is not unique, by which
+      // I mean if you call get getUniformLocation twice for the same uniform you'll
+      // get 2 different WebGLUniformLocation objects referring to the same location.
+      //
+      // So, that means I can't look up the locations myself and know what they are
+      // unless I passed the location objects I looked up back to the user but if I
+      // did that then technically I'd have changed the semantics (though I suspect
+      // no one ever takes advantage of that quirk)
+      //
+      // In any case this is all uniforms for all programs. That means in order
+      // to clean up later I have to track all the uniforms (see programToUniformMap)
+      // so that makes me wonder if I should track names per program instead.
+      //
+      // The advantage to this global list is given a WebGLUniformLocation and
+      // no other info I can lookup the name where as if I switch it to per-program
+      // then I need to know the program. That's generally available but it's indirect.
       locationsToNamesMap: new Map(),
       webglObjectToNamesMap: new Map(),
-      // class UnusedUniformRef {
-      //   index: the index of this name. for foo[3] it's 3
-      //   altNames: Map<string, number>  // example <foo,0>, <foo[0],0>, <foo[1],1>, <foo[2],2>, <foo[3],3>  for `uniform vec4 foo[3]`
-      //   unused: Set<number>    // this is size so for the example above it's `Set<[0, 1, 2, 3]`
-      // }
+      // @typedef {Object} UnusedUniformRef
+      // @property {number} index the index of this name. for foo[3] it's 3
+      // @property {Map<string, number>} altNames example <foo,0>, <foo[0],0>, <foo[1],1>, <foo[2],2>, <foo[3],3>  for `uniform vec4 foo[3]`
+      // @property {Set<number>} unused this is size so for the example above it's `Set<[0, 1, 2, 3]`
+
       // Both the altName array and the unused Set are shared with an entry in `programToUnsetUniformsMap`
       // by each name (foo, foo[0], foo[1], foo[2]). That we we can unused.delete each element of set
       // and if set is empty then delete all altNames entries from programToUnsetUniformsMap.
       // When programsToUniformsMap is empty all uniforms have been set.
-      // Map<WebGLProgram, Map<string, UnusedUniformRef>
+      // @typedef {Map<WebGLProgram, Map<string, UnusedUniformRef>}
       programToUnsetUniformsMap: new Map(),
+      // class UniformInfo {
+      //   index: the index of this name. for foo[3] it's 3
+      //   size: this is the array size for this uniform
+      //   type: the enum for the type like FLOAT_VEC4
+      // }
+      /** @type {WebGLProgram, Map<UniformInfo>} */
       programToUniformInfoMap: new Map(),
+      /** @type {WebGLProgram, Set<WebGLUniformLocation>} */
+      programToLocationsMap: new Map(),
     };
     options.sharedState = sharedState;
     addEnumsFromAPI(ctx);
-
     /**
      * Info about functions based on the number of arguments to the function.
-     * 
+     *
      * enums specifies which arguments are enums
-     * 
+     *
      *    'texImage2D': {
      *       9: { enums: [0, 2, 6, 7 ] },
      *       6: { enums: [0, 2, 3, 4 ] },
@@ -704,15 +744,15 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
      * means if there are 9 arguments then 6 and 7 are enums, if there are 6
      * arguments 3 and 4 are enums. You can provide a function instead in
      * which case you should use object format. For example
-     * 
+     *
      *     `clear`: {
      *       1: { enums: { 0: convertClearBitsToString }},
      *     },
      *
      * numbers specifies which arguments are numbers, if an argument is negative that
-     * argument might not be a number so we can check only check for NaN 
+     * argument might not be a number so we can check only check for NaN
      * arrays specifies which arguments are arrays
-     * 
+     *
      * @type {!Object.<number, (!Object.<number, string>|function)}
      */
     const glFunctionInfos = {
@@ -1099,17 +1139,19 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       for (const {ctx, origFuncs} of Object.values(sharedState.apis)) {
         Object.assign(ctx, origFuncs);
       }
-      sharedState.locationsToNamesMap = new Map();
+      for (const key of [...Object.keys(sharedState)]) {
+        delete sharedState[key];
+      }
     }
 
     function checkMaxDrawCallsAndZeroCount(gl, funcName, args) {
       const {vertCount, instances} = funcsToArgs[funcName](...args);
       if (vertCount === 0) {
-        console.warn(`count for ${funcName} is 0!`);  // eslint-disable-line
+        console.warn(`count for ${funcName} is 0!`);
       }
 
       if (instances === 0) {
-        console.warn(`instanceCount for ${funcName} is 0!`);  // eslint-disable-line
+        console.warn(`instanceCount for ${funcName} is 0!`);
       }
 
       --sharedState.config.maxDrawCalls;
@@ -1129,7 +1171,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       if (sharedState.config.throwOnError) {
         throw new Error(msg);
       } else {
-        console.error(msg);  // eslint-disable-line
+        console.error(msg);
       }
     }
 
@@ -1202,11 +1244,9 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
     function markUniformSetV(numValuesPer) {
       return function(gl, funcName, args) {
-        let [webGLUniformLocation, data, srcOffset = 0, srcLength = 0] = args;
-        if (srcLength === 0) {
-          srcLength = data.length - srcOffset;
-        }
-        markUniformRangeAsSet(webGLUniformLocation, srcLength / numValuesPer | 0);
+        const [webGLUniformLocation, data, srcOffset = 0, srcLength = 0] = args;
+        const length = srcLength ? srcLength : data.length - srcOffset;
+        markUniformRangeAsSet(webGLUniformLocation, length / numValuesPer | 0);
       };
     }
 
@@ -1216,11 +1256,9 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
     function markUniformSetMatrixV(numValuesPer) {
       return function(gl, funcName, args) {
-        let [webGLUniformLocation, transpose, data, srcOffset = 0, srcLength = 0] = args;
-        if (srcLength === 0) {
-          srcLength = data.length - srcOffset;
-        }
-        const count = srcLength / numValuesPer | 0;
+        const [webGLUniformLocation, transpose, data, srcOffset = 0, srcLength = 0] = args;
+        const length = srcLength ? srcLength : data.length - srcOffset;
+        const count = length / numValuesPer | 0;
         if (sharedState.config.failZeroMatrixUniforms && !isUniformIgnored(webGLUniformLocation)) {
           for (let c = 0; c < count; ++c) {
             let allZero = true;
@@ -1232,7 +1270,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
               }
             }
             if (allZero) {
-              reportFunctionError(gl, funcName, [webGLUniformLocation, transpose, ...args], `matrix is all zeros\nSee docs at https://github.com/greggman/webgl-helpers/ for how to turn off this check`);
+              reportFunctionError(gl, funcName, [webGLUniformLocation, transpose, ...args], 'matrix is all zeros\nSee docs at https://github.com/greggman/webgl-helpers/ for how to turn off this check');
               return;
             }
           }
@@ -1346,7 +1384,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
       uniformMatrix2x4fv: markUniformSetMatrixV(8),
       uniformMatrix3x4fv: markUniformSetMatrixV(12),
-    }
+    };
 
     /*
     function getWebGLObject(gl, funcName, args, value) {
@@ -1411,7 +1449,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
                 // should we do something about these?
                 //   O vertexAttrib, enable, vertex arrays implicit, buffer is implicit
                 //       Example: could print
-                //            'Error setting attrib 4 of WebGLVAO("sphere") to WebGLBuffer("sphere positions")
+                //            'Error setting attrib 4 of WebGLVertexArrayObject("sphere") to WebGLBuffer("sphere positions")
                 //   O drawBuffers implicit
                 //       Example: 'Error trying to set drawBuffers on WebGLFrameBuffer('post-processing-fb)
                 if (!funcName.startsWith('bind') && argumentIndex === 0) {
@@ -1419,7 +1457,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
                   if (binding) {
                     const webglObject = gl.getParameter(binding);
                     if (webglObject) {
-                      return getWebGLObjectString(webglObject);
+                      return `${glEnumToString(gl, value)}{${getWebGLObjectString(webglObject)}}`;
                     }
                   }
                 }
@@ -1446,7 +1484,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
     function checkTypedArray(ctx, funcName, args, arg, ndx, offset, length) {
       if (!isTypedArray(arg)) {
-          return reportFunctionError(ctx, funcName, args, `argument ${ndx} must be a TypedArray`);
+        reportFunctionError(ctx, funcName, args, `argument ${ndx} must be a TypedArray`);
+        return;
       }
       if (!isArrayThatCanHaveBadValues(arg)) {
         return;
@@ -1455,11 +1494,14 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       const end = offset + length;
       for (let i = start; i < end; ++i) {
         if (arg[i] === undefined) {
-          return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is undefined`);
+          reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is undefined`);
+          return;
         } else if (isNaN(arg[i])) {
-          return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is NaN`);
+          reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is NaN`);
+          return;
         }
       }
+      return;
     }
 
     function checkTypedArrayWithOffset(ctx, funcName, args, arg, ndx) {
@@ -1521,14 +1563,16 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       const maxElementsToReadFromArray = size - index;
       const numElementsToCheck = Math.min(length / valuesPerElementFunctionRequires | 0, maxElementsToReadFromArray);
       const numValuesToCheck = numElementsToCheck * valuesPerElementFunctionRequires;
-      
+
       const start = offset;
       const end = offset + numValuesToCheck;
       for (let i = start; i < end; ++i) {
         if (arg[i] === undefined) {
-          return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is undefined`);
+          reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is undefined`);
+          return;
         } else if (isNaN(arg[i])) {
-          return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is NaN`);
+          reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is NaN`);
+          return;
         }
       }
     }
@@ -1609,25 +1653,29 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       if (funcInfos) {
         const funcInfo = funcInfos[args.length];
         if (!funcInfo) {
-          return reportFunctionError(ctx, funcName, args, `no version of function '${funcName}' takes ${args.length} arguments`);
+          reportFunctionError(ctx, funcName, args, `no version of function '${funcName}' takes ${args.length} arguments`);
+          return;
         } else {
           const {numbers = {}, arrays = {}} = funcInfo;
           for (let ndx = 0; ndx < args.length; ++ndx) {
             const arg = args[ndx];
             // check the no arguments are undefined
             if (arg === undefined) {
-              return reportFunctionError(ctx, funcName, args, `argument ${ndx} is undefined`);
+              reportFunctionError(ctx, funcName, args, `argument ${ndx} is undefined`);
+              return;
             }
             if (numbers[ndx] !== undefined) {
               if (numbers[ndx] >= 0)  {
                 // check that argument that is number (positive) is a number
                 if ((typeof arg !== 'number' && !(arg instanceof Number) && arg !== false && arg !== true) || isNaN(arg)) {
-                  return reportFunctionError(ctx, funcName, args, `argument ${ndx} is not a number`);
+                  reportFunctionError(ctx, funcName, args, `argument ${ndx} is not a number`);
+                  return;
                 }
               } else {
                 // check that argument that maybe is a number (negative) is not NaN
                 if (!(arg instanceof Object) && isNaN(arg)) {
-                  return reportFunctionError(ctx, funcName, args, `argument ${ndx} is NaN`);
+                  reportFunctionError(ctx, funcName, args, `argument ${ndx} is NaN`);
+                  return;
                 }
               }
             }
@@ -1637,7 +1685,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
               const isArrayLike = Array.isArray(arg) || isTypedArray(arg);
               if (arraySetting >= 0) {
                 if (!isArrayLike) {
-                  return reportFunctionError(ctx, funcName, args, `argument ${ndx} is not a array or typedarray`);
+                  reportFunctionError(ctx, funcName, args, `argument ${ndx} is not a array or typedarray`);
+                  return;
                 }
               }
               if (isArrayLike && isArrayThatCanHaveBadValues(arg)) {
@@ -1646,9 +1695,11 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
                 } else {
                   for (let i = 0; i < arg.length; ++i) {
                     if (arg[i] === undefined) {
-                      return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is undefined`);
+                      reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is undefined`);
+                      return;
                     } else if (isNaN(arg[i])) {
-                      return reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is NaN`);
+                      reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is NaN`);
+                      return;
                     }
                   }
                 }
@@ -1734,6 +1785,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           const location = origFn.call(this, program, name);
           if (location) {
             sharedState.locationsToNamesMap.set(location, name);
+            sharedState.programToLocationsMap.get(program).add(location);
           }
           return location;
         };
@@ -1746,6 +1798,11 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           origFn.call(this, program);
           const success = this.getProgramParameter(program, gl.LINK_STATUS);
           if (success) {
+            const oldLocations = sharedState.programToLocationsMap.get(program);
+            if (oldLocations) {
+              oldLocations.forEach(loc => sharedState.locationsToNamesMap.delete(loc));
+            }
+            sharedState.programToLocationsMap.set(program, new Set());
             sharedState.programToUnsetUniformsMap.delete(program);
             sharedState.programToUniformInfoMap.delete(program);
             const unsetUniforms = new Map();
@@ -1773,7 +1830,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
                 }
               }
 
-              const addUnsetUniform = 
+              const addUnsetUniform =
                   (!isSampler(type) || sharedState.config.failUnsetSamplerUniforms)
                   && !sharedState.ignoredUniforms.has(name);
 
@@ -1798,7 +1855,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
               sharedState.programToUnsetUniformsMap.set(program, unsetUniforms);
             }
           }
-        }
+        };
       },
 
       useProgram(ctx) {
@@ -1832,7 +1889,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       deleteTransformFeedback: makeDeleteWrapper,
       deleteVertexArray: makeDeleteWrapper,
       deleteVertexArrayOES: makeDeleteWrapper,
-    }
+    };
 
     // Wrap each function
     for (const propertyName in ctx) {
@@ -1972,7 +2029,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
   function wrapGetContext(Ctor) {
     const oldFn = Ctor.prototype.getContext;
     Ctor.prototype.getContext = function(type, ...args) {
-      let ctx = oldFn.call(this, type, ...args);
+      const ctx = oldFn.call(this, type, ...args);
       // Using bindTexture to see if it's WebGL. Could check for instanceof WebGLRenderingContext
       // but that might fail if wrapped by debugging extension
       if (ctx && ctx.bindTexture) {
@@ -2004,10 +2061,10 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     };
   }
 
-  if (typeof HTMLCanvasElement !== "undefined") {
+  if (typeof HTMLCanvasElement !== 'undefined') {
     wrapGetContext(HTMLCanvasElement);
   }
-  if (typeof OffscreenCanvas !== "undefined") {
+  if (typeof OffscreenCanvas !== 'undefined') {
     wrapGetContext(OffscreenCanvas);
   }
 

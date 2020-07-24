@@ -1,11 +1,24 @@
 {
   "cSpell.words": [
+    "Bufferfi",
+    "Bufferfv",
+    "Bufferiv",
+    "Bufferuiv",
     "Multisample",
+    "Renderbuffers",
     "bvec",
+    "camelcase",
+    "eqeqeq",
+    "framebuffer",
     "gman",
     "isampler",
     "mediump",
+    "minmax",
+    "nonwords",
+    "phong",
+    "proto",
     "usampler",
-    "uvec"
+    "uvec",
+    "webgl"
   ]
 }

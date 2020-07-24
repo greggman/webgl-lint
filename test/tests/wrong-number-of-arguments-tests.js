@@ -8,5 +8,4 @@ export default [
       gl.enable(gl.DEPTH_TEST, 0);  // wrong number of args
     },
   },
-  
 ];

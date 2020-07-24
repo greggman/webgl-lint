@@ -1,8 +1,10 @@
+/* global console */
+
 import * as twgl from '../js/twgl-full.module.js';
 import {gl, tagObject} from '../shared.js';
 
 export default [
-  { desc: "test naming objects",
+  { desc: 'test naming objects',
     expect: [/my-test-prg/],
     func() {
       console.assert(gl.getExtension('OES_vertex_array_objects') === gl.getExtension('OES_vertex_array_objects'));
@@ -12,7 +14,7 @@ export default [
       gl.useProgram(p);
     },
   },
-  { desc: "test getting names of uniforms",
+  { desc: 'test getting names of uniforms',
     expect: [/diffuseColor.*?NaN/],
     func() {
       const prg = twgl.createProgram(gl, [
@@ -33,10 +35,10 @@ export default [
       gl.useProgram(prg);
       const loc = gl.getUniformLocation(prg, 'diffuseColor');
       gl.uniform4fv(loc, [1, 2, 3, 4]);
-      gl.uniform4fv(loc, [1, 2, 3/'foo', 4]);
+      gl.uniform4fv(loc, [1, 2, 3 / 'foo', 4]);
     },
   },
-  { desc: "test large uniform",
+  { desc: 'test large uniform',
     expect: [/diffuseColors.*?NaN/],
     func() {
       const prg = twgl.createProgram(gl, [

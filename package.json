@@ -4,6 +4,8 @@
   "description": "A semi strict WebGL checker",
   "main": "webgl-lint.js",
   "scripts": {
+    "eslint": "eslint --ignore-pattern test/js \"**/*.js\"",
+    "pre-push": "npm run eslint",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,6 +22,9 @@
   },
   "homepage": "https://github.com/greggman/webgl-lint#readme",
   "devDependencies": {
-    "eslint": "^7.5.0"
+    "eslint": "^7.5.0",
+    "eslint-plugin-html": "^6.0.2",
+    "eslint-plugin-optional-comma-spacing": "0.0.4",
+    "eslint-plugin-require-trailing-comma": "0.0.1"
   }
 }
