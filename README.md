@@ -158,7 +158,7 @@ There 2 ways to configure
    ```html
    <script
      src="https://github.greggman.io/webgl-helpers/webgl-gl-error-check.js"
-     data-gman-webgl-helper='
+     data-gman-debug-helper='
        {
          "maxDrawCalls": 2000, 
          "failUnsetUniformSamplers": true
@@ -168,7 +168,7 @@ There 2 ways to configure
    ```
 
    Note: (1) the setting string must be valid JSON. (2) any tag will do, `<div>`, `<span>`, etc. as the
-   script just applies all tags it finds with `querySelector('[data-gman-webgl-helper]')` and applies
+   script just applies all tags it finds with `querySelector('[data-gman-debug-helper]')` and applies
    the options in the order found.
 
 ### Naming your WebGL objects (buffers, textures, programs, etc..)
