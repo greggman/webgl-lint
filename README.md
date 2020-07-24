@@ -60,11 +60,12 @@ too! 😉
 
 ### `GMAN_debug_helper` extension
 
-WebGL Lint adds a special extension `GMAN_debug_helper` with 3 functions
+WebGL Lint adds a special extension `GMAN_debug_helper` with these functions
 
 * `tagObject(obj: WebGLObject, name: string): void` - see naming below
 * `getTagForObject(obj: WebGLObject): string` - see naming below
 * `setConfiguration(settings): void` - see configuration below
+* `disable(): void` - turns off the checking
 
 ### Configuration
 
@@ -73,7 +74,7 @@ for special needs.
 
 * `maxDrawCalls` (default: 1000)
 
-  Turns off the checking after this many draw calls. Set to -1 to check forever.
+  Turns off the checking after this many draw calls. Set to 0 to check forever.
 
 * `failUnsetUniforms`: (default: true)
 

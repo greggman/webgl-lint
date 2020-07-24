@@ -639,7 +639,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     const sharedState = options.sharedState || {
       baseContext: ctx,
       config: options,
-      wrappers: {
+      apis: {
         // custom extension
         gman_debug_helper: {
           ctx: {
@@ -654,6 +654,9 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
             },
             getTagForObject(webglObject) {
               return sharedState.webglObjectToNamesMap.get(webglObject);
+            },
+            disable() {
+              removeChecks();
             },
             setConfiguration(config) {
               for (const [key, value] of Object.entries(config)) {
@@ -1093,7 +1096,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     const origFuncs = {};
 
     function removeChecks() {
-      for (const {ctx, origFuncs} of Object.values(sharedState.wrappers)) {
+      for (const {ctx, origFuncs} of Object.values(sharedState.apis)) {
         Object.assign(ctx, origFuncs);
       }
       sharedState.locationsToNamesMap = new Map();
@@ -1109,10 +1112,10 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         console.warn(`instanceCount for ${funcName} is 0!`);  // eslint-disable-line
       }
 
-      if (sharedState.maxDrawCalls === 0) {
+      --sharedState.config.maxDrawCalls;
+      if (sharedState.config.maxDrawCalls === 0) {
         removeChecks();
       }
-      --sharedState.maxDrawCalls;
     }
 
     function noop() {
@@ -1139,7 +1142,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
     function getCurrentVertexArray() {
       const gl = sharedState.baseContext;
-      return (gl instanceof WebGL2RenderingContext || sharedState.wrappers.oes_vertex_array_object)
+      return (gl instanceof WebGL2RenderingContext || sharedState.apis.oes_vertex_array_object)
          ? gl.getParameter(VERTEX_ARRAY_BINDING)
          : null;
     }
@@ -1705,7 +1708,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         const origFn = ctx[propertyName];
         ctx[propertyName] = function(...args) {
           const extensionName = args[0].toLowerCase();
-          const wrapper = sharedState.wrappers[extensionName];
+          const wrapper = sharedState.apis[extensionName];
           if (wrapper) {
             return wrapper.ctx;
           }
@@ -1856,7 +1859,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       };
     }
 
-    sharedState.wrappers[nameOfClass.toLowerCase()] = { ctx, origFuncs };
+    sharedState.apis[nameOfClass.toLowerCase()] = { ctx, origFuncs };
     if (ctx.bindBuffer) {
       addEnumsForContext(ctx, ctx.bindBufferBase ? 'WebGL2' : 'WebGL');
     }

@@ -1,4 +1,5 @@
-import {gl2 as gl, tagObject2 as tagObject, assertThrowsWith} from '../shared.js';
+import {assertThrowsWith} from '../assert.js';
+import {gl2 as gl, tagObject2 as tagObject} from '../shared.js';
 
 export default [
   {

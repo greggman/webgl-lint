@@ -4,7 +4,8 @@
 /* global URLSearchParams */
 /* global window */
 
-import {resetContexts, escapeRE, config} from './shared.js';
+import {config} from './assert.js';
+import {resetContexts, escapeRE} from './shared.js';
 
 const settings = Object.fromEntries(new URLSearchParams(window.location.search).entries());
 const testGrepRE = new RegExp(escapeRE(settings.grep || ''));
@@ -27,6 +28,7 @@ import drawReportsProgramAndVaoTests from './tests/draw-reports-program-and-vao-
 import uniformMismatchTests from './tests/uniform-mismatch-tests.js';
 import uniformXXvTests from './tests/uniformXXv-tests.js';
 import arraysWithOffsetsTests from './tests/arrays-with-offsets-tests.js';
+import disableTests from './tests/disable-tests.js';
 
 const tests = [
   ...drawingTests,
@@ -47,6 +49,7 @@ const tests = [
   ...uniformMismatchTests,
   ...uniformXXvTests,
   ...arraysWithOffsetsTests,
+  ...disableTests,
 ];
 
 function fail(...args) {
