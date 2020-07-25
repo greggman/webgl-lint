@@ -1,42 +1,8 @@
-/*
-The MIT License (MIT)
-
-Copyright (c) 2019 Gregg Tavares
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
-
-(function() {
-  'use strict';  // eslint-disable-line
-
-  /* global console */
-  /* global document */
-  /* global navigator */
-  /* global HTMLCanvasElement */
-  /* global OffscreenCanvas */
-  /* global WebGL2RenderingContext */
-  /* global WebGLTexture */
-  /* global WebGLUniformLocation */
-
-  // get errors if these are accessed
-  const gl = undefined;  // eslint-disable-line
-  const ctx = undefined;  // eslint-disable-line
-  const ext = undefined;  // eslint-disable-line
+/* webgl-lint@1.2.1, license MIT */
+(function (factory) {
+  typeof define === 'function' && define.amd ? define(factory) :
+  factory();
+}((function () { 'use strict';
 
   function isBuiltIn(name) {
     return name.startsWith('gl_') || name.startsWith('webgl_');
@@ -45,6 +11,86 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   function isWebGL2(gl) {
     // a proxy for if this is webgl
     return !!gl.texImage3D;
+  }
+
+  function isTypedArray(v) {
+    return v && v.buffer && v.buffer instanceof ArrayBuffer;
+  }
+
+  function isArrayThatCanHaveBadValues(v) {
+    return Array.isArray(v) ||
+           v instanceof Float32Array ||
+           v instanceof Float64Array;
+  }
+
+  function quotedStringOrEmpty(s) {
+    return s ? `"${s}"` : '';
+  }
+
+  /**
+   * Map of names to numbers.
+   * @type {Object}
+   */
+  const enumStringToValue = {};
+
+  function enumArrayToString(gl, enums) {
+    const enumStrings = [];
+    if (enums.length) {
+      for (let i = 0; i < enums.length; ++i) {
+        enums.push(glEnumToString(gl, enums[i]));  // eslint-disable-line
+      }
+      return '[' + enumStrings.join(', ') + ']';
+    }
+    return enumStrings.toString();
+  }
+
+  function makeBitFieldToStringFunc(enums) {
+    return function(gl, value) {
+      let orResult = 0;
+      const orEnums = [];
+      for (let i = 0; i < enums.length; ++i) {
+        const enumValue = enumStringToValue[enums[i]];
+        if ((value & enumValue) !== 0) {
+          orResult |= enumValue;
+          orEnums.push(glEnumToString(gl, enumValue));  // eslint-disable-line
+        }
+      }
+      if (orResult === value) {
+        return orEnums.join(' | ');
+      } else {
+        return glEnumToString(gl, value);  // eslint-disable-line
+      }
+    };
+  }
+
+  /** @type Map<int, Set<string>> */
+  const enumToStringsMap = new Map();
+  function addEnumsFromAPI(api) {
+    for (const key in api) {
+      const value = api[key];
+      if (typeof value === 'number') {
+        if (!enumToStringsMap.has(value)) {
+          enumToStringsMap.set(value, new Set());
+        }
+        enumToStringsMap.get(value).add(key);
+      }
+    }
+  }
+
+  /**
+   * Gets an string version of an WebGL enum.
+   *
+   * Example:
+   *   var str = WebGLDebugUtil.glEnumToString(ctx.getError());
+   *
+   * @param {number} value Value to return an enum for
+   * @return {string} The string version of the enum.
+   */
+  function glEnumToString(gl, value) {
+    const matches = enumToStringsMap.get(value);
+    return matches
+        ? [...matches.keys()].map(v => `${v}`).join(' | ')
+        : `/*UNKNOWN WebGL ENUM*/ ${typeof value === 'number' ? `0x${value.toString(16)}` : value}`;
   }
 
   // ---------------------------------
@@ -89,86 +135,135 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   const UNSIGNED_INT_SAMPLER_CUBE     = 0x8DD4;
   const UNSIGNED_INT_SAMPLER_2D_ARRAY = 0x8DD7;
 
-  const attrTypeMap = {};
-  attrTypeMap[FLOAT]             = { size:  4, };
-  attrTypeMap[FLOAT_VEC2]        = { size:  8, };
-  attrTypeMap[FLOAT_VEC3]        = { size: 12, };
-  attrTypeMap[FLOAT_VEC4]        = { size: 16, };
-  attrTypeMap[INT]               = { size:  4, };
-  attrTypeMap[INT_VEC2]          = { size:  8, };
-  attrTypeMap[INT_VEC3]          = { size: 12, };
-  attrTypeMap[INT_VEC4]          = { size: 16, };
-  attrTypeMap[UNSIGNED_INT]      = { size:  4, };
-  attrTypeMap[UNSIGNED_INT_VEC2] = { size:  8, };
-  attrTypeMap[UNSIGNED_INT_VEC3] = { size: 12, };
-  attrTypeMap[UNSIGNED_INT_VEC4] = { size: 16, };
-  attrTypeMap[BOOL]              = { size:  4, };
-  attrTypeMap[BOOL_VEC2]         = { size:  8, };
-  attrTypeMap[BOOL_VEC3]         = { size: 12, };
-  attrTypeMap[BOOL_VEC4]         = { size: 16, };
-  attrTypeMap[FLOAT_MAT2]        = { size:  4, count: 2, };
-  attrTypeMap[FLOAT_MAT3]        = { size:  9, count: 3, };
-  attrTypeMap[FLOAT_MAT4]        = { size: 16, count: 4, };
+  const uniformTypeMap = new Map([
+    [FLOAT,                          { size:  1, name: 'float', }],
+    [FLOAT_VEC2,                     { size:  2, name: 'vec2', }],
+    [FLOAT_VEC3,                     { size:  3, name: 'vec3', }],
+    [FLOAT_VEC4,                     { size:  4, name: 'vec4', }],
+    [INT,                            { size:  1, name: 'int', }],
+    [INT_VEC2,                       { size:  2, name: 'ivec2', }],
+    [INT_VEC3,                       { size:  3, name: 'ivec3', }],
+    [INT_VEC4,                       { size:  4, name: 'ivec4', }],
+    [UNSIGNED_INT,                   { size:  1, name: 'uint', }],
+    [UNSIGNED_INT_VEC2,              { size:  2, name: 'uvec2', }],
+    [UNSIGNED_INT_VEC3,              { size:  3, name: 'uvec3', }],
+    [UNSIGNED_INT_VEC4,              { size:  4, name: 'uvec4', }],
+    [BOOL,                           { size:  1, name: 'bool', }],
+    [BOOL_VEC2,                      { size:  2, name: 'bvec2', }],
+    [BOOL_VEC3,                      { size:  3, name: 'bvec3', }],
+    [BOOL_VEC4,                      { size:  4, name: 'bvec4', }],
+    [FLOAT_MAT2,                     { size:  4, name: 'mat2', }],
+    [FLOAT_MAT3,                     { size:  9, name: 'mat3', }],
+    [FLOAT_MAT4,                     { size: 16, name: 'mat4', }],
+    [FLOAT_MAT2x3,                   { size:  6, name: 'mat2x3', }],
+    [FLOAT_MAT2x4,                   { size:  8, name: 'mat2x4', }],
+    [FLOAT_MAT3x2,                   { size:  6, name: 'mat3x2', }],
+    [FLOAT_MAT3x4,                   { size: 12, name: 'mat3x4', }],
+    [FLOAT_MAT4x2,                   { size:  8, name: 'mat4x2', }],
+    [FLOAT_MAT4x3,                   { size: 12, name: 'mat4x3', }],
+    [SAMPLER_2D,                     { size:  1, name: 'sampler2D', }],
+    [SAMPLER_CUBE,                   { size:  1, name: 'samplerCube', }],
+    [SAMPLER_3D,                     { size:  1, name: 'sampler3D', }],
+    [SAMPLER_2D_SHADOW,              { size:  1, name: 'sampler2DShadow', }],
+    [SAMPLER_2D_ARRAY,               { size:  1, name: 'sampler2DArray', }],
+    [SAMPLER_2D_ARRAY_SHADOW,        { size:  1, name: 'sampler2DArrayShadow', }],
+    [SAMPLER_CUBE_SHADOW,            { size:  1, name: 'samplerCubeShadow', }],
+    [INT_SAMPLER_2D,                 { size:  1, name: 'isampler2D', }],
+    [INT_SAMPLER_3D,                 { size:  1, name: 'isampler3D', }],
+    [INT_SAMPLER_CUBE,               { size:  1, name: 'isamplerCube', }],
+    [INT_SAMPLER_2D_ARRAY,           { size:  1, name: 'isampler2DArray', }],
+    [UNSIGNED_INT_SAMPLER_2D,        { size:  1, name: 'usampler2D', }],
+    [UNSIGNED_INT_SAMPLER_3D,        { size:  1, name: 'usampler3D', }],
+    [UNSIGNED_INT_SAMPLER_CUBE,      { size:  1, name: 'usamplerCube', }],
+    [UNSIGNED_INT_SAMPLER_2D_ARRAY,  { size:  1, name: 'usampler2DArray', }],
+  ]);
 
-  const uniformTypeMap = {};
-  uniformTypeMap[FLOAT]                         = { size:  1, name: 'float', };
-  uniformTypeMap[FLOAT_VEC2]                    = { size:  2, name: 'vec2', };
-  uniformTypeMap[FLOAT_VEC3]                    = { size:  3, name: 'vec3', };
-  uniformTypeMap[FLOAT_VEC4]                    = { size:  4, name: 'vec4', };
-  uniformTypeMap[INT]                           = { size:  1, name: 'int', };
-  uniformTypeMap[INT_VEC2]                      = { size:  2, name: 'ivec2', };
-  uniformTypeMap[INT_VEC3]                      = { size:  3, name: 'ivec3', };
-  uniformTypeMap[INT_VEC4]                      = { size:  4, name: 'ivec4', };
-  uniformTypeMap[UNSIGNED_INT]                  = { size:  1, name: 'uint', };
-  uniformTypeMap[UNSIGNED_INT_VEC2]             = { size:  2, name: 'uvec2', };
-  uniformTypeMap[UNSIGNED_INT_VEC3]             = { size:  3, name: 'uvec3', };
-  uniformTypeMap[UNSIGNED_INT_VEC4]             = { size:  4, name: 'uvec4', };
-  uniformTypeMap[BOOL]                          = { size:  1, name: 'bool', };
-  uniformTypeMap[BOOL_VEC2]                     = { size:  2, name: 'bvec2', };
-  uniformTypeMap[BOOL_VEC3]                     = { size:  3, name: 'bvec3', };
-  uniformTypeMap[BOOL_VEC4]                     = { size:  4, name: 'bvec4', };
-  uniformTypeMap[FLOAT_MAT2]                    = { size:  4, name: 'mat2', };
-  uniformTypeMap[FLOAT_MAT3]                    = { size:  9, name: 'mat3', };
-  uniformTypeMap[FLOAT_MAT4]                    = { size: 16, name: 'mat4', };
-  uniformTypeMap[FLOAT_MAT2x3]                  = { size:  6, name: 'mat2x3', };
-  uniformTypeMap[FLOAT_MAT2x4]                  = { size:  8, name: 'mat2x4', };
-  uniformTypeMap[FLOAT_MAT3x2]                  = { size:  6, name: 'mat3x2', };
-  uniformTypeMap[FLOAT_MAT3x4]                  = { size: 12, name: 'mat3x4', };
-  uniformTypeMap[FLOAT_MAT4x2]                  = { size:  8, name: 'mat4x2', };
-  uniformTypeMap[FLOAT_MAT4x3]                  = { size: 12, name: 'mat4x3', };
-  uniformTypeMap[SAMPLER_2D]                    = { size:  1, name: 'sampler2D', };
-  uniformTypeMap[SAMPLER_CUBE]                  = { size:  1, name: 'samplerCube', };
-  uniformTypeMap[SAMPLER_3D]                    = { size:  1, name: 'sampler3D', };
-  uniformTypeMap[SAMPLER_2D_SHADOW]             = { size:  1, name: 'sampler2DShadow', };
-  uniformTypeMap[SAMPLER_2D_ARRAY]              = { size:  1, name: 'sampler2DArray', };
-  uniformTypeMap[SAMPLER_2D_ARRAY_SHADOW]       = { size:  1, name: 'sampler2DArrayShadow', };
-  uniformTypeMap[SAMPLER_CUBE_SHADOW]           = { size:  1, name: 'samplerCubeShadow', };
-  uniformTypeMap[INT_SAMPLER_2D]                = { size:  1, name: 'isampler2D', };
-  uniformTypeMap[INT_SAMPLER_3D]                = { size:  1, name: 'isampler3D', };
-  uniformTypeMap[INT_SAMPLER_CUBE]              = { size:  1, name: 'isamplerCube', };
-  uniformTypeMap[INT_SAMPLER_2D_ARRAY]          = { size:  1, name: 'isampler2DArray', };
-  uniformTypeMap[UNSIGNED_INT_SAMPLER_2D]       = { size:  1, name: 'usampler2D', };
-  uniformTypeMap[UNSIGNED_INT_SAMPLER_3D]       = { size:  1, name: 'usampler3D', };
-  uniformTypeMap[UNSIGNED_INT_SAMPLER_CUBE]     = { size:  1, name: 'usamplerCube', };
-  uniformTypeMap[UNSIGNED_INT_SAMPLER_2D_ARRAY] = { size:  1, name: 'usampler2DArray', };
-
-  const BYTE                         = 0x1400;
-  const UNSIGNED_BYTE                = 0x1401;
-  const SHORT                        = 0x1402;
-  const UNSIGNED_SHORT               = 0x1403;
-
-  function getBytesPerValueForGLType(type) {
-    if (type === BYTE)           return 1;  // eslint-disable-line
-    if (type === UNSIGNED_BYTE)  return 1;  // eslint-disable-line
-    if (type === SHORT)          return 2;  // eslint-disable-line
-    if (type === UNSIGNED_SHORT) return 2;  // eslint-disable-line
-    if (type === INT)            return 4;  // eslint-disable-line
-    if (type === UNSIGNED_INT)   return 4;  // eslint-disable-line
-    if (type === FLOAT)          return 4;  // eslint-disable-line
-    return 0;
+  function getUniformTypeInfo(type) {
+    return uniformTypeMap.get(type);
   }
 
-  const funcsToArgs = {
+  // ---------------------------------
+
+
+  const TEXTURE_BINDING_2D            = 0x8069;
+  const TEXTURE_BINDING_CUBE_MAP      = 0x8514;
+  const TEXTURE_BINDING_3D            = 0x806A;
+  const TEXTURE_BINDING_2D_ARRAY      = 0x8C1D;
+
+
+  const ARRAY_BUFFER                   = 0x8892;
+  const ELEMENT_ARRAY_BUFFER           = 0x8893;
+  const ARRAY_BUFFER_BINDING           = 0x8894;
+  const ELEMENT_ARRAY_BUFFER_BINDING   = 0x8895;
+  const TEXTURE_2D                     = 0x0DE1;
+  const TEXTURE_3D                     = 0x806F;
+  const TEXTURE_2D_ARRAY               = 0x8C1A;
+  const TEXTURE_CUBE_MAP               = 0x8513;
+  const FRAMEBUFFER                    = 0x8D40;
+  const RENDERBUFFER                   = 0x8D41;
+  const FRAMEBUFFER_BINDING            = 0x8CA6;
+  const RENDERBUFFER_BINDING           = 0x8CA7;
+  const TRANSFORM_FEEDBACK_BUFFER      = 0x8C8E;
+  const TRANSFORM_FEEDBACK_BUFFER_BINDING = 0x8C8F;
+  const DRAW_FRAMEBUFFER               = 0x8CA9;
+  const READ_FRAMEBUFFER               = 0x8CA8;
+  const READ_FRAMEBUFFER_BINDING       = 0x8CAA;
+  const UNIFORM_BUFFER                 = 0x8A11;
+  const UNIFORM_BUFFER_BINDING         = 0x8A28;
+  const TRANSFORM_FEEDBACK             = 0x8E22;
+  const TRANSFORM_FEEDBACK_BINDING     = 0x8E25;
+
+  const bindPointMap = new Map([
+    [ARRAY_BUFFER, ARRAY_BUFFER_BINDING],
+    [ELEMENT_ARRAY_BUFFER, ELEMENT_ARRAY_BUFFER_BINDING],
+    [TEXTURE_2D, TEXTURE_BINDING_2D],
+    [TEXTURE_CUBE_MAP, TEXTURE_BINDING_CUBE_MAP],
+    [TEXTURE_3D, TEXTURE_BINDING_3D],
+    [TEXTURE_2D_ARRAY, TEXTURE_BINDING_2D_ARRAY],
+    [RENDERBUFFER, RENDERBUFFER_BINDING],
+    [FRAMEBUFFER, FRAMEBUFFER_BINDING],
+    [DRAW_FRAMEBUFFER, FRAMEBUFFER_BINDING],
+    [READ_FRAMEBUFFER, READ_FRAMEBUFFER_BINDING],
+    [UNIFORM_BUFFER, UNIFORM_BUFFER_BINDING],
+    [TRANSFORM_FEEDBACK_BUFFER, TRANSFORM_FEEDBACK_BUFFER_BINDING],
+    [TRANSFORM_FEEDBACK, TRANSFORM_FEEDBACK_BINDING],
+  ]);
+
+  function getBindingQueryEnumForBindPoint(bindPoint) {
+    return bindPointMap.get(bindPoint);
+  }
+
+  const BYTE                         = 0x1400;
+  const SHORT                        = 0x1402;
+  const UNSIGNED_BYTE                = 0x1401;
+  const UNSIGNED_SHORT               = 0x1403;
+
+  const glTypeToSizeMap = new Map([
+    [BOOL           , 1],
+    [BYTE           , 1],
+    [UNSIGNED_BYTE  , 1],
+    [SHORT          , 2],
+    [UNSIGNED_SHORT , 2],
+    [INT            , 4],
+    [UNSIGNED_INT   , 4],
+    [FLOAT          , 4],
+  ]);
+
+  function getBytesPerValueForGLType(type) {
+    return glTypeToSizeMap.get(type) || 0;
+  }
+
+  const glTypeToTypedArrayMap = new Map([
+    [UNSIGNED_BYTE,  Uint8Array],
+    [UNSIGNED_SHORT, Uint16Array],
+    [UNSIGNED_INT,   Uint32Array],
+  ]);
+
+  function glTypeToTypedArray(type) {
+    return glTypeToTypedArrayMap.get(type);
+  }
+
+  const drawFuncsToArgs = {
     drawArrays(primType, startOffset, vertCount) {
       return {startOffset, vertCount, instances: 1};
     },
@@ -192,22 +287,47 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
       },
   };
 
-  function isDrawFunction(funcName) {
-    return !!funcsToArgs[funcName];
+  function getDrawFunctionArgs(funcName, args) {
+    return drawFuncsToArgs[funcName](...args);
   }
 
-  const glTypeToTypedArray = {};
-  glTypeToTypedArray[UNSIGNED_BYTE] = Uint8Array;
-  glTypeToTypedArray[UNSIGNED_SHORT] = Uint16Array;
-  glTypeToTypedArray[UNSIGNED_INT] = Uint32Array;
+  function isDrawFunction(funcName) {
+    return !!drawFuncsToArgs[funcName];
+  }
 
-  const bufferToIndices = new Map();
+  const attrTypeMap = new Map([
+    [FLOAT,              { size:  4, }],
+    [FLOAT_VEC2,         { size:  8, }],
+    [FLOAT_VEC3,         { size: 12, }],
+    [FLOAT_VEC4,         { size: 16, }],
+    [INT,                { size:  4, }],
+    [INT_VEC2,           { size:  8, }],
+    [INT_VEC3,           { size: 12, }],
+    [INT_VEC4,           { size: 16, }],
+    [UNSIGNED_INT,       { size:  4, }],
+    [UNSIGNED_INT_VEC2,  { size:  8, }],
+    [UNSIGNED_INT_VEC3,  { size: 12, }],
+    [UNSIGNED_INT_VEC4,  { size: 16, }],
+    [BOOL,               { size:  4, }],
+    [BOOL_VEC2,          { size:  8, }],
+    [BOOL_VEC3,          { size: 12, }],
+    [BOOL_VEC4,          { size: 16, }],
+    [FLOAT_MAT2,         { size:  4, count: 2, }],
+    [FLOAT_MAT3,         { size:  9, count: 3, }],
+    [FLOAT_MAT4,         { size: 16, count: 4, }],
+  ]);
+
+  function getAttributeTypeInfo(type) {
+    return attrTypeMap.get(type);
+  }
+
+  const VERTEX_ATTRIB_ARRAY_DIVISOR = 0x88FE;
 
   function computeLastUseIndexForDrawArrays(startOffset, vertCount/*, instances, errors*/) {
     return startOffset + vertCount - 1;
   }
 
-  function getLastUsedIndexForDrawElements(gl, funcName, startOffset, vertCount, instances, indexType, getWebGLObjectString, errors) {
+  function getLastUsedIndexForDrawElements(gl, funcName, startOffset, vertCount, instances, indexType, getWebGLObjectString, getIndicesForBuffer, errors) {
     const elementBuffer = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
     if (!elementBuffer) {
       errors.push('No ELEMENT_ARRAY_BUFFER bound');
@@ -221,8 +341,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 Those parameters require ${sizeNeeded} bytes but the current ELEMENT_ARRAY_BUFFER ${getWebGLObjectString(elementBuffer)} only has ${bufferSize} bytes`);
       return undefined;
     }
-    const buffer = bufferToIndices.get(elementBuffer);
-    const Type = glTypeToTypedArray[indexType];
+    const buffer = getIndicesForBuffer(elementBuffer);
+    const Type = glTypeToTypedArray(indexType);
     const view = new Type(buffer, startOffset);
     let maxIndex = view[0];
     for (let i = 1; i < vertCount; ++i) {
@@ -231,18 +351,17 @@ Those parameters require ${sizeNeeded} bytes but the current ELEMENT_ARRAY_BUFFE
     return maxIndex;
   }
 
-  const VERTEX_ATTRIB_ARRAY_DIVISOR = 0x88FE;
 
-  function checkAttributes(gl, funcName, args, getWebGLObjectString) {
-    const {vertCount, startOffset, indexType, instances} = funcsToArgs[funcName](...args);
+  function checkAttributesForBufferOverflow(gl, funcName, args, getWebGLObjectString, getIndicesForBuffer) {
+    const {vertCount, startOffset, indexType, instances} = getDrawFunctionArgs(funcName, args);
     if (vertCount <= 0 || instances <= 0) {
       return [];
     }
     const program = gl.getParameter(gl.CURRENT_PROGRAM);
     const errors = [];
     const nonInstancedLastIndex = indexType
-        ? getLastUsedIndexForDrawElements(gl, funcName, startOffset, vertCount, instances, indexType, getWebGLObjectString, errors)
-        : computeLastUseIndexForDrawArrays(startOffset, vertCount, instances, errors);
+        ? getLastUsedIndexForDrawElements(gl, funcName, startOffset, vertCount, instances, indexType, getWebGLObjectString, getIndicesForBuffer, errors)
+        : computeLastUseIndexForDrawArrays(startOffset, vertCount);
     if (errors.length) {
       return errors;
     }
@@ -258,7 +377,7 @@ Those parameters require ${sizeNeeded} bytes but the current ELEMENT_ARRAY_BUFFE
         continue;
       }
       const index = gl.getAttribLocation(program, name);
-      const {count} = {count: 1, ...attrTypeMap[type]};
+      const {count} = {count: 1, ...getAttributeTypeInfo(type)};
       for (let jj = 0; jj < count; ++jj) {
         const ndx = index + jj;
         const enabled = gl.getVertexAttrib(ndx, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
@@ -297,40 +416,77 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     return errors;
   }
 
-  // ---------------------------------
+  const SAMPLER_2D$1                    = 0x8B5E;
+  const SAMPLER_CUBE$1                  = 0x8B60;
+  const SAMPLER_3D$1                    = 0x8B5F;
+  const SAMPLER_2D_SHADOW$1             = 0x8B62;
+  const SAMPLER_2D_ARRAY$1              = 0x8DC1;
+  const SAMPLER_2D_ARRAY_SHADOW$1       = 0x8DC4;
+  const SAMPLER_CUBE_SHADOW$1           = 0x8DC5;
+  const INT_SAMPLER_2D$1                = 0x8DCA;
+  const INT_SAMPLER_3D$1                = 0x8DCB;
+  const INT_SAMPLER_CUBE$1              = 0x8DCC;
+  const INT_SAMPLER_2D_ARRAY$1          = 0x8DCF;
+  const UNSIGNED_INT_SAMPLER_2D$1       = 0x8DD2;
+  const UNSIGNED_INT_SAMPLER_3D$1       = 0x8DD3;
+  const UNSIGNED_INT_SAMPLER_CUBE$1     = 0x8DD4;
+  const UNSIGNED_INT_SAMPLER_2D_ARRAY$1 = 0x8DD7;
 
-  const samplers = new Set([
-    SAMPLER_2D,
-    SAMPLER_CUBE,
-    SAMPLER_3D,
-    SAMPLER_2D_SHADOW,
-    SAMPLER_2D_ARRAY,
-    SAMPLER_2D_ARRAY_SHADOW,
-    SAMPLER_CUBE_SHADOW,
- ]);
+  const samplerTypes = new Map([
+    [SAMPLER_2D$1,                    {bindPoint: '2D'}],
+    [SAMPLER_CUBE$1,                  {bindPoint: 'CUBE'}],
+    [SAMPLER_3D$1,                    {bindPoint: '3D'}],
+    [SAMPLER_2D_SHADOW$1,             {bindPoint: '2D'}],
+    [SAMPLER_2D_ARRAY$1,              {bindPoint: '2D_ARRAY'}],
+    [SAMPLER_2D_ARRAY_SHADOW$1,       {bindPoint: '2D_ARRAY'}],
+    [SAMPLER_CUBE_SHADOW$1,           {bindPoint: 'CUBE'}],
+    [INT_SAMPLER_2D$1,                {bindPoint: '2D'}],
+    [INT_SAMPLER_3D$1,                {bindPoint: '3D'}],
+    [INT_SAMPLER_CUBE$1,              {bindPoint: 'CUBE'}],
+    [INT_SAMPLER_2D_ARRAY$1,          {bindPoint: '2D_ARRAY'}],
+    [UNSIGNED_INT_SAMPLER_2D$1,       {bindPoint: '2D'}],
+    [UNSIGNED_INT_SAMPLER_3D$1,       {bindPoint: '3D'}],
+    [UNSIGNED_INT_SAMPLER_CUBE$1,     {bindPoint: 'CUBE'}],
+    [UNSIGNED_INT_SAMPLER_2D_ARRAY$1, {bindPoint: '2D_ARRAY'}],
+  ]);
 
-  function isSampler(type) {
-    return samplers.has(type);
+  function uniformTypeIsSampler(type) {
+    return samplerTypes.has(type);
   }
 
-  const TEXTURE_BINDING_2D            = 0x8069;
-  const TEXTURE_BINDING_CUBE_MAP      = 0x8514;
-  const TEXTURE_BINDING_3D            = 0x806A;
-  const TEXTURE_BINDING_2D_ARRAY      = 0x8C1D;
+  const TEXTURE_BINDING_2D$1            = 0x8069;
+  const TEXTURE_BINDING_CUBE_MAP$1      = 0x8514;
+  const TEXTURE_BINDING_3D$1            = 0x806A;
+  const TEXTURE_BINDING_2D_ARRAY$1      = 0x8C1D;
 
-  const samplerTypeToBinding = new Map();
-  samplerTypeToBinding.set(SAMPLER_2D, TEXTURE_BINDING_2D);
-  samplerTypeToBinding.set(SAMPLER_2D_SHADOW, TEXTURE_BINDING_2D);
-  samplerTypeToBinding.set(SAMPLER_3D, TEXTURE_BINDING_3D);
-  samplerTypeToBinding.set(SAMPLER_2D_ARRAY, TEXTURE_BINDING_2D_ARRAY);
-  samplerTypeToBinding.set(SAMPLER_2D_ARRAY_SHADOW, TEXTURE_BINDING_2D_ARRAY);
-  samplerTypeToBinding.set(SAMPLER_CUBE, TEXTURE_BINDING_CUBE_MAP);
-  samplerTypeToBinding.set(SAMPLER_CUBE_SHADOW, TEXTURE_BINDING_CUBE_MAP);
+  const samplerTypeToBinding = new Map([
+    [SAMPLER_2D$1, TEXTURE_BINDING_2D$1],
+    [SAMPLER_2D_SHADOW$1, TEXTURE_BINDING_2D$1],
+    [SAMPLER_3D$1, TEXTURE_BINDING_3D$1],
+    [SAMPLER_2D_ARRAY$1, TEXTURE_BINDING_2D_ARRAY$1],
+    [SAMPLER_2D_ARRAY_SHADOW$1, TEXTURE_BINDING_2D_ARRAY$1],
+    [SAMPLER_CUBE$1, TEXTURE_BINDING_CUBE_MAP$1],
+    [SAMPLER_CUBE_SHADOW$1, TEXTURE_BINDING_CUBE_MAP$1],
+  ]);
 
   function getTextureForUnit(gl, unit, type) {
     gl.activeTexture(gl.TEXTURE0 + unit);
     const binding = samplerTypeToBinding.get(type);
     return gl.getParameter(binding);
+  }
+
+  /* global WebGLTexture */
+
+  const MAX_COLOR_ATTACHMENTS = 0x8CDF;
+
+  function getMaxColorAttachments(gl) {
+    if (!isWebGL2(gl)) {
+      const ext = gl.getExtension('WEBGL_draw_buffers');
+      if (!ext) {
+        return 1;
+      }
+    }
+    return gl.getParameter(MAX_COLOR_ATTACHMENTS);
   }
 
   /**
@@ -351,18 +507,6 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       }
       textureAttachments.get(obj).push(attachment);
     }
-  }
-
-  const MAX_COLOR_ATTACHMENTS = 0x8CDF;
-
-  function getMaxColorAttachments(gl) {
-    if (!isWebGL2(gl)) {
-      const ext = gl.getExtension('WEBGL_draw_buffers');
-      if (!ext) {
-        return 1;
-      }
-    }
-    return gl.getParameter(MAX_COLOR_ATTACHMENTS);
   }
 
   /**
@@ -396,7 +540,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     const errors = [];
     for (let ii = 0; ii < numUniforms; ++ii) {
       const {name, type, size} = gl.getActiveUniform(program, ii);
-      if (isBuiltIn(name) || !isSampler(type)) {
+      if (isBuiltIn(name) || !uniformTypeIsSampler(type)) {
         continue;
       }
 
@@ -426,42 +570,138 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
        : [];
   }
 
-  const ARRAY_BUFFER                   = 0x8892;
-  const ELEMENT_ARRAY_BUFFER           = 0x8893;
-  const ARRAY_BUFFER_BINDING           = 0x8894;
-  const ELEMENT_ARRAY_BUFFER_BINDING   = 0x8895;
-  const TEXTURE_2D                     = 0x0DE1;
-  const TEXTURE_3D                     = 0x806F;
-  const TEXTURE_2D_ARRAY               = 0x8C1A;
-  const TEXTURE_CUBE_MAP               = 0x8513;
-  const FRAMEBUFFER                    = 0x8D40;
-  const RENDERBUFFER                   = 0x8D41;
-  const FRAMEBUFFER_BINDING            = 0x8CA6;
-  const RENDERBUFFER_BINDING           = 0x8CA7;
-  const TRANSFORM_FEEDBACK_BUFFER      = 0x8C8E;
-  const TRANSFORM_FEEDBACK_BUFFER_BINDING = 0x8C8F;
-  const DRAW_FRAMEBUFFER               = 0x8CA9;
-  const READ_FRAMEBUFFER               = 0x8CA8;
-  const READ_FRAMEBUFFER_BINDING       = 0x8CAA;
-  const UNIFORM_BUFFER                 = 0x8A11;
-  const UNIFORM_BUFFER_BINDING         = 0x8A28;
-  const TRANSFORM_FEEDBACK             = 0x8E22;
-  const TRANSFORM_FEEDBACK_BINDING     = 0x8E25;
+  /* global navigator */
 
-  const bindPointMap = new Map();
-  bindPointMap.set(ARRAY_BUFFER, ARRAY_BUFFER_BINDING);
-  bindPointMap.set(ELEMENT_ARRAY_BUFFER, ELEMENT_ARRAY_BUFFER_BINDING);
-  bindPointMap.set(TEXTURE_2D, TEXTURE_BINDING_2D);
-  bindPointMap.set(TEXTURE_CUBE_MAP, TEXTURE_BINDING_CUBE_MAP);
-  bindPointMap.set(TEXTURE_3D, TEXTURE_BINDING_3D);
-  bindPointMap.set(TEXTURE_2D_ARRAY, TEXTURE_BINDING_2D_ARRAY);
-  bindPointMap.set(RENDERBUFFER, RENDERBUFFER_BINDING);
-  bindPointMap.set(FRAMEBUFFER, FRAMEBUFFER_BINDING);
-  bindPointMap.set(DRAW_FRAMEBUFFER, FRAMEBUFFER_BINDING);
-  bindPointMap.set(READ_FRAMEBUFFER, READ_FRAMEBUFFER_BINDING);
-  bindPointMap.set(UNIFORM_BUFFER, UNIFORM_BUFFER_BINDING);
-  bindPointMap.set(TRANSFORM_FEEDBACK_BUFFER, TRANSFORM_FEEDBACK_BUFFER_BINDING);
-  bindPointMap.set(TRANSFORM_FEEDBACK, TRANSFORM_FEEDBACK_BINDING);
+  // adapted from http://stackoverflow.com/a/2401861/128511
+  function getBrowser() {
+    const userAgent = navigator.userAgent;
+    let m = userAgent.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i) || [];
+    if (/trident/i.test(m[1])) {
+      m = /\brv[ :]+(\d+)/g.exec(userAgent) || [];
+      return {
+        name: 'IE',
+        version: m[1],
+      };
+    }
+    if (m[1] === 'Chrome') {
+      const temp = userAgent.match(/\b(OPR|Edge)\/(\d+)/);
+      if (temp) {
+        return {
+          name: temp[1].replace('OPR', 'Opera'),
+          version: temp[2],
+        };
+      }
+    }
+    m = m[2] ? [m[1], m[2]] : [navigator.appName, navigator.appVersion, '-?'];
+    const version = userAgent.match(/version\/(\d+)/i);
+    if (version) {
+      m.splice(1, 1, version[1]);
+    }
+    return {
+      name: m[0],
+      version: m[1],
+    };
+  }
+
+  /**
+   * @typedef {Object} StackInfo
+   * @property {string} url Url of line
+   * @property {number} lineNo line number of error
+   * @property {number} colNo column number of error
+   * @property {string} [funcName] name of function
+   */
+
+  /**
+   * @parameter {string} stack A stack string as in `(new Error()).stack`
+   * @returns {StackInfo}
+   */
+  const parseStack = function() {
+    const browser = getBrowser();
+    let lineNdx;
+    let matcher;
+    if ((/chrome|opera/i).test(browser.name)) {
+      lineNdx = 3;
+      matcher = function(line) {
+        const m = /at ([^(]+)*\(*(.*?):(\d+):(\d+)/.exec(line);
+        if (m) {
+          let userFnName = m[1];
+          let url = m[2];
+          const lineNo = parseInt(m[3]);
+          const colNo = parseInt(m[4]);
+          if (url === '') {
+            url = userFnName;
+            userFnName = '';
+          }
+          return {
+            url: url,
+            lineNo: lineNo,
+            colNo: colNo,
+            funcName: userFnName,
+          };
+        }
+        return undefined;
+      };
+    } else if ((/firefox|safari/i).test(browser.name)) {
+      lineNdx = 2;
+      matcher = function(line) {
+        const m = /@(.*?):(\d+):(\d+)/.exec(line);
+        if (m) {
+          const url = m[1];
+          const lineNo = parseInt(m[2]);
+          const colNo = parseInt(m[3]);
+          return {
+            url: url,
+            lineNo: lineNo,
+            colNo: colNo,
+          };
+        }
+        return undefined;
+      };
+    }
+
+    return function stackParser(stack) {
+      if (matcher) {
+        try {
+          const lines = stack.split('\n');
+          // window.fooLines = lines;
+          // lines.forEach(function(line, ndx) {
+          //   origConsole.log("#", ndx, line);
+          // });
+          return matcher(lines[lineNdx]);
+        } catch (e) {
+          // do nothing
+        }
+      }
+      return undefined;
+    };
+  }();
+
+  /*
+  The MIT License (MIT)
+
+  Copyright (c) 2019 Gregg Tavares
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of
+  this software and associated documentation files (the "Software"), to deal in
+  the Software without restriction, including without limitation the rights to
+  use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+  the Software, and to permit persons to whom the Software is furnished to do so,
+  subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+  FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+  COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+  IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  */
+
+  /* global console */
+  /* global WebGL2RenderingContext */
+  /* global WebGLUniformLocation */
 
   //------------ [ from https://github.com/KhronosGroup/WebGLDeveloperTools ]
 
@@ -488,76 +728,12 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
   ** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
   */
 
-  /**
-   * Types of contexts we have added to map
-   */
-  const mappedContextTypes = {};
-
-  /**
-   * Map of numbers to names.
-   * @type {Object}
-   */
-  const glEnums = {};
-
-  /**
-   * Map of names to numbers.
-   * @type {Object}
-   */
-  const enumStringToValue = {};
-
-  /**
-   * Initializes this module. Safe to call more than once.
-   * @param {!WebGLRenderingContext} ctx A WebGL context. If
-   *    you have more than one context it doesn't matter which one
-   *    you pass in, it is only used to pull out constants.
-   */
-  function addEnumsForContext(ctx, type) {
-    if (!mappedContextTypes[type]) {
-      mappedContextTypes[type] = true;
-      for (const propertyName in ctx) {
-        if (typeof ctx[propertyName] === 'number') {
-          glEnums[ctx[propertyName]] = propertyName;
-          enumStringToValue[propertyName] = ctx[propertyName];
-        }
-      }
-    }
-  }
-
-  function enumArrayToString(gl, enums) {
-    const enumStrings = [];
-    if (enums.length) {
-      for (let i = 0; i < enums.length; ++i) {
-        enums.push(glEnumToString(gl, enums[i]));  // eslint-disable-line
-      }
-      return '[' + enumStrings.join(', ') + ']';
-    }
-    return enumStrings.toString();
-  }
-
-  function makeBitFieldToStringFunc(enums) {
-    return function(gl, value) {
-      let orResult = 0;
-      const orEnums = [];
-      for (let i = 0; i < enums.length; ++i) {
-        const enumValue = enumStringToValue[enums[i]];
-        if ((value & enumValue) !== 0) {
-          orResult |= enumValue;
-          orEnums.push(glEnumToString(gl, enumValue));  // eslint-disable-line
-        }
-      }
-      if (orResult === value) {
-        return orEnums.join(' | ');
-      } else {
-        return glEnumToString(gl, value);  // eslint-disable-line
-      }
-    };
-  }
 
   const destBufferBitFieldToString = makeBitFieldToStringFunc([
     'COLOR_BUFFER_BIT',
     'DEPTH_BUFFER_BIT',
     'STENCIL_BUFFER_BIT',
- ]);
+  ]);
 
   function convertToObjectIfArray(obj, key) {
     if (Array.isArray(obj[key])) {
@@ -579,50 +755,6 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
   }
   */
 
-  function isTypedArray(v) {
-    return v && v.buffer && v.buffer instanceof ArrayBuffer;
-  }
-
-  function isArrayThatCanHaveBadValues(v) {
-    return Array.isArray(v) ||
-           v instanceof Float32Array ||
-           v instanceof Float64Array;
-  }
-
-  /** @type Map<int, Set<string>> */
-  const enumToStringsMap = new Map();
-  function addEnumsFromAPI(api) {
-    for (const key in api) {
-      const value = api[key];
-      if (typeof value === 'number') {
-        if (!enumToStringsMap.has(value)) {
-          enumToStringsMap.set(value, new Set());
-        }
-        enumToStringsMap.get(value).add(key);
-      }
-    }
-  }
-
-  /**
-   * Gets an string version of an WebGL enum.
-   *
-   * Example:
-   *   var str = WebGLDebugUtil.glEnumToString(ctx.getError());
-   *
-   * @param {number} value Value to return an enum for
-   * @return {string} The string version of the enum.
-   */
-  function glEnumToString(gl, value) {
-    const matches = enumToStringsMap.get(value);
-    return matches
-        ? [...matches.keys()].map(v => `${v}`).join(' | ')
-        : `/*UNKNOWN WebGL ENUM*/ ${typeof value === 'number' ? `0x${value.toString(16)}` : value}`;
-  }
-
-  function quoteStringOrEmpty(s) {
-    return s ? `"${s}"` : '';
-  }
-
   function getUniformNameErrorMsg(ctx, funcName, args, sharedState) {
     const location = args[0];
     const name = sharedState.locationsToNamesMap.get(location);
@@ -634,7 +766,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     if (prg) {
       const name = sharedState.webglObjectToNamesMap.get(prg);
       if (name) {
-        msgs.push(`on WebGLProgram(${quoteStringOrEmpty(name)})`);
+        msgs.push(`on WebGLProgram(${quotedStringOrEmpty(name)})`);
       }
     } else {
       msgs.push('on ** no current program **');
@@ -649,7 +781,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
    * @param {WebGLRenderingContext|Extension} ctx The webgl context to wrap.
    * @param {string} nameOfClass (eg, webgl, webgl2, OES_texture_float)
    */
-  function augmentWebGLContext(ctx, nameOfClass, options = {}) {
+  function augmentAPI(ctx, nameOfClass, options = {}) {
     const origGLErrorFn = options.origGLErrorFn || ctx.getError;
     const sharedState = options.sharedState || {
       baseContext: ctx,
@@ -687,6 +819,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           },
         },
       },
+      bufferToIndices: new Map(),
       ignoredUniforms: new Set(),
       // Okay or bad? This is a map of all WebGLUniformLocation object looked up
       // by the user via getUniformLocation. We use this to map a location back to
@@ -1155,7 +1288,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     function checkMaxDrawCallsAndZeroCount(gl, funcName, args) {
-      const {vertCount, instances} = funcsToArgs[funcName](...args);
+      const {vertCount, instances} = getDrawFunctionArgs(funcName, args);
       if (vertCount === 0) {
         console.warn(`count for ${funcName} is 0!`);
       }
@@ -1308,7 +1441,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         }
         const buffer = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
         if (isNumber(src)) {
-          bufferToIndices.set(buffer, new ArrayBuffer(src));
+          sharedState.bufferToIndices.set(buffer, new ArrayBuffer(src));
         } else {
           const isDataView = src instanceof DataView;
           const copyLength = length ? length : isDataView
@@ -1317,7 +1450,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           const elemSize = isDataView ? 1 : src.BYTES_PER_ELEMENT;
           const bufSize = copyLength * elemSize;
           const arrayBuffer = src.buffer ? src.buffer : src;
-          bufferToIndices.set(buffer, arrayBuffer.slice(srcOffset * elemSize, bufSize));
+          sharedState.bufferToIndices.set(buffer, arrayBuffer.slice(srcOffset * elemSize, bufSize));
         }
       },
       // WebGL1
@@ -1331,7 +1464,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           return;
         }
         const buffer = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
-        const data = bufferToIndices.get(buffer);
+        const data = sharedState.bufferToIndices.get(buffer);
         const view = new Uint8Array(data);
         const isDataView = src instanceof DataView;
         const copyLength = length ? length : isDataView
@@ -1409,7 +1542,11 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
     function getWebGLObjectString(webglObject) {
       const name = sharedState.webglObjectToNamesMap.get(webglObject) || '*unnamed*';
-      return `${webglObject.constructor.name}(${quoteStringOrEmpty(name)})`;
+      return `${webglObject.constructor.name}(${quotedStringOrEmpty(name)})`;
+    }
+
+    function getIndicesForBuffer(buffer) {
+      return sharedState.bufferToIndices.get(buffer);
     }
 
     /**
@@ -1463,7 +1600,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
                 //   O drawBuffers implicit
                 //       Example: 'Error trying to set drawBuffers on WebGLFrameBuffer('post-processing-fb)
                 if (!funcName.startsWith('bind') && argumentIndex === 0) {
-                  const binding = bindPointMap.get(value);
+                  const binding = getBindingQueryEnumForBindPoint(value);
                   if (binding) {
                     const webglObject = gl.getParameter(binding);
                     if (webglObject) {
@@ -1566,9 +1703,9 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       // report the wrong error here if we check for vec3 amount of data
       const name = sharedState.locationsToNamesMap.get(webglUniformLocation);
       const {type, size, index} = uniformInfos.get(name);
-      const valuesPerElementUniformRequires = uniformTypeMap[type].size;
+      const valuesPerElementUniformRequires = getUniformTypeInfo(type).size;
       if (valuesPerElementFunctionRequires !== valuesPerElementUniformRequires) {
-        reportFunctionError(ctx, funcName, args, `uniform "${name}" is ${uniformTypeMap[type].name} which is wrong for ${funcName}`);
+        reportFunctionError(ctx, funcName, args, `uniform "${name}" is ${getUniformTypeInfo(type).name} which is wrong for ${funcName}`);
       }
       const maxElementsToReadFromArray = size - index;
       const numElementsToCheck = Math.min(length / valuesPerElementFunctionRequires | 0, maxElementsToReadFromArray);
@@ -1648,9 +1785,9 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         }
       }
       if (funcName.includes('vertexAttrib') || isDrawFunction(funcName)) {
-        const vao = getCurrentVertexArray(ctx);
+        const vao = getCurrentVertexArray();
         const name = sharedState.webglObjectToNamesMap.get(vao);
-        const vaoName = `WebGLVertexArrayObject(${quoteStringOrEmpty(name || '*unnamed*')})`;
+        const vaoName = `WebGLVertexArrayObject(${quotedStringOrEmpty(name || '*unnamed*')})`;
         msgs.push(`with ${vao ? vaoName : 'the default vertex array'} bound`);
       }
       const stringifiedArgs = glFunctionArgsToString(ctx, funcName, args);
@@ -1738,7 +1875,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
             const program = gl.getParameter(gl.CURRENT_PROGRAM);
             if (program) {
               msgs.push(...checkFramebufferFeedback(gl, getWebGLObjectString));
-              msgs.push(...checkAttributes(gl, funcName, args, getWebGLObjectString));
+              msgs.push(...checkAttributesForBufferOverflow(gl, funcName, args, getWebGLObjectString, getIndicesForBuffer));
             }
           }
           reportFunctionError(ctx, funcName, args, msgs.join('\n'));
@@ -1769,14 +1906,13 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         const origFn = ctx[propertyName];
         ctx[propertyName] = function(...args) {
           const extensionName = args[0].toLowerCase();
-          const wrapper = sharedState.apis[extensionName];
-          if (wrapper) {
-            return wrapper.ctx;
+          const api = sharedState.apis[extensionName];
+          if (api) {
+            return api.ctx;
           }
           const ext = origFn.call(ctx, ...args);
           if (ext) {
-            augmentWebGLContext(ext, extensionName, {...options, origGLErrorFn});
-            addEnumsForContext(ext, extensionName);
+            augmentAPI(ext, extensionName, {...options, origGLErrorFn});
           }
           return ext;
         };
@@ -1835,7 +1971,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
               }
 
               const addUnsetUniform =
-                  (!isSampler(type) || sharedState.config.failUnsetSamplerUniforms)
+                  (!uniformTypeIsSampler(type) || sharedState.config.failUnsetSamplerUniforms)
                   && !sharedState.ignoredUniforms.has(name);
 
               const unset = new Set(range(0, size));
@@ -1921,114 +2057,34 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     sharedState.apis[nameOfClass.toLowerCase()] = { ctx, origFuncs };
-    if (ctx.bindBuffer) {
-      addEnumsForContext(ctx, ctx.bindBufferBase ? 'WebGL2' : 'WebGL');
-    }
   }
 
-  // adapted from http://stackoverflow.com/a/2401861/128511
-  function getBrowser() {
-    const userAgent = navigator.userAgent;
-    let m = userAgent.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i) || [];
-    if (/trident/i.test(m[1])) {
-      m = /\brv[ :]+(\d+)/g.exec(userAgent) || [];
-      return {
-        name: 'IE',
-        version: m[1],
-      };
-    }
-    if (m[1] === 'Chrome') {
-      const temp = userAgent.match(/\b(OPR|Edge)\/(\d+)/);
-      if (temp) {
-        return {
-          name: temp[1].replace('OPR', 'Opera'),
-          version: temp[2],
-        };
-      }
-    }
-    m = m[2] ? [m[1], m[2]] : [navigator.appName, navigator.appVersion, '-?'];
-    const version = userAgent.match(/version\/(\d+)/i);
-    if (version) {
-      m.splice(1, 1, version[1]);
-    }
-    return {
-      name: m[0],
-      version: m[1],
-    };
-  }
+  /*
+  The MIT License (MIT)
 
-  /**
-   * @typedef {Object} StackInfo
-   * @property {string} url Url of line
-   * @property {number} lineNo line number of error
-   * @property {number} colNo column number of error
-   * @property {string} [funcName] name of function
-   */
+  Copyright (c) 2019 Gregg Tavares
 
-  /**
-   * @parameter {string} stack A stack string as in `(new Error()).stack`
-   * @returns {StackInfo}
-   */
-  const parseStack = function() {
-    const browser = getBrowser();
-    let lineNdx;
-    let matcher;
-    if ((/chrome|opera/i).test(browser.name)) {
-      lineNdx = 3;
-      matcher = function(line) {
-        const m = /at ([^(]+)*\(*(.*?):(\d+):(\d+)/.exec(line);
-        if (m) {
-          let userFnName = m[1];
-          let url = m[2];
-          const lineNo = parseInt(m[3]);
-          const colNo = parseInt(m[4]);
-          if (url === '') {
-            url = userFnName;
-            userFnName = '';
-          }
-          return {
-            url: url,
-            lineNo: lineNo,
-            colNo: colNo,
-            funcName: userFnName,
-          };
-        }
-        return undefined;
-      };
-    } else if ((/firefox|safari/i).test(browser.name)) {
-      lineNdx = 2;
-      matcher = function(line) {
-        const m = /@(.*?):(\d+):(\d+)/.exec(line);
-        if (m) {
-          const url = m[1];
-          const lineNo = parseInt(m[2]);
-          const colNo = parseInt(m[3]);
-          return {
-            url: url,
-            lineNo: lineNo,
-            colNo: colNo,
-          };
-        }
-        return undefined;
-      };
-    }
+  Permission is hereby granted, free of charge, to any person obtaining a copy of
+  this software and associated documentation files (the "Software"), to deal in
+  the Software without restriction, including without limitation the rights to
+  use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+  the Software, and to permit persons to whom the Software is furnished to do so,
+  subject to the following conditions:
 
-    return function stackParser(stack) {
-      if (matcher) {
-        try {
-          const lines = stack.split('\n');
-          // window.fooLines = lines;
-          // lines.forEach(function(line, ndx) {
-          //   origConsole.log("#", ndx, line);
-          // });
-          return matcher(lines[lineNdx]);
-        } catch (e) {
-          // do nothing
-        }
-      }
-      return undefined;
-    };
-  }();
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+  FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+  COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+  IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  */
+
+  /* global document */
+  /* global HTMLCanvasElement */
+  /* global OffscreenCanvas */
 
   function wrapGetContext(Ctor) {
     const oldFn = Ctor.prototype.getContext;
@@ -2045,7 +2101,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           failZeroMatrixUniforms: true,
           ignoreUniforms: [],
         };
-        augmentWebGLContext(ctx, type, config);
+        augmentAPI(ctx, type, config);
         const ext = ctx.getExtension('GMAN_debug_helper');
         document.querySelectorAll('[data-gman-debug-helper]').forEach(elem => {
           const str = elem.dataset.gmanDebugHelper;
@@ -2072,5 +2128,4 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     wrapGetContext(OffscreenCanvas);
   }
 
-})();
-
+})));
