@@ -4,7 +4,8 @@
   "description": "A semi strict WebGL checker",
   "main": "webgl-lint.js",
   "scripts": {
-    "eslint": "eslint --ignore-pattern test/js \"**/*.js\"",
+    "build": "rollup -c",
+    "eslint": "eslint \"**/*.js\"",
     "pre-push": "npm run eslint",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
