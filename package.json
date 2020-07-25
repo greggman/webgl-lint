@@ -25,6 +25,8 @@
     "eslint": "^7.5.0",
     "eslint-plugin-html": "^6.0.2",
     "eslint-plugin-optional-comma-spacing": "0.0.4",
-    "eslint-plugin-require-trailing-comma": "0.0.1"
+    "eslint-plugin-require-trailing-comma": "0.0.1",
+    "rollup": "^2.23.0",
+    "rollup-plugin-node-resolve": "^5.2.0"
   }
 }
