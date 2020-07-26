@@ -6,7 +6,7 @@ const banner = `/* webgl-lint@${pkg.version}, license MIT */`;
 
 export default [
   {
-    input: 'src/webgl-lint.js',
+    input: 'src/wrap.js',
     plugins: [
       resolve({
         modulesOnly: true,

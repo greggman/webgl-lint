@@ -92,6 +92,6 @@ function checkTextureUsage(gl, framebuffer, textureAttachments, program, uniform
   const texture = getTextureForUnit(gl, textureUnit, uniformType);
   const attachments = textureAttachments.get(texture);
   return attachments
-     ? [`${getWebGLObjectString(texture)} on uniform: ${uniformName} bound to texture unit ${textureUnit} is also attached to ${getWebGLObjectString(framebuffer)} on attachment: ${attachments.map(a => glEnumToString(gl, a)).join(', ')}`]
+     ? [`${getWebGLObjectString(texture)} on uniform: ${uniformName} bound to texture unit ${textureUnit} is also attached to ${getWebGLObjectString(framebuffer)} on attachment: ${attachments.map(a => glEnumToString(a)).join(', ')}`]
      : [];
 }

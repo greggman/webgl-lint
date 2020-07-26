@@ -37,7 +37,7 @@
     const enumStrings = [];
     if (enums.length) {
       for (let i = 0; i < enums.length; ++i) {
-        enums.push(glEnumToString(gl, enums[i]));  // eslint-disable-line
+        enums.push(glEnumToString(enums[i]));  // eslint-disable-line
       }
       return '[' + enumStrings.join(', ') + ']';
     }
@@ -52,13 +52,13 @@
         const enumValue = enumStringToValue[enums[i]];
         if ((value & enumValue) !== 0) {
           orResult |= enumValue;
-          orEnums.push(glEnumToString(gl, enumValue));  // eslint-disable-line
+          orEnums.push(glEnumToString(enumValue));  // eslint-disable-line
         }
       }
       if (orResult === value) {
         return orEnums.join(' | ');
       } else {
-        return glEnumToString(gl, value);  // eslint-disable-line
+        return glEnumToString(value);  // eslint-disable-line
       }
     };
   }
@@ -86,7 +86,7 @@
    * @param {number} value Value to return an enum for
    * @return {string} The string version of the enum.
    */
-  function glEnumToString(gl, value) {
+  function glEnumToString(value) {
     const matches = enumToStringsMap.get(value);
     return matches
         ? [...matches.keys()].map(v => `${v}`).join(' | ')
@@ -337,7 +337,7 @@
     const bufferSize = gl.getBufferParameter(gl.ELEMENT_ARRAY_BUFFER, gl.BUFFER_SIZE);
     const sizeNeeded = startOffset + vertCount * bytesPerIndex;
     if (sizeNeeded > bufferSize) {
-      errors.push(`offset: ${startOffset} and count: ${vertCount} with index type: ${glEnumToString(gl, indexType)} passed to ${funcName} are out of range for current ELEMENT_ARRAY_BUFFER.
+      errors.push(`offset: ${startOffset} and count: ${vertCount} with index type: ${glEnumToString(indexType)} passed to ${funcName} are out of range for current ELEMENT_ARRAY_BUFFER.
 Those parameters require ${sizeNeeded} bytes but the current ELEMENT_ARRAY_BUFFER ${getWebGLObjectString(elementBuffer)} only has ${bufferSize} bytes`);
       return undefined;
     }
@@ -407,7 +407,7 @@ Those parameters require ${sizeNeeded} bytes but the current ELEMENT_ARRAY_BUFFE
         if (sizeNeeded > bufferSize) {
           errors.push(`${getWebGLObjectString(buffer)} assigned to attribute ${ndx} used as attribute '${name}' in current program is too small for draw parameters.
 index of highest vertex accessed: ${effectiveLastIndex}
-attribute size: ${numComponents}, type: ${glEnumToString(gl, type)}, stride: ${specifiedStride}, offset: ${offset}, divisor: ${divisor}
+attribute size: ${numComponents}, type: ${glEnumToString(type)}, stride: ${specifiedStride}, offset: ${offset}, divisor: ${divisor}
 needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         }
       }
@@ -450,8 +450,40 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     [UNSIGNED_INT_SAMPLER_2D_ARRAY$1, {bindPoint: '2D_ARRAY'}],
   ]);
 
+  function getBindPointForSampler(type) {
+    return samplerTypes.get(type);
+  }
+
   function uniformTypeIsSampler(type) {
     return samplerTypes.has(type);
+  }
+
+  const TEXTURE_2D$1                     = 0x0DE1;
+  const TEXTURE_3D$1                     = 0x806F;
+  const TEXTURE_2D_ARRAY$1               = 0x8C1A;
+  const TEXTURE_CUBE_MAP$1               = 0x8513;
+  const TEXTURE_CUBE_MAP_POSITIVE_X    = 0x8515;
+  const TEXTURE_CUBE_MAP_NEGATIVE_X    = 0x8516;
+  const TEXTURE_CUBE_MAP_POSITIVE_Y    = 0x8517;
+  const TEXTURE_CUBE_MAP_NEGATIVE_Y    = 0x8518;
+  const TEXTURE_CUBE_MAP_POSITIVE_Z    = 0x8519;
+  const TEXTURE_CUBE_MAP_NEGATIVE_Z    = 0x851A;
+
+  const targetToBindPointMap = new Map([
+    [TEXTURE_2D$1, '2D'],
+    [TEXTURE_3D$1, '3D'],
+    [TEXTURE_CUBE_MAP$1, 'CUBE'],
+    [TEXTURE_CUBE_MAP_POSITIVE_X, 'CUBE'],
+    [TEXTURE_CUBE_MAP_NEGATIVE_X, 'CUBE'],
+    [TEXTURE_CUBE_MAP_POSITIVE_Y, 'CUBE'],
+    [TEXTURE_CUBE_MAP_NEGATIVE_Y, 'CUBE'],
+    [TEXTURE_CUBE_MAP_POSITIVE_Z, 'CUBE'],
+    [TEXTURE_CUBE_MAP_NEGATIVE_Z, 'CUBE'],
+    [TEXTURE_2D_ARRAY$1, '2D_ARRAY'],
+  ]);
+
+  function getBindPointForTarget(target) {
+    return targetToBindPointMap.get(target);
   }
 
   const TEXTURE_BINDING_2D$1            = 0x8069;
@@ -566,7 +598,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     const texture = getTextureForUnit(gl, textureUnit, uniformType);
     const attachments = textureAttachments.get(texture);
     return attachments
-       ? [`${getWebGLObjectString(texture)} on uniform: ${uniformName} bound to texture unit ${textureUnit} is also attached to ${getWebGLObjectString(framebuffer)} on attachment: ${attachments.map(a => glEnumToString(gl, a)).join(', ')}`]
+       ? [`${getWebGLObjectString(texture)} on uniform: ${uniformName} bound to texture unit ${textureUnit} is also attached to ${getWebGLObjectString(framebuffer)} on attachment: ${attachments.map(a => glEnumToString(a)).join(', ')}`]
        : [];
   }
 
@@ -676,6 +708,385 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     };
   }();
 
+  function createTextureUnits(gl) {
+    const textureUnits = [];
+    const numUnits = gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+    for (let i = 0; i < numUnits; ++i) {
+      textureUnits.push(new Map());
+    }
+    return textureUnits;
+  }
+
+  const TEXTURE0                       = 0x84C0;
+  const TEXTURE_2D$2                     = 0x0DE1;
+  const TEXTURE_3D$2                     = 0x806F;
+  const TEXTURE_CUBE_MAP$2               = 0x8513;
+  const TEXTURE_CUBE_MAP_POSITIVE_X$1    = 0x8515;
+  const TEXTURE_CUBE_MAP_NEGATIVE_X$1    = 0x8516;
+  const TEXTURE_CUBE_MAP_POSITIVE_Y$1    = 0x8517;
+  const TEXTURE_CUBE_MAP_NEGATIVE_Y$1    = 0x8518;
+  const TEXTURE_CUBE_MAP_POSITIVE_Z$1    = 0x8519;
+  const TEXTURE_CUBE_MAP_NEGATIVE_Z$1    = 0x851A;
+  const TEXTURE_MIN_FILTER             = 0x2801;
+  const TEXTURE_MAG_FILTER             = 0x2800;
+  const TEXTURE_WRAP_S                 = 0x2802;
+  const TEXTURE_WRAP_T                 = 0x2803;
+  const REPEAT                         = 0x2901;
+  const TEXTURE_2D_ARRAY$2               = 0x8C1A;
+  const CLAMP_TO_EDGE                  = 0x812F;
+  const NEAREST                        = 0x2600;
+  const LINEAR                         = 0x2601;
+  const NEAREST_MIPMAP_LINEAR          = 0x2702;
+
+  const texImage2DArgParersMap = new Map([
+    [9, function([target, level, internalFormat, width, height, , format, type]) {
+      return {target, level, internalFormat, width, height, format, type};
+    }, ],
+    [6, function([target, level, internalFormat, format, type, texImageSource]) {
+      return {target, level, internalFormat, width: texImageSource.width, height: texImageSource.height, format, type};
+    }, ],
+    [10, function([target, level, internalFormat, width, height, , format, type]) {
+      return {target, level, internalFormat, width, height, format, type};
+    }, ],
+  ]);
+
+  const ALPHA                          = 0x1906;
+  const RGB                            = 0x1907;
+  const RGBA                           = 0x1908;
+  const LUMINANCE                      = 0x1909;
+  const LUMINANCE_ALPHA                = 0x190A;
+
+  const unsizedInternalFormats = new Set([
+    ALPHA,
+    LUMINANCE,
+    LUMINANCE_ALPHA,
+    RGB,
+    RGBA,
+  ]);
+
+  const targetToFaceIndex = new Map([
+    [TEXTURE_2D$2, 0],
+    [TEXTURE_3D$2, 0],
+    [TEXTURE_2D_ARRAY$2, 0],
+    [TEXTURE_CUBE_MAP$2, 0],
+    [TEXTURE_CUBE_MAP_POSITIVE_X$1, 0],
+    [TEXTURE_CUBE_MAP_NEGATIVE_X$1, 1],
+    [TEXTURE_CUBE_MAP_POSITIVE_Y$1, 2],
+    [TEXTURE_CUBE_MAP_NEGATIVE_Y$1, 3],
+    [TEXTURE_CUBE_MAP_POSITIVE_Z$1, 4],
+    [TEXTURE_CUBE_MAP_NEGATIVE_Z$1, 5],
+  ]);
+
+  function getFaceTarget(face, type) {
+    if (type === TEXTURE_CUBE_MAP$2) {
+      return `(${glEnumToString(TEXTURE_CUBE_MAP_POSITIVE_X$1 + face)})`;
+    } else {
+      return '';
+    }
+  }
+
+  /*
+  const targetToBindPointMap = new Map([
+    [TEXTURE_2D, TEXTURE_2D],
+    [TEXTURE_3D, TEXTURE_3D],
+    [TEXTURE_2D_ARRAY, TEXTURE_2D_ARRAY],
+    [TEXTURE_CUBE_MAP_POSITIVE_X, TEXTURE_CUBE_MAP],
+    [TEXTURE_CUBE_MAP_NEGATIVE_X, TEXTURE_CUBE_MAP],
+    [TEXTURE_CUBE_MAP_POSITIVE_Y, TEXTURE_CUBE_MAP],
+    [TEXTURE_CUBE_MAP_NEGATIVE_Y, TEXTURE_CUBE_MAP],
+    [TEXTURE_CUBE_MAP_POSITIVE_Z, TEXTURE_CUBE_MAP],
+    [TEXTURE_CUBE_MAP_NEGATIVE_Z, TEXTURE_CUBE_MAP],
+  ]);
+  */
+
+  function isPowerOf2(value) {
+    return (value & (value - 1)) === 0;
+  }
+
+  function computeNumMipsNeeded(width, height, depth) {
+    return (Math.log2(Math.max(width, height, depth)) | 0) + 1;
+  }
+
+  function insertIf(condition, ...elements) {
+    return condition ? elements : [];
+  }
+
+  function getNPotIssues(width, height) {
+    return [
+      ...insertIf(!isPowerOf2(width), `width(${width}) is not a power of 2`),
+      ...insertIf(!isPowerOf2(height), `height(${height}) is not a power of 2`),
+    ].join(' and ');
+  }
+
+  function getClampToEdgeIssues(wrapS, wrapT) {
+    return [
+      ...insertIf(wrapS !== CLAMP_TO_EDGE, `TEXTURE_WRAP_S (${glEnumToString(wrapS)}) is not CLAMP_TO_EDGE`),
+      ...insertIf(wrapT !== CLAMP_TO_EDGE, `TEXTURE_WRAP_T (${glEnumToString(wrapT)}) is not CLAMP_TO_EDGE`),
+    ].join(' and ');
+  }
+
+  class TextureManager {
+    constructor(gl) {
+      const needPOT = !isWebGL2(gl);
+      const textureToTextureInfoMap = new Map();
+      const textureUnits = createTextureUnits(gl);
+      let activeTextureUnitIndex = 0;
+      let activeTextureUnit = textureUnits[0];
+      this.numTextureUnits = textureUnits.length;
+
+      function recomputeRenderability(textureInfo) {
+        const {type, mips, parameters} = textureInfo;
+        const level0Faces = mips[0];
+        textureInfo.notRenderable = undefined;
+        if (!level0Faces) {
+          textureInfo.notRenderable = 'no mip level 0';
+          return;
+        }
+        const mipFace0 = level0Faces[0];
+        if (!mipFace0) {
+          textureInfo.notRenderable = 'TEXTURE_CUBE_MAP_POSITIVE_X face does not exist';
+          return;
+        }
+        const {width: level0Width, height: level0Height, depth: level0Depth, internalFormatString: level0InternalFormatString} = mipFace0;
+        const numFaces = type === TEXTURE_CUBE_MAP$2 ? 6 : 1;
+        const minFilter = parameters.get(TEXTURE_MIN_FILTER);
+        const numMipsNeeded = (minFilter === LINEAR || minFilter === NEAREST)
+           ? 1
+           : computeNumMipsNeeded(level0Width, level0Height, level0Depth);
+
+        {
+          let mipWidth = level0Width;
+          let mipHeight = level0Height;
+          let mipDepth = level0Depth;
+          for (let mipLevel = 0; mipLevel < numMipsNeeded; ++mipLevel) {
+            const faceMips = mips[mipLevel];
+            if (!faceMips) {
+              textureInfo.notRenderable = `filtering is set to use mips (TEXTURE_MIN_FILTER = ${glEnumToString(minFilter)}) but mip level ${mipLevel} does not exist`;
+              return;
+            }
+            for (let face = 0; face < numFaces; ++face) {
+              const mip = faceMips[face];
+              if (!mip) {
+                textureInfo.notRenderable = `filtering is set to use mips (TEXTURE_MIN_FILTER = ${glEnumToString(minFilter)}) but mip level ${mipLevel}${getFaceTarget(face, type)} does not exist`;
+                return;
+              }
+              if (mip.width !== mipWidth ||
+                  mip.height !== mipHeight ||
+                  mip.depth !== mipDepth) {
+                textureInfo.notRenderable = `mip level ${mipLevel}${getFaceTarget(face, type)} needs to be ${mipWidth}x${mipHeight}x${mipDepth} but it is ${mip.width}x${mip.height}x${mip.depth}`;
+                return;
+              }
+              if (mip.internalFormatString !== level0InternalFormatString) {
+                textureInfo.notRenderable = `mip level ${mipLevel}${getFaceTarget(face, type)}'s internal format ${mip.internalFormatString} does not match mip level 0's internal format ${level0InternalFormatString}`;
+              }
+            }
+            mipWidth = Math.max(1, mipWidth / 2 | 0);
+            mipHeight = Math.max(1, mipHeight / 2 | 0);
+            if (type !== TEXTURE_2D_ARRAY$2) {
+              mipDepth = Math.max(1, mipDepth / 2 | 0);
+            }
+          }
+        }
+
+        if (needPOT) {
+          if (!isPowerOf2(level0Width) || !isPowerOf2(level0Height)) {
+            if (numMipsNeeded > 1) {
+              textureInfo.notRenderable = `texture's ${getNPotIssues(level0Width, level0Height)} but TEXTURE_MIN_FILTER (${glEnumToString(minFilter)}) is set to need mips`;
+              return;
+            }
+            const wrapS = parameters.get(TEXTURE_WRAP_S);
+            const wrapT = parameters.get(TEXTURE_WRAP_T);
+            if (wrapS !== CLAMP_TO_EDGE || wrapT !== CLAMP_TO_EDGE) {
+              textureInfo.notRenderable = `texture's ${getNPotIssues(level0Width, level0Height)} but ${getClampToEdgeIssues(wrapS, wrapT)}.`;
+              return;
+            }
+          }
+        }
+
+        if (type === TEXTURE_CUBE_MAP$2) {
+          if (level0Width !== level0Height) {
+            textureInfo.notRenderable = `texture is CUBE_MAP but dimensions ${level0Width}x${level0Height} are not square`;
+            return;
+          }
+        }
+      }
+
+      function getTextureInfoForTarget(target) {
+        const bindPoint = getBindPointForTarget(target);
+        const texture = activeTextureUnit.get(bindPoint);
+        return textureToTextureInfoMap.get(texture);
+      }
+
+      function getMipInfoForTarget(target, level) {
+        const textureInfo = getTextureInfoForTarget(target);
+        const faceIndex = targetToFaceIndex.get(target);
+        return textureInfo.mips[level][faceIndex];
+      }
+
+      function setTexParameterForTarget(target, pname, value) {
+        const textureInfo = getTextureInfoForTarget(target);
+        textureInfo.parameters.set(pname, value);
+        recomputeRenderability(textureInfo);
+      }
+
+      this.getTextureForTextureUnit = function(texUnit, target) {
+
+        return textureUnits[texUnit].get(target);
+      };
+
+      this.getTextureUnitUnrenderableReason = function(texUnit, target) {
+        const texture = textureUnits[texUnit].get(target);
+        if (!texture) {
+          return `no texture bound to texture unit ${texUnit} ${target}`;
+        }
+        const textureInfo = textureToTextureInfoMap.get(texture);
+        return textureInfo.notRenderable;
+      };
+
+      function setMipFaceInfoForTarget(target, level, internalFormat, width, height, depth, type = 0) {
+        const internalFormatString = unsizedInternalFormats.has(internalFormat)
+           ? `${glEnumToString(internalFormat)}/${glEnumToString(type)}`
+           : glEnumToString(internalFormat);
+        const textureInfo = getTextureInfoForTarget(target);
+        const {mips} = textureInfo;
+        if (!mips[level]) {
+          mips[level] = [];
+        }
+        const faceIndex = targetToFaceIndex.get(target);
+        mips[level][faceIndex] = {width, height, depth, internalFormatString, internalFormat, type};
+        recomputeRenderability(textureInfo);
+      }
+
+      this.postChecks = {
+        activeTexture(ctx, funcName, args) {
+          const unit = args[0] - TEXTURE0;
+          activeTextureUnitIndex = unit;
+          activeTextureUnit = textureUnits[activeTextureUnitIndex];
+        },
+
+        bindTexture(ctx, funcName, args) {
+          const [target, texture] = args;
+          activeTextureUnit.set(getBindPointForTarget(target), texture);
+          if (texture) {
+            const textureInfo = textureToTextureInfoMap.get(texture);
+            if (textureInfo.type) {
+              if (textureInfo.type !== target) {
+                throw new Error('should never get here');
+              }
+            } else {
+              textureInfo.type = target;
+            }
+          }
+        },
+
+        createTexture(ctx, funcName, args, result) {
+          // class TextureInfo {
+          //   mips: Array<Array<MipInfo>>  // indexed by face index
+          //   parameters: Map<number, number>
+          //   renderable: bool,
+          //   target: type of texture (ie, TEXTURE_2D)
+          // }
+          const textureInfo = {
+            mips: [],
+            parameters: new Map([
+              [TEXTURE_MIN_FILTER, NEAREST_MIPMAP_LINEAR],
+              [TEXTURE_MAG_FILTER, LINEAR],
+              [TEXTURE_WRAP_S, REPEAT],
+              [TEXTURE_WRAP_T, REPEAT],
+            ]),
+            renderable: false,
+          };
+          textureToTextureInfoMap.set(result, textureInfo);
+        },
+
+        copyTexImage2D(ctx, funcName, args) {
+          const [target, level, internalFormat, width, height] = args;
+          // TODO: In order to know the type do we need to know the
+          // format of the current framebuffer for when internalFormat is unsized?
+          const type = ctx.UNSIGNED_BYTE;
+          setMipFaceInfoForTarget(target, level, internalFormat, width, height, 1, type);
+        },
+
+        texImage2D(ctx, funcName, args) {
+          const parseFunc = texImage2DArgParersMap.get(args.length);
+          const {target, level, internalFormat, width, height, type} = parseFunc(args);
+          setMipFaceInfoForTarget(target, level, internalFormat, width, height, 1, type);
+        },
+
+        texImage3D(ctx, funcName, args) {
+          const [target, level, internalFormat, width, height, depth, , , type] = args;
+          setMipFaceInfoForTarget(target, level, internalFormat, width, height, depth, type);
+        },
+
+        texStorage2D(ctx, funcName, args) {
+          const [target, levels, internalFormat, width, height] = args;
+          let w = width;
+          let h = height;
+          for (let level = 0; level < levels; ++level) {
+            setMipFaceInfoForTarget(target, level, internalFormat, w, h, 1);
+            w = Math.max(1, (w / 2) | 0);
+            h = Math.max(1, (h / 2) | 0);
+          }
+        },
+
+        texStorage3D(ctx, funcName, args) {
+          const [target, levels, internalFormat, width, height, depth] = args;
+          let w = width;
+          let h = height;
+          let d = depth;
+          for (let level = 0; level < levels; ++level) {
+            setMipFaceInfoForTarget(target, level, internalFormat, w, h, d);
+            w = Math.max(1, (w / 2) | 0);
+            h = Math.max(1, (h / 2) | 0);
+            // If it's not TEXTURE_2D it's TEXTURE_2D_ARRAY
+            if (target === TEXTURE_3D$2) {
+              d = Math.max(1, (d / 2) | 0);
+            }
+          }
+        },
+
+        generateMipmap(ctx, funcName, args) {
+          const [target] = args;
+          const {width, height, depth, internalFormat, type} = getMipInfoForTarget(target, 0);
+          const numMipsNeeded = computeNumMipsNeeded(width, height, depth);
+          const numFaces = target === TEXTURE_CUBE_MAP$2 ? 6 : 1;
+          let w = width;
+          let h = height;
+          let d = depth;
+          for (let level = 0; level < numMipsNeeded; ++level) {
+            w = Math.max(1, (w / 2) | 0);
+            h = Math.max(1, (h / 2) | 0);
+            // If it's not TEXTURE_2D it's TEXTURE_2D_ARRAY
+            if (target === TEXTURE_3D$2) {
+              d = Math.max(1, (d / 2) | 0);
+            }
+            for (let face = 0; face < numFaces; ++face) {
+              const faceTarget =  target === TEXTURE_CUBE_MAP$2
+                 ? TEXTURE_CUBE_MAP_POSITIVE_X$1 + face
+                 : target;
+              setMipFaceInfoForTarget(faceTarget, level, internalFormat, w, h, d, type);
+            }
+          }
+        },
+
+        compressedTexImage2D(ctx, funcName, args) {
+          const [target, level, internalFormat, width, height] = args;
+          setMipFaceInfoForTarget(target, level, internalFormat, width, height, 1);
+        },
+
+        compressedTexImage3D(ctx, funcName, args) {
+          const [target, level, internalFormat, width, height, depth] = args;
+          setMipFaceInfoForTarget(target, level, internalFormat, width, height, depth);
+        },
+
+        texParameteri(ctx, funcName, args) {
+          const [target, pname, value] = args;
+          setTexParameterForTarget(target, pname, value);
+        },
+      };
+    }
+  }
+
   /*
   The MIT License (MIT)
 
@@ -774,6 +1185,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     return msgs.length ? `: ${msgs.join(' ')}` : '';
   }
 
+
   /**
    * Given a WebGL context replaces all the functions with wrapped functions
    * that call gl.getError after every command
@@ -783,85 +1195,99 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
    */
   function augmentAPI(ctx, nameOfClass, options = {}) {
     const origGLErrorFn = options.origGLErrorFn || ctx.getError;
-    const sharedState = options.sharedState || {
-      baseContext: ctx,
-      config: options,
-      apis: {
-        // custom extension
-        gman_debug_helper: {
-          ctx: {
-            tagObject(webglObject, name) {
-              // There's no easy way to check if it's a WebGLObject
-              // and I guess we mostly don't care but a minor check is probably
-              // okay
-              if (Array.isArray(webglObject) || isTypedArray(webglObject) || typeof webglObject !== 'object') {
-                throw new Error('not a WebGLObject');
-              }
-              sharedState.webglObjectToNamesMap.set(webglObject, name);
-            },
-            getTagForObject(webglObject) {
-              return sharedState.webglObjectToNamesMap.get(webglObject);
-            },
-            disable() {
-              removeChecks();
-            },
-            setConfiguration(config) {
-              for (const [key, value] of Object.entries(config)) {
-                if (!(key in sharedState.config)) {
-                  throw new Error(`unknown configuration option: ${key}`);
+
+    function createSharedState(ctx) {
+      const sharedState = {
+        baseContext: ctx,
+        config: options,
+        apis: {
+          // custom extension
+          gman_debug_helper: {
+            ctx: {
+              tagObject(webglObject, name) {
+                // There's no easy way to check if it's a WebGLObject
+                // and I guess we mostly don't care but a minor check is probably
+                // okay
+                if (Array.isArray(webglObject) || isTypedArray(webglObject) || typeof webglObject !== 'object') {
+                  throw new Error('not a WebGLObject');
                 }
-                sharedState.config[key] = value;
-              }
-              for (const name of sharedState.config.ignoreUniforms) {
-                sharedState.ignoredUniforms.add(name);
-              }
+                sharedState.webglObjectToNamesMap.set(webglObject, name);
+              },
+              getTagForObject(webglObject) {
+                return sharedState.webglObjectToNamesMap.get(webglObject);
+              },
+              disable() {
+                removeChecks();
+              },
+              setConfiguration(config) {
+                for (const [key, value] of Object.entries(config)) {
+                  if (!(key in sharedState.config)) {
+                    throw new Error(`unknown configuration option: ${key}`);
+                  }
+                  sharedState.config[key] = value;
+                }
+                for (const name of sharedState.config.ignoreUniforms) {
+                  sharedState.ignoredUniforms.add(name);
+                }
+              },
             },
           },
         },
-      },
-      bufferToIndices: new Map(),
-      ignoredUniforms: new Set(),
-      // Okay or bad? This is a map of all WebGLUniformLocation object looked up
-      // by the user via getUniformLocation. We use this to map a location back to
-      // a name and unfortunately a WebGLUniformLocation is not unique, by which
-      // I mean if you call get getUniformLocation twice for the same uniform you'll
-      // get 2 different WebGLUniformLocation objects referring to the same location.
-      //
-      // So, that means I can't look up the locations myself and know what they are
-      // unless I passed the location objects I looked up back to the user but if I
-      // did that then technically I'd have changed the semantics (though I suspect
-      // no one ever takes advantage of that quirk)
-      //
-      // In any case this is all uniforms for all programs. That means in order
-      // to clean up later I have to track all the uniforms (see programToUniformMap)
-      // so that makes me wonder if I should track names per program instead.
-      //
-      // The advantage to this global list is given a WebGLUniformLocation and
-      // no other info I can lookup the name where as if I switch it to per-program
-      // then I need to know the program. That's generally available but it's indirect.
-      locationsToNamesMap: new Map(),
-      webglObjectToNamesMap: new Map(),
-      // @typedef {Object} UnusedUniformRef
-      // @property {number} index the index of this name. for foo[3] it's 3
-      // @property {Map<string, number>} altNames example <foo,0>, <foo[0],0>, <foo[1],1>, <foo[2],2>, <foo[3],3>  for `uniform vec4 foo[3]`
-      // @property {Set<number>} unused this is size so for the example above it's `Set<[0, 1, 2, 3]`
+        textureManager: new TextureManager(ctx),
+        bufferToIndices: new Map(),
+        ignoredUniforms: new Set(),
+        // Okay or bad? This is a map of all WebGLUniformLocation object looked up
+        // by the user via getUniformLocation. We use this to map a location back to
+        // a name and unfortunately a WebGLUniformLocation is not unique, by which
+        // I mean if you call get getUniformLocation twice for the same uniform you'll
+        // get 2 different WebGLUniformLocation objects referring to the same location.
+        //
+        // So, that means I can't look up the locations myself and know what they are
+        // unless I passed the location objects I looked up back to the user but if I
+        // did that then technically I'd have changed the semantics (though I suspect
+        // no one ever takes advantage of that quirk)
+        //
+        // In any case this is all uniforms for all programs. That means in order
+        // to clean up later I have to track all the uniforms (see programToUniformMap)
+        // so that makes me wonder if I should track names per program instead.
+        //
+        // The advantage to this global list is given a WebGLUniformLocation and
+        // no other info I can lookup the name where as if I switch it to per-program
+        // then I need to know the program. That's generally available but it's indirect.
+        locationsToNamesMap: new Map(),
+        webglObjectToNamesMap: new Map(),
+        // @typedef {Object} UnusedUniformRef
+        // @property {number} index the index of this name. for foo[3] it's 3
+        // @property {Map<string, number>} altNames example <foo,0>, <foo[0],0>, <foo[1],1>, <foo[2],2>, <foo[3],3>  for `uniform vec4 foo[3]`
+        // @property {Set<number>} unused this is size so for the example above it's `Set<[0, 1, 2, 3]`
 
-      // Both the altName array and the unused Set are shared with an entry in `programToUnsetUniformsMap`
-      // by each name (foo, foo[0], foo[1], foo[2]). That we we can unused.delete each element of set
-      // and if set is empty then delete all altNames entries from programToUnsetUniformsMap.
-      // When programsToUniformsMap is empty all uniforms have been set.
-      // @typedef {Map<WebGLProgram, Map<string, UnusedUniformRef>}
-      programToUnsetUniformsMap: new Map(),
-      // class UniformInfo {
-      //   index: the index of this name. for foo[3] it's 3
-      //   size: this is the array size for this uniform
-      //   type: the enum for the type like FLOAT_VEC4
-      // }
-      /** @type {WebGLProgram, Map<UniformInfo>} */
-      programToUniformInfoMap: new Map(),
-      /** @type {WebGLProgram, Set<WebGLUniformLocation>} */
-      programToLocationsMap: new Map(),
-    };
+        // Both the altName array and the unused Set are shared with an entry in `programToUnsetUniformsMap`
+        // by each name (foo, foo[0], foo[1], foo[2]). That we we can unused.delete each element of set
+        // and if set is empty then delete all altNames entries from programToUnsetUniformsMap.
+        // When programsToUniformsMap is empty all uniforms have been set.
+        // @typedef {Map<WebGLProgram, Map<string, UnusedUniformRef>}
+        programToUnsetUniformsMap: new Map(),
+        // class UniformInfo {
+        //   index: the index of this name. for foo[3] it's 3
+        //   size: this is the array size for this uniform
+        //   type: the enum for the type like FLOAT_VEC4
+        // }
+        /** @type {WebGLProgram, Map<UniformInfo>} */
+        programToUniformInfoMap: new Map(),
+        /** @type {WebGLProgram, Set<WebGLUniformLocation>} */
+        programToLocationsMap: new Map(),
+        // class UniformSamplerInfo {
+        //   type: the enum for the uniform type like SAMPLER_2D
+        //   values: number[],
+        //   name: string
+        // }
+        /** @type {WebGLProgram, UniformSamplerInfo[]} */
+        programToUniformSamplerValues: new Map(),
+      };
+      return sharedState;
+    }
+
+    const sharedState = options.sharedState || createSharedState(ctx);
     options.sharedState = sharedState;
     addEnumsFromAPI(ctx);
     /**
@@ -930,9 +1356,9 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       'texParameterf': {3: { enums: [0, 1] }},
       'texParameteri': {3: { enums: [0, 1, 2] }},
       'texImage2D': {
-        9: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5], arrays: [-8] },
-        6: { enums: [0, 2, 3, 4] },
-        10: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5, 9], arrays: {8: checkOptionalTypedArrayWithOffset }}, // WebGL2
+        9: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5], arrays: [-8], },
+        6: { enums: [0, 2, 3, 4], },
+        10: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5, 9], arrays: {8: checkOptionalTypedArrayWithOffset }, }, // WebGL2
       },
       'texImage3D': {
         10: { enums: [0, 2, 7, 8], numbers: [1, 3, 4, 5] },  // WebGL2
@@ -1276,6 +1702,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       sharedState.programToLocationsMap.set(program, new Set());
       sharedState.programToUnsetUniformsMap.delete(program);
       sharedState.programToUniformInfoMap.delete(program);
+      sharedState.programToUniformSamplerValues.delete(program);
     }
 
     function removeChecks() {
@@ -1345,14 +1772,60 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       }
     }
 
+    function getUniformElementName(name, size, index) {
+      return (size > 1 || index > 1)
+         ? `${name}[${index}]`
+         : name;
+    }
+
+    function checkUnRenderableTextures(ctx, funcName, args) {
+      const uniformSamplerInfos = sharedState.programToUniformSamplerValues.get(sharedState.currentProgram);
+      const numTextureUnits = sharedState.textureManager.numTextureUnits;
+      for (const {type, values, name} of uniformSamplerInfos) {
+        const {bindPoint} = getBindPointForSampler(type);
+        for (let i = 0; i < values.length; ++i) {
+          const texUnit = values[i];
+          if (texUnit >= numTextureUnits) {
+            reportFunctionError(ctx, funcName, args, `uniform ${getUniformTypeInfo(type).name} ${getUniformElementName(name, values.length, i)} is set to ${texUnit} which is out of range. There are only ${numTextureUnits} texture units`);
+            return;
+          }
+          const unrenderableReason = sharedState.textureManager.getTextureUnitUnrenderableReason(texUnit, bindPoint);
+          if (unrenderableReason) {
+            // TODO:
+            //   * is the type of texture compatible with the sampler?
+            //     int textures for int samplers, unsigned for unsigned.
+            //   *
+            const texture = sharedState.textureManager.getTextureForTextureUnit(texUnit, bindPoint);
+            reportFunctionError(
+                ctx,
+                funcName,
+                args,
+                texture
+                    ? `texture ${getWebGLObjectString(texture)} on texture unit ${texUnit} referenced by uniform ${getUniformElementName(name, values.length, i)} is not renderable: ${unrenderableReason}`
+                    : `no texture on texture unit ${texUnit} referenced by uniform ${getUniformElementName(name, values.length, i)}`);
+            return;
+          }
+        }
+      }
+    }
+
+    function checkUnsetUniformsAndUnrenderableTextures(ctx, funcName, args) {
+      if (!sharedState.currentProgram) {
+        reportFunctionError(ctx, funcName, args, 'no current program');
+        return;
+      }
+      checkUnsetUniforms(ctx, funcName, args);
+      checkUnRenderableTextures(ctx, funcName, args);
+    }
+
     const preChecks = {
-      drawArrays: checkUnsetUniforms,
-      drawElements: checkUnsetUniforms,
-      drawArraysInstanced: checkUnsetUniforms,
-      drawElementsInstanced: checkUnsetUniforms,
-      drawArraysInstancedANGLE: checkUnsetUniforms,
-      drawElementsInstancedANGLE: checkUnsetUniforms,
-      drawRangeElements: checkUnsetUniforms,
+      drawArrays: checkUnsetUniformsAndUnrenderableTextures,
+      drawElements: checkUnsetUniformsAndUnrenderableTextures,
+      drawArraysInstanced: checkUnsetUniformsAndUnrenderableTextures,
+      drawElementsInstanced: checkUnsetUniformsAndUnrenderableTextures,
+      drawArraysInstancedANGLE: checkUnsetUniformsAndUnrenderableTextures,
+      drawElementsInstancedANGLE: checkUnsetUniformsAndUnrenderableTextures,
+      drawRangeElements: checkUnsetUniformsAndUnrenderableTextures,
     };
 
     function markUniformRangeAsSet(webGLUniformLocation, count) {
@@ -1422,9 +1895,42 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       };
     }
 
+    function markUniformSetAndRecordSamplerValueV(numValuesPer) {
+      const markUniformSetFn = markUniformSetV(numValuesPer);
+      return function(gl, funcName, args) {
+        markUniformSetFn(gl, funcName, args);
+        const [webglUniformLocation, array] = args;
+        recordSamplerValues(webglUniformLocation, array);
+      };
+    }
+
     function markUniformSet(gl, funcName, args) {
       const [webGLUniformLocation] = args;
       markUniformRangeAsSet(webGLUniformLocation, 1);
+    }
+
+    function markUniformSetAndRecordSamplerValue(gl, funcName, args) {
+      markUniformSet(gl, funcName, args);
+        const [webglUniformLocation, value] = args;
+        recordSamplerValues(webglUniformLocation, [value]);
+    }
+
+    function recordSamplerValues(webglUniformLocation, newValues) {
+      const name = sharedState.locationsToNamesMap.get(webglUniformLocation);
+      const uniformInfos = sharedState.programToUniformInfoMap.get(sharedState.currentProgram);
+      const {index, type, values} = uniformInfos.get(name);
+      if (!uniformTypeIsSampler(type)) {
+        return;
+      }
+      const numToCopy = Math.min(newValues.length, index - values.length);
+      for (let i = 0; i < numToCopy; ++i) {
+        values[i] = newValues[i];
+      }
+    }
+
+    function makeDeleteWrapper(ctx, funcName, args) {
+      const [obj] = args;
+      sharedState.webglObjectToNamesMap.delete(obj);
     }
 
     const postChecks = {
@@ -1490,7 +1996,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       uniform3f: markUniformSet,
       uniform4f: markUniformSet,
 
-      uniform1i: markUniformSet,
+      uniform1i: markUniformSetAndRecordSamplerValue,
       uniform2i: markUniformSet,
       uniform3i: markUniformSet,
       uniform4i: markUniformSet,
@@ -1500,7 +2006,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       uniform3fv: markUniformSetV(3),
       uniform4fv: markUniformSetV(4),
 
-      uniform1iv: markUniformSetV(1),
+      uniform1iv: markUniformSetAndRecordSamplerValueV(1),
       uniform2iv: markUniformSetV(2),
       uniform3iv: markUniformSetV(3),
       uniform4iv: markUniformSetV(4),
@@ -1527,6 +2033,116 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
       uniformMatrix2x4fv: markUniformSetMatrixV(8),
       uniformMatrix3x4fv: markUniformSetMatrixV(12),
+
+      getSupportedExtensions(ctx, funcName, args, result) {
+        result.push('GMAN_debug_helper');
+      },
+
+      getUniformLocation(ctx, funcName, args, location) {
+        const [program, name] = args;
+        if (location) {
+          sharedState.locationsToNamesMap.set(location, name);
+          sharedState.programToLocationsMap.get(program).add(location);
+        }
+      },
+
+      linkProgram(gl, funcName, args) {
+        const [program] = args;
+        const success = gl.getProgramParameter(program, gl.LINK_STATUS);
+        if (success) {
+          discardInfoForProgram(program);
+          const unsetUniforms = new Map();
+          const uniformInfos = new Map();
+          const uniformSamplerValues = [];
+          const numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+          for (let ii = 0; ii < numUniforms; ++ii) {
+            const {name, type, size} = gl.getActiveUniform(program, ii);
+            if (isBuiltIn(name)) {
+              continue;
+            }
+            // skip uniform block uniforms
+            const location = gl.getUniformLocation(program, name);
+            if (!location) {
+              continue;
+            }
+            const altNames = new Map([[name, 0]]);
+            let baseName = name;
+            if (name.endsWith('[0]')) {
+              baseName = name.substr(0, name.length - 3);
+              altNames.set(baseName, 0);
+            }
+            if (size > 1) {
+              for (let s = 0; s < size; ++s) {
+                altNames.set(`${baseName}[${s}]`, s);
+              }
+            }
+
+            const addUnsetUniform =
+                (!uniformTypeIsSampler(type) || sharedState.config.failUnsetSamplerUniforms)
+                && !sharedState.ignoredUniforms.has(name);
+
+            const values = uniformTypeIsSampler(type) ? new Array(size).fill(0) : undefined;
+            if (values) {
+              uniformSamplerValues.push({type, values, name: baseName});
+            }
+
+            const unset = new Set(range(0, size));
+            for (const [name, index] of altNames) {
+              if (addUnsetUniform) {
+                unsetUniforms.set(name, {
+                  index,
+                  unset,
+                  altNames,
+                });
+              }
+              uniformInfos.set(name, {
+                index,
+                type,
+                size,
+                ...(values && {values}),
+              });
+            }
+          }
+          sharedState.programToUniformSamplerValues.set(program, uniformSamplerValues);
+          sharedState.programToUniformInfoMap.set(program, uniformInfos);
+          if (unsetUniforms.size) {
+            sharedState.programToUnsetUniformsMap.set(program, unsetUniforms);
+          }
+        }
+      },
+
+      useProgram(ctx, funcName, args) {
+        const [program] = args;
+        sharedState.currentProgram = program;
+      },
+
+      deleteProgram(ctx, funcName, args) {
+        const [program] = args;
+        if (sharedState.currentProgram === program) {
+          sharedState.currentProgram = undefined;
+        }
+        discardInfoForProgram(program);
+      },
+
+      deleteBuffer(ctx, funcName, args) {
+        const [buffer] = args;
+        // meh! technically this doesn't work because buffers
+        // are ref counted so if you have an index buffer on
+        // vao you can still use it. Sigh!
+        sharedState.bufferToIndices.delete(buffer);
+      },
+
+      deleteFramebuffer: makeDeleteWrapper,
+      deleteRenderbuffer: makeDeleteWrapper,
+      deleteTexture: makeDeleteWrapper,
+      deleteShader: makeDeleteWrapper,
+      deleteQuery: makeDeleteWrapper,
+      deleteSampler: makeDeleteWrapper,
+      deleteSync: makeDeleteWrapper,
+      deleteTransformFeedback: makeDeleteWrapper,
+      deleteVertexArray: makeDeleteWrapper,
+      deleteVertexArrayOES: makeDeleteWrapper,
+      ...sharedState.textureManager.postChecks,
     };
 
     /*
@@ -1604,11 +2220,11 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
                   if (binding) {
                     const webglObject = gl.getParameter(binding);
                     if (webglObject) {
-                      return `${glEnumToString(gl, value)}{${getWebGLObjectString(webglObject)}}`;
+                      return `${glEnumToString(value)}{${getWebGLObjectString(webglObject)}}`;
                     }
                   }
                 }
-                return glEnumToString(gl, value);
+                return glEnumToString(value);
               }
             }
           }
@@ -1857,52 +2473,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       }
     }
 
-    // Makes a function that calls a WebGL function and then calls getError.
-    function makeErrorWrapper(ctx, funcName) {
-      const origFn = ctx[funcName];
-      const preCheck = preChecks[funcName] || noop;
-      const postCheck = postChecks[funcName] || noop;
-      ctx[funcName] = function(...args) {
-        preCheck(ctx, funcName, args);
-        checkArgs(ctx, funcName, args);
-        const result = origFn.call(ctx, ...args);
-        const gl = sharedState.baseContext;
-        const err = origGLErrorFn.call(gl);
-        if (err !== 0) {
-          glErrorShadow[err] = true;
-          const msgs = [glEnumToString(ctx, err)];
-          if (isDrawFunction(funcName)) {
-            const program = gl.getParameter(gl.CURRENT_PROGRAM);
-            if (program) {
-              msgs.push(...checkFramebufferFeedback(gl, getWebGLObjectString));
-              msgs.push(...checkAttributesForBufferOverflow(gl, funcName, args, getWebGLObjectString, getIndicesForBuffer));
-            }
-          }
-          reportFunctionError(ctx, funcName, args, msgs.join('\n'));
-        }
-        postCheck(ctx, funcName, args);
-        return result;
-      };
-    }
-
-    function range(start, end) {
-      const array = [];
-      for (let i = start; i < end; ++i) {
-        array.push(i);
-      }
-      return array;
-    }
-
-    function makeDeleteWrapper(ctx, funcName) {
-      const origFn = ctx[funcName];
-      ctx[funcName] = function(obj) {
-        sharedState.webglObjectToNamesMap.delete(obj);
-        origFn.call(this, obj);
-      };
-    }
-
-    const postHandlers = {
-      getExtension(ctx, propertyName, origGLErrorFn) {
+    const extraWrappers = {
+      getExtension(ctx, propertyName) {
         const origFn = ctx[propertyName];
         ctx[propertyName] = function(...args) {
           const extensionName = args[0].toLowerCase();
@@ -1917,129 +2489,54 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           return ext;
         };
       },
-
-      getSupportedExtensions(ctx) {
-        const origFn = ctx.getSupportedExtensions;
-        ctx.getSupportedExtensions = function() {
-          return origFn.call(this).concat('GMAN_debug_helper');
-        };
-      },
-
-      getUniformLocation(ctx) {
-        const origFn = ctx.getUniformLocation;
-        ctx.getUniformLocation = function(program, name) {
-          const location = origFn.call(this, program, name);
-          if (location) {
-            sharedState.locationsToNamesMap.set(location, name);
-            sharedState.programToLocationsMap.get(program).add(location);
-          }
-          return location;
-        };
-      },
-
-      linkProgram(ctx) {
-        const origFn = ctx.linkProgram;
-        ctx.linkProgram = function(program) {
-          const gl = this;
-          origFn.call(this, program);
-          const success = this.getProgramParameter(program, gl.LINK_STATUS);
-          if (success) {
-            discardInfoForProgram(program);
-            const unsetUniforms = new Map();
-            const uniformInfos = new Map();
-            const numUniforms = this.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
-            for (let ii = 0; ii < numUniforms; ++ii) {
-              const {name, type, size} = gl.getActiveUniform(program, ii);
-              if (isBuiltIn(name)) {
-                continue;
-              }
-              // skip uniform block uniforms
-              const location = gl.getUniformLocation(program, name);
-              if (!location) {
-                continue;
-              }
-              const altNames = new Map([[name, 0]]);
-              let baseName = name;
-              if (name.endsWith('[0]')) {
-                baseName = name.substr(0, name.length - 3);
-                altNames.set(baseName, 0);
-              }
-              if (size > 1) {
-                for (let s = 0; s < size; ++s) {
-                  altNames.set(`${baseName}[${s}]`, s);
-                }
-              }
-
-              const addUnsetUniform =
-                  (!uniformTypeIsSampler(type) || sharedState.config.failUnsetSamplerUniforms)
-                  && !sharedState.ignoredUniforms.has(name);
-
-              const unset = new Set(range(0, size));
-              for (const [name, index] of altNames) {
-                if (addUnsetUniform) {
-                  unsetUniforms.set(name, {
-                    index,
-                    unset,
-                    altNames,
-                  });
-                }
-                uniformInfos.set(name, {
-                  index,
-                  type,
-                  size,
-                });
-              }
-            }
-            sharedState.programToUniformInfoMap.set(program, uniformInfos);
-            if (unsetUniforms.size) {
-              sharedState.programToUnsetUniformsMap.set(program, unsetUniforms);
-            }
-          }
-        };
-      },
-
-      useProgram(ctx) {
-        const origFn = ctx.useProgram;
-        ctx.useProgram = function(program) {
-          origFn.call(this, program);
-          sharedState.currentProgram = program;
-        };
-      },
-
-      deleteProgram(ctx, funcName) {
-        makeDeleteWrapper(ctx, funcName);
-        const origFn = ctx.deleteProgram;
-        ctx.deleteProgram = function(program) {
-          if (sharedState.currentProgram === program) {
-            sharedState.currentProgram = undefined;
-          }
-          origFn.call(this, program);
-          discardInfoForProgram(program);
-        };
-      },
-
-      deleteBuffer: makeDeleteWrapper,
-      deleteFramebuffer: makeDeleteWrapper,
-      deleteRenderbuffer: makeDeleteWrapper,
-      deleteTexture: makeDeleteWrapper,
-      deleteShader: makeDeleteWrapper,
-      deleteQuery: makeDeleteWrapper,
-      deleteSampler: makeDeleteWrapper,
-      deleteSync: makeDeleteWrapper,
-      deleteTransformFeedback: makeDeleteWrapper,
-      deleteVertexArray: makeDeleteWrapper,
-      deleteVertexArrayOES: makeDeleteWrapper,
     };
+
+    // Makes a function that calls a WebGL function and then calls getError.
+    function makeErrorWrapper(ctx, funcName) {
+      const origFn = ctx[funcName];
+      const preCheck = preChecks[funcName] || noop;
+      const postCheck = postChecks[funcName] || noop;
+      ctx[funcName] = function(...args) {
+        preCheck(ctx, funcName, args);
+        checkArgs(ctx, funcName, args);
+        const result = origFn.call(ctx, ...args);
+        const gl = sharedState.baseContext;
+        const err = origGLErrorFn.call(gl);
+        if (err !== 0) {
+          glErrorShadow[err] = true;
+          const msgs = [glEnumToString(err)];
+          if (isDrawFunction(funcName)) {
+            const program = gl.getParameter(gl.CURRENT_PROGRAM);
+            if (program) {
+              msgs.push(...checkFramebufferFeedback(gl, getWebGLObjectString));
+              msgs.push(...checkAttributesForBufferOverflow(gl, funcName, args, getWebGLObjectString, getIndicesForBuffer));
+            }
+          }
+          reportFunctionError(ctx, funcName, args, msgs.join('\n'));
+        } else {
+          postCheck(ctx, funcName, args, result);
+        }
+        return result;
+      };
+      const extraWrapperFn = extraWrappers[funcName];
+      if (extraWrapperFn) {
+        extraWrapperFn(ctx, funcName, origGLErrorFn);
+      }
+    }
+
+    function range(start, end) {
+      const array = [];
+      for (let i = start; i < end; ++i) {
+        array.push(i);
+      }
+      return array;
+    }
 
     // Wrap each function
     for (const propertyName in ctx) {
       if (typeof ctx[propertyName] === 'function') {
         origFuncs[propertyName] = ctx[propertyName];
         makeErrorWrapper(ctx, propertyName);
-        const postHandler = postHandlers[propertyName];
-        if (postHandler) {
-          postHandler(ctx, propertyName, origGLErrorFn);
-        }
       }
     }
 
@@ -2082,9 +2579,12 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   */
 
+  /* global console */
   /* global document */
   /* global HTMLCanvasElement */
   /* global OffscreenCanvas */
+
+  console.log('webgl-lint running');
 
   function wrapGetContext(Ctor) {
     const oldFn = Ctor.prototype.getContext;

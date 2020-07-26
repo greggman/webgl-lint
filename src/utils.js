@@ -60,7 +60,7 @@ export function enumArrayToString(gl, enums) {
   const enumStrings = [];
   if (enums.length) {
     for (let i = 0; i < enums.length; ++i) {
-      enums.push(glEnumToString(gl, enums[i]));  // eslint-disable-line
+      enums.push(glEnumToString(enums[i]));  // eslint-disable-line
     }
     return '[' + enumStrings.join(', ') + ']';
   }
@@ -75,13 +75,13 @@ export function makeBitFieldToStringFunc(enums) {
       const enumValue = enumStringToValue[enums[i]];
       if ((value & enumValue) !== 0) {
         orResult |= enumValue;
-        orEnums.push(glEnumToString(gl, enumValue));  // eslint-disable-line
+        orEnums.push(glEnumToString(enumValue));  // eslint-disable-line
       }
     }
     if (orResult === value) {
       return orEnums.join(' | ');
     } else {
-      return glEnumToString(gl, value);  // eslint-disable-line
+      return glEnumToString(value);  // eslint-disable-line
     }
   };
 }
@@ -109,7 +109,7 @@ export function addEnumsFromAPI(api) {
  * @param {number} value Value to return an enum for
  * @return {string} The string version of the enum.
  */
-export function glEnumToString(gl, value) {
+export function glEnumToString(value) {
   const matches = enumToStringsMap.get(value);
   return matches
       ? [...matches.keys()].map(v => `${v}`).join(' | ')

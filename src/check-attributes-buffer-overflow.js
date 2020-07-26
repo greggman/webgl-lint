@@ -24,7 +24,7 @@ function getLastUsedIndexForDrawElements(gl, funcName, startOffset, vertCount, i
   const bufferSize = gl.getBufferParameter(gl.ELEMENT_ARRAY_BUFFER, gl.BUFFER_SIZE);
   const sizeNeeded = startOffset + vertCount * bytesPerIndex;
   if (sizeNeeded > bufferSize) {
-    errors.push(`offset: ${startOffset} and count: ${vertCount} with index type: ${glEnumToString(gl, indexType)} passed to ${funcName} are out of range for current ELEMENT_ARRAY_BUFFER.
+    errors.push(`offset: ${startOffset} and count: ${vertCount} with index type: ${glEnumToString(indexType)} passed to ${funcName} are out of range for current ELEMENT_ARRAY_BUFFER.
 Those parameters require ${sizeNeeded} bytes but the current ELEMENT_ARRAY_BUFFER ${getWebGLObjectString(elementBuffer)} only has ${bufferSize} bytes`);
     return undefined;
   }
@@ -94,7 +94,7 @@ export function checkAttributesForBufferOverflow(gl, funcName, args, getWebGLObj
       if (sizeNeeded > bufferSize) {
         errors.push(`${getWebGLObjectString(buffer)} assigned to attribute ${ndx} used as attribute '${name}' in current program is too small for draw parameters.
 index of highest vertex accessed: ${effectiveLastIndex}
-attribute size: ${numComponents}, type: ${glEnumToString(gl, type)}, stride: ${specifiedStride}, offset: ${offset}, divisor: ${divisor}
+attribute size: ${numComponents}, type: ${glEnumToString(type)}, stride: ${specifiedStride}, offset: ${offset}, divisor: ${divisor}
 needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       }
     }

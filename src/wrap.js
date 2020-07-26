@@ -23,9 +23,12 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import {augmentAPI} from './augment-api.js';
 
+/* global console */
 /* global document */
 /* global HTMLCanvasElement */
 /* global OffscreenCanvas */
+
+console.log('webgl-lint running');
 
 function wrapGetContext(Ctor) {
   const oldFn = Ctor.prototype.getContext;
@@ -40,6 +43,7 @@ function wrapGetContext(Ctor) {
         failUnsetUniforms: true,
         failUnsetSamplerUniforms: false,
         failZeroMatrixUniforms: true,
+        failUnrenderableTextures: true,
         ignoreUniforms: [],
       };
       augmentAPI(ctx, type, config);

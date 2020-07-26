@@ -30,6 +30,7 @@ import uniformXXvTests from './tests/uniformXXv-tests.js';
 import arraysWithOffsetsTests from './tests/arrays-with-offsets-tests.js';
 import disableTests from './tests/disable-tests.js';
 import programDeleteTests from './tests/program-delete-tests.js';
+import unrenderableTextureTests from './tests/unrenderable-texture-tests.js';
 
 const tests = [
   ...drawingTests,
@@ -52,6 +53,7 @@ const tests = [
   ...arraysWithOffsetsTests,
   ...disableTests,
   ...programDeleteTests,
+  ...unrenderableTextureTests,
 ];
 
 function fail(...args) {

@@ -54,6 +54,34 @@ export function uniformTypeIsSampler(type) {
   return samplerTypes.has(type);
 }
 
+const TEXTURE_2D                     = 0x0DE1;
+const TEXTURE_3D                     = 0x806F;
+const TEXTURE_2D_ARRAY               = 0x8C1A;
+const TEXTURE_CUBE_MAP               = 0x8513;
+const TEXTURE_CUBE_MAP_POSITIVE_X    = 0x8515;
+const TEXTURE_CUBE_MAP_NEGATIVE_X    = 0x8516;
+const TEXTURE_CUBE_MAP_POSITIVE_Y    = 0x8517;
+const TEXTURE_CUBE_MAP_NEGATIVE_Y    = 0x8518;
+const TEXTURE_CUBE_MAP_POSITIVE_Z    = 0x8519;
+const TEXTURE_CUBE_MAP_NEGATIVE_Z    = 0x851A;
+
+const targetToBindPointMap = new Map([
+  [TEXTURE_2D, '2D'],
+  [TEXTURE_3D, '3D'],
+  [TEXTURE_CUBE_MAP, 'CUBE'],
+  [TEXTURE_CUBE_MAP_POSITIVE_X, 'CUBE'],
+  [TEXTURE_CUBE_MAP_NEGATIVE_X, 'CUBE'],
+  [TEXTURE_CUBE_MAP_POSITIVE_Y, 'CUBE'],
+  [TEXTURE_CUBE_MAP_NEGATIVE_Y, 'CUBE'],
+  [TEXTURE_CUBE_MAP_POSITIVE_Z, 'CUBE'],
+  [TEXTURE_CUBE_MAP_NEGATIVE_Z, 'CUBE'],
+  [TEXTURE_2D_ARRAY, '2D_ARRAY'],
+]);
+
+export function getBindPointForTarget(target) {
+  return targetToBindPointMap.get(target);
+}
+
 const TEXTURE_BINDING_2D            = 0x8069;
 const TEXTURE_BINDING_CUBE_MAP      = 0x8514;
 const TEXTURE_BINDING_3D            = 0x806A;

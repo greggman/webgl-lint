@@ -24,7 +24,11 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 import {checkAttributesForBufferOverflow} from './check-attributes-buffer-overflow.js';
 import {checkFramebufferFeedback} from './check-framebuffer-feedback.js';
 import {parseStack} from './parse-stack.js';
-import {uniformTypeIsSampler} from './samplers.js';
+import {
+  getBindPointForSampler,
+  uniformTypeIsSampler,
+} from './samplers.js';
+import {TextureManager} from './texture-manager.js';
 import {
   addEnumsFromAPI,
   enumArrayToString,
@@ -115,6 +119,7 @@ function getUniformNameErrorMsg(ctx, funcName, args, sharedState) {
   return msgs.length ? `: ${msgs.join(' ')}` : '';
 }
 
+
 /**
  * Given a WebGL context replaces all the functions with wrapped functions
  * that call gl.getError after every command
@@ -124,85 +129,99 @@ function getUniformNameErrorMsg(ctx, funcName, args, sharedState) {
  */
 export function augmentAPI(ctx, nameOfClass, options = {}) {
   const origGLErrorFn = options.origGLErrorFn || ctx.getError;
-  const sharedState = options.sharedState || {
-    baseContext: ctx,
-    config: options,
-    apis: {
-      // custom extension
-      gman_debug_helper: {
-        ctx: {
-          tagObject(webglObject, name) {
-            // There's no easy way to check if it's a WebGLObject
-            // and I guess we mostly don't care but a minor check is probably
-            // okay
-            if (Array.isArray(webglObject) || isTypedArray(webglObject) || typeof webglObject !== 'object') {
-              throw new Error('not a WebGLObject');
-            }
-            sharedState.webglObjectToNamesMap.set(webglObject, name);
-          },
-          getTagForObject(webglObject) {
-            return sharedState.webglObjectToNamesMap.get(webglObject);
-          },
-          disable() {
-            removeChecks();
-          },
-          setConfiguration(config) {
-            for (const [key, value] of Object.entries(config)) {
-              if (!(key in sharedState.config)) {
-                throw new Error(`unknown configuration option: ${key}`);
+
+  function createSharedState(ctx) {
+    const sharedState = {
+      baseContext: ctx,
+      config: options,
+      apis: {
+        // custom extension
+        gman_debug_helper: {
+          ctx: {
+            tagObject(webglObject, name) {
+              // There's no easy way to check if it's a WebGLObject
+              // and I guess we mostly don't care but a minor check is probably
+              // okay
+              if (Array.isArray(webglObject) || isTypedArray(webglObject) || typeof webglObject !== 'object') {
+                throw new Error('not a WebGLObject');
               }
-              sharedState.config[key] = value;
-            }
-            for (const name of sharedState.config.ignoreUniforms) {
-              sharedState.ignoredUniforms.add(name);
-            }
+              sharedState.webglObjectToNamesMap.set(webglObject, name);
+            },
+            getTagForObject(webglObject) {
+              return sharedState.webglObjectToNamesMap.get(webglObject);
+            },
+            disable() {
+              removeChecks();
+            },
+            setConfiguration(config) {
+              for (const [key, value] of Object.entries(config)) {
+                if (!(key in sharedState.config)) {
+                  throw new Error(`unknown configuration option: ${key}`);
+                }
+                sharedState.config[key] = value;
+              }
+              for (const name of sharedState.config.ignoreUniforms) {
+                sharedState.ignoredUniforms.add(name);
+              }
+            },
           },
         },
       },
-    },
-    bufferToIndices: new Map(),
-    ignoredUniforms: new Set(),
-    // Okay or bad? This is a map of all WebGLUniformLocation object looked up
-    // by the user via getUniformLocation. We use this to map a location back to
-    // a name and unfortunately a WebGLUniformLocation is not unique, by which
-    // I mean if you call get getUniformLocation twice for the same uniform you'll
-    // get 2 different WebGLUniformLocation objects referring to the same location.
-    //
-    // So, that means I can't look up the locations myself and know what they are
-    // unless I passed the location objects I looked up back to the user but if I
-    // did that then technically I'd have changed the semantics (though I suspect
-    // no one ever takes advantage of that quirk)
-    //
-    // In any case this is all uniforms for all programs. That means in order
-    // to clean up later I have to track all the uniforms (see programToUniformMap)
-    // so that makes me wonder if I should track names per program instead.
-    //
-    // The advantage to this global list is given a WebGLUniformLocation and
-    // no other info I can lookup the name where as if I switch it to per-program
-    // then I need to know the program. That's generally available but it's indirect.
-    locationsToNamesMap: new Map(),
-    webglObjectToNamesMap: new Map(),
-    // @typedef {Object} UnusedUniformRef
-    // @property {number} index the index of this name. for foo[3] it's 3
-    // @property {Map<string, number>} altNames example <foo,0>, <foo[0],0>, <foo[1],1>, <foo[2],2>, <foo[3],3>  for `uniform vec4 foo[3]`
-    // @property {Set<number>} unused this is size so for the example above it's `Set<[0, 1, 2, 3]`
+      textureManager: new TextureManager(ctx),
+      bufferToIndices: new Map(),
+      ignoredUniforms: new Set(),
+      // Okay or bad? This is a map of all WebGLUniformLocation object looked up
+      // by the user via getUniformLocation. We use this to map a location back to
+      // a name and unfortunately a WebGLUniformLocation is not unique, by which
+      // I mean if you call get getUniformLocation twice for the same uniform you'll
+      // get 2 different WebGLUniformLocation objects referring to the same location.
+      //
+      // So, that means I can't look up the locations myself and know what they are
+      // unless I passed the location objects I looked up back to the user but if I
+      // did that then technically I'd have changed the semantics (though I suspect
+      // no one ever takes advantage of that quirk)
+      //
+      // In any case this is all uniforms for all programs. That means in order
+      // to clean up later I have to track all the uniforms (see programToUniformMap)
+      // so that makes me wonder if I should track names per program instead.
+      //
+      // The advantage to this global list is given a WebGLUniformLocation and
+      // no other info I can lookup the name where as if I switch it to per-program
+      // then I need to know the program. That's generally available but it's indirect.
+      locationsToNamesMap: new Map(),
+      webglObjectToNamesMap: new Map(),
+      // @typedef {Object} UnusedUniformRef
+      // @property {number} index the index of this name. for foo[3] it's 3
+      // @property {Map<string, number>} altNames example <foo,0>, <foo[0],0>, <foo[1],1>, <foo[2],2>, <foo[3],3>  for `uniform vec4 foo[3]`
+      // @property {Set<number>} unused this is size so for the example above it's `Set<[0, 1, 2, 3]`
 
-    // Both the altName array and the unused Set are shared with an entry in `programToUnsetUniformsMap`
-    // by each name (foo, foo[0], foo[1], foo[2]). That we we can unused.delete each element of set
-    // and if set is empty then delete all altNames entries from programToUnsetUniformsMap.
-    // When programsToUniformsMap is empty all uniforms have been set.
-    // @typedef {Map<WebGLProgram, Map<string, UnusedUniformRef>}
-    programToUnsetUniformsMap: new Map(),
-    // class UniformInfo {
-    //   index: the index of this name. for foo[3] it's 3
-    //   size: this is the array size for this uniform
-    //   type: the enum for the type like FLOAT_VEC4
-    // }
-    /** @type {WebGLProgram, Map<UniformInfo>} */
-    programToUniformInfoMap: new Map(),
-    /** @type {WebGLProgram, Set<WebGLUniformLocation>} */
-    programToLocationsMap: new Map(),
-  };
+      // Both the altName array and the unused Set are shared with an entry in `programToUnsetUniformsMap`
+      // by each name (foo, foo[0], foo[1], foo[2]). That we we can unused.delete each element of set
+      // and if set is empty then delete all altNames entries from programToUnsetUniformsMap.
+      // When programsToUniformsMap is empty all uniforms have been set.
+      // @typedef {Map<WebGLProgram, Map<string, UnusedUniformRef>}
+      programToUnsetUniformsMap: new Map(),
+      // class UniformInfo {
+      //   index: the index of this name. for foo[3] it's 3
+      //   size: this is the array size for this uniform
+      //   type: the enum for the type like FLOAT_VEC4
+      // }
+      /** @type {WebGLProgram, Map<UniformInfo>} */
+      programToUniformInfoMap: new Map(),
+      /** @type {WebGLProgram, Set<WebGLUniformLocation>} */
+      programToLocationsMap: new Map(),
+      // class UniformSamplerInfo {
+      //   type: the enum for the uniform type like SAMPLER_2D
+      //   values: number[],
+      //   name: string
+      // }
+      /** @type {WebGLProgram, UniformSamplerInfo[]} */
+      programToUniformSamplerValues: new Map(),
+    };
+    return sharedState;
+  }
+
+  const sharedState = options.sharedState || createSharedState(ctx);
   options.sharedState = sharedState;
   addEnumsFromAPI(ctx);
   /**
@@ -271,9 +290,9 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     'texParameterf': {3: { enums: [0, 1] }},
     'texParameteri': {3: { enums: [0, 1, 2] }},
     'texImage2D': {
-      9: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5], arrays: [-8] },
-      6: { enums: [0, 2, 3, 4] },
-      10: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5, 9], arrays: {8: checkOptionalTypedArrayWithOffset }}, // WebGL2
+      9: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5], arrays: [-8], },
+      6: { enums: [0, 2, 3, 4], },
+      10: { enums: [0, 2, 6, 7], numbers: [1, 3, 4, 5, 9], arrays: {8: checkOptionalTypedArrayWithOffset }, }, // WebGL2
     },
     'texImage3D': {
       10: { enums: [0, 2, 7, 8], numbers: [1, 3, 4, 5] },  // WebGL2
@@ -617,6 +636,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     sharedState.programToLocationsMap.set(program, new Set());
     sharedState.programToUnsetUniformsMap.delete(program);
     sharedState.programToUniformInfoMap.delete(program);
+    sharedState.programToUniformSamplerValues.delete(program);
   }
 
   function removeChecks() {
@@ -686,14 +706,63 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     }
   }
 
+  function getUniformElementName(name, size, index) {
+    return (size > 1 || index > 1)
+       ? `${name}[${index}]`
+       : name;
+  }
+
+  function checkUnRenderableTextures(ctx, funcName, args) {
+    if (!sharedState.config.failUnrenderableTextures) {
+      return;
+    }
+    const uniformSamplerInfos = sharedState.programToUniformSamplerValues.get(sharedState.currentProgram);
+    const numTextureUnits = sharedState.textureManager.numTextureUnits;
+    for (const {type, values, name} of uniformSamplerInfos) {
+      const {bindPoint} = getBindPointForSampler(type);
+      for (let i = 0; i < values.length; ++i) {
+        const texUnit = values[i];
+        if (texUnit >= numTextureUnits) {
+          reportFunctionError(ctx, funcName, args, `uniform ${getUniformTypeInfo(type).name} ${getUniformElementName(name, values.length, i)} is set to ${texUnit} which is out of range. There are only ${numTextureUnits} texture units`);
+          return;
+        }
+        const unrenderableReason = sharedState.textureManager.getTextureUnitUnrenderableReason(texUnit, bindPoint, getWebGLObjectString);
+        if (unrenderableReason) {
+          // TODO:
+          //   * is the type of texture compatible with the sampler?
+          //     int textures for int samplers, unsigned for unsigned.
+          //   *
+          const texture = sharedState.textureManager.getTextureForTextureUnit(texUnit, bindPoint);
+          reportFunctionError(
+              ctx,
+              funcName,
+              args,
+              texture
+                  ? `texture ${getWebGLObjectString(texture)} on texture unit ${texUnit} referenced by uniform ${getUniformElementName(name, values.length, i)} is not renderable: ${unrenderableReason}`
+                  : `no texture on texture unit ${texUnit} referenced by uniform ${getUniformElementName(name, values.length, i)}`);
+          return;
+        }
+      }
+    }
+  }
+
+  function checkUnsetUniformsAndUnrenderableTextures(ctx, funcName, args) {
+    if (!sharedState.currentProgram) {
+      reportFunctionError(ctx, funcName, args, 'no current program');
+      return;
+    }
+    checkUnsetUniforms(ctx, funcName, args);
+    checkUnRenderableTextures(ctx, funcName, args);
+  }
+
   const preChecks = {
-    drawArrays: checkUnsetUniforms,
-    drawElements: checkUnsetUniforms,
-    drawArraysInstanced: checkUnsetUniforms,
-    drawElementsInstanced: checkUnsetUniforms,
-    drawArraysInstancedANGLE: checkUnsetUniforms,
-    drawElementsInstancedANGLE: checkUnsetUniforms,
-    drawRangeElements: checkUnsetUniforms,
+    drawArrays: checkUnsetUniformsAndUnrenderableTextures,
+    drawElements: checkUnsetUniformsAndUnrenderableTextures,
+    drawArraysInstanced: checkUnsetUniformsAndUnrenderableTextures,
+    drawElementsInstanced: checkUnsetUniformsAndUnrenderableTextures,
+    drawArraysInstancedANGLE: checkUnsetUniformsAndUnrenderableTextures,
+    drawElementsInstancedANGLE: checkUnsetUniformsAndUnrenderableTextures,
+    drawRangeElements: checkUnsetUniformsAndUnrenderableTextures,
   };
 
   function markUniformRangeAsSet(webGLUniformLocation, count) {
@@ -763,9 +832,42 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     };
   }
 
+  function markUniformSetAndRecordSamplerValueV(numValuesPer) {
+    const markUniformSetFn = markUniformSetV(numValuesPer);
+    return function(gl, funcName, args) {
+      markUniformSetFn(gl, funcName, args);
+      const [webglUniformLocation, array] = args;
+      recordSamplerValues(webglUniformLocation, array);
+    };
+  }
+
   function markUniformSet(gl, funcName, args) {
     const [webGLUniformLocation] = args;
     markUniformRangeAsSet(webGLUniformLocation, 1);
+  }
+
+  function markUniformSetAndRecordSamplerValue(gl, funcName, args) {
+    markUniformSet(gl, funcName, args);
+      const [webglUniformLocation, value] = args;
+      recordSamplerValues(webglUniformLocation, [value]);
+  }
+
+  function recordSamplerValues(webglUniformLocation, newValues) {
+    const name = sharedState.locationsToNamesMap.get(webglUniformLocation);
+    const uniformInfos = sharedState.programToUniformInfoMap.get(sharedState.currentProgram);
+    const {index, type, values} = uniformInfos.get(name);
+    if (!uniformTypeIsSampler(type)) {
+      return;
+    }
+    const numToCopy = Math.min(newValues.length, index - values.length);
+    for (let i = 0; i < numToCopy; ++i) {
+      values[i] = newValues[i];
+    }
+  }
+
+  function makeDeleteWrapper(ctx, funcName, args) {
+    const [obj] = args;
+    sharedState.webglObjectToNamesMap.delete(obj);
   }
 
   const postChecks = {
@@ -831,7 +933,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     uniform3f: markUniformSet,
     uniform4f: markUniformSet,
 
-    uniform1i: markUniformSet,
+    uniform1i: markUniformSetAndRecordSamplerValue,
     uniform2i: markUniformSet,
     uniform3i: markUniformSet,
     uniform4i: markUniformSet,
@@ -841,7 +943,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     uniform3fv: markUniformSetV(3),
     uniform4fv: markUniformSetV(4),
 
-    uniform1iv: markUniformSetV(1),
+    uniform1iv: markUniformSetAndRecordSamplerValueV(1),
     uniform2iv: markUniformSetV(2),
     uniform3iv: markUniformSetV(3),
     uniform4iv: markUniformSetV(4),
@@ -868,7 +970,125 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
 
     uniformMatrix2x4fv: markUniformSetMatrixV(8),
     uniformMatrix3x4fv: markUniformSetMatrixV(12),
+
+    getSupportedExtensions(ctx, funcName, args, result) {
+      result.push('GMAN_debug_helper');
+    },
+
+    getUniformLocation(ctx, funcName, args, location) {
+      const [program, name] = args;
+      if (location) {
+        sharedState.locationsToNamesMap.set(location, name);
+        sharedState.programToLocationsMap.get(program).add(location);
+      }
+    },
+
+    linkProgram(gl, funcName, args) {
+      const [program] = args;
+      const success = gl.getProgramParameter(program, gl.LINK_STATUS);
+      if (success) {
+        discardInfoForProgram(program);
+        const unsetUniforms = new Map();
+        const uniformInfos = new Map();
+        const uniformSamplerValues = [];
+        const numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+        for (let ii = 0; ii < numUniforms; ++ii) {
+          const {name, type, size} = gl.getActiveUniform(program, ii);
+          if (isBuiltIn(name)) {
+            continue;
+          }
+          // skip uniform block uniforms
+          const location = gl.getUniformLocation(program, name);
+          if (!location) {
+            continue;
+          }
+          const altNames = new Map([[name, 0]]);
+          let baseName = name;
+          if (name.endsWith('[0]')) {
+            baseName = name.substr(0, name.length - 3);
+            altNames.set(baseName, 0);
+          }
+          if (size > 1) {
+            for (let s = 0; s < size; ++s) {
+              altNames.set(`${baseName}[${s}]`, s);
+            }
+          }
+
+          const addUnsetUniform =
+              (!uniformTypeIsSampler(type) || sharedState.config.failUnsetSamplerUniforms)
+              && !sharedState.ignoredUniforms.has(name);
+
+          const values = uniformTypeIsSampler(type) ? new Array(size).fill(0) : undefined;
+          if (values) {
+            uniformSamplerValues.push({type, values, name: baseName});
+          }
+
+          const unset = new Set(range(0, size));
+          for (const [name, index] of altNames) {
+            if (addUnsetUniform) {
+              unsetUniforms.set(name, {
+                index,
+                unset,
+                altNames,
+              });
+            }
+            uniformInfos.set(name, {
+              index,
+              type,
+              size,
+              ...(values && {values}),
+            });
+          }
+        }
+        sharedState.programToUniformSamplerValues.set(program, uniformSamplerValues);
+        sharedState.programToUniformInfoMap.set(program, uniformInfos);
+        if (unsetUniforms.size) {
+          sharedState.programToUnsetUniformsMap.set(program, unsetUniforms);
+        }
+      }
+    },
+
+    useProgram(ctx, funcName, args) {
+      const [program] = args;
+      sharedState.currentProgram = program;
+    },
+
+    deleteProgram(ctx, funcName, args) {
+      const [program] = args;
+      if (sharedState.currentProgram === program) {
+        sharedState.currentProgram = undefined;
+      }
+      discardInfoForProgram(program);
+    },
+
+    deleteBuffer(ctx, funcName, args) {
+      const [buffer] = args;
+      // meh! technically this doesn't work because buffers
+      // are ref counted so if you have an index buffer on
+      // vao you can still use it. Sigh!
+      sharedState.bufferToIndices.delete(buffer);
+    },
+
+    deleteFramebuffer: makeDeleteWrapper,
+    deleteRenderbuffer: makeDeleteWrapper,
+    deleteTexture: makeDeleteWrapper,
+    deleteShader: makeDeleteWrapper,
+    deleteQuery: makeDeleteWrapper,
+    deleteSampler: makeDeleteWrapper,
+    deleteSync: makeDeleteWrapper,
+    deleteTransformFeedback: makeDeleteWrapper,
+    deleteVertexArray: makeDeleteWrapper,
+    deleteVertexArrayOES: makeDeleteWrapper,
   };
+  Object.entries(sharedState.textureManager.postChecks).forEach(([funcName, func]) => {
+    const existingFn = postChecks[funcName] || noop;
+    postChecks[funcName] = function(...args) {
+      existingFn(...args);
+      if (sharedState.config.failUnrenderableTextures) {
+        func(...args);
+      }
+    };
+  });
 
   /*
   function getWebGLObject(gl, funcName, args, value) {
@@ -945,11 +1165,11 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
                 if (binding) {
                   const webglObject = gl.getParameter(binding);
                   if (webglObject) {
-                    return `${glEnumToString(gl, value)}{${getWebGLObjectString(webglObject)}}`;
+                    return `${glEnumToString(value)}{${getWebGLObjectString(webglObject)}}`;
                   }
                 }
               }
-              return glEnumToString(gl, value);
+              return glEnumToString(value);
             }
           }
         }
@@ -1198,52 +1418,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     }
   }
 
-  // Makes a function that calls a WebGL function and then calls getError.
-  function makeErrorWrapper(ctx, funcName) {
-    const origFn = ctx[funcName];
-    const preCheck = preChecks[funcName] || noop;
-    const postCheck = postChecks[funcName] || noop;
-    ctx[funcName] = function(...args) {
-      preCheck(ctx, funcName, args);
-      checkArgs(ctx, funcName, args);
-      const result = origFn.call(ctx, ...args);
-      const gl = sharedState.baseContext;
-      const err = origGLErrorFn.call(gl);
-      if (err !== 0) {
-        glErrorShadow[err] = true;
-        const msgs = [glEnumToString(ctx, err)];
-        if (isDrawFunction(funcName)) {
-          const program = gl.getParameter(gl.CURRENT_PROGRAM);
-          if (program) {
-            msgs.push(...checkFramebufferFeedback(gl, getWebGLObjectString));
-            msgs.push(...checkAttributesForBufferOverflow(gl, funcName, args, getWebGLObjectString, getIndicesForBuffer));
-          }
-        }
-        reportFunctionError(ctx, funcName, args, msgs.join('\n'));
-      }
-      postCheck(ctx, funcName, args);
-      return result;
-    };
-  }
-
-  function range(start, end) {
-    const array = [];
-    for (let i = start; i < end; ++i) {
-      array.push(i);
-    }
-    return array;
-  }
-
-  function makeDeleteWrapper(ctx, funcName) {
-    const origFn = ctx[funcName];
-    ctx[funcName] = function(obj) {
-      sharedState.webglObjectToNamesMap.delete(obj);
-      origFn.call(this, obj);
-    };
-  }
-
-  const postHandlers = {
-    getExtension(ctx, propertyName, origGLErrorFn) {
+  const extraWrappers = {
+    getExtension(ctx, propertyName) {
       const origFn = ctx[propertyName];
       ctx[propertyName] = function(...args) {
         const extensionName = args[0].toLowerCase();
@@ -1258,129 +1434,54 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
         return ext;
       };
     },
-
-    getSupportedExtensions(ctx) {
-      const origFn = ctx.getSupportedExtensions;
-      ctx.getSupportedExtensions = function() {
-        return origFn.call(this).concat('GMAN_debug_helper');
-      };
-    },
-
-    getUniformLocation(ctx) {
-      const origFn = ctx.getUniformLocation;
-      ctx.getUniformLocation = function(program, name) {
-        const location = origFn.call(this, program, name);
-        if (location) {
-          sharedState.locationsToNamesMap.set(location, name);
-          sharedState.programToLocationsMap.get(program).add(location);
-        }
-        return location;
-      };
-    },
-
-    linkProgram(ctx) {
-      const origFn = ctx.linkProgram;
-      ctx.linkProgram = function(program) {
-        const gl = this;
-        origFn.call(this, program);
-        const success = this.getProgramParameter(program, gl.LINK_STATUS);
-        if (success) {
-          discardInfoForProgram(program);
-          const unsetUniforms = new Map();
-          const uniformInfos = new Map();
-          const numUniforms = this.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
-          for (let ii = 0; ii < numUniforms; ++ii) {
-            const {name, type, size} = gl.getActiveUniform(program, ii);
-            if (isBuiltIn(name)) {
-              continue;
-            }
-            // skip uniform block uniforms
-            const location = gl.getUniformLocation(program, name);
-            if (!location) {
-              continue;
-            }
-            const altNames = new Map([[name, 0]]);
-            let baseName = name;
-            if (name.endsWith('[0]')) {
-              baseName = name.substr(0, name.length - 3);
-              altNames.set(baseName, 0);
-            }
-            if (size > 1) {
-              for (let s = 0; s < size; ++s) {
-                altNames.set(`${baseName}[${s}]`, s);
-              }
-            }
-
-            const addUnsetUniform =
-                (!uniformTypeIsSampler(type) || sharedState.config.failUnsetSamplerUniforms)
-                && !sharedState.ignoredUniforms.has(name);
-
-            const unset = new Set(range(0, size));
-            for (const [name, index] of altNames) {
-              if (addUnsetUniform) {
-                unsetUniforms.set(name, {
-                  index,
-                  unset,
-                  altNames,
-                });
-              }
-              uniformInfos.set(name, {
-                index,
-                type,
-                size,
-              });
-            }
-          }
-          sharedState.programToUniformInfoMap.set(program, uniformInfos);
-          if (unsetUniforms.size) {
-            sharedState.programToUnsetUniformsMap.set(program, unsetUniforms);
-          }
-        }
-      };
-    },
-
-    useProgram(ctx) {
-      const origFn = ctx.useProgram;
-      ctx.useProgram = function(program) {
-        origFn.call(this, program);
-        sharedState.currentProgram = program;
-      };
-    },
-
-    deleteProgram(ctx, funcName) {
-      makeDeleteWrapper(ctx, funcName);
-      const origFn = ctx.deleteProgram;
-      ctx.deleteProgram = function(program) {
-        if (sharedState.currentProgram === program) {
-          sharedState.currentProgram = undefined;
-        }
-        origFn.call(this, program);
-        discardInfoForProgram(program);
-      };
-    },
-
-    deleteBuffer: makeDeleteWrapper,
-    deleteFramebuffer: makeDeleteWrapper,
-    deleteRenderbuffer: makeDeleteWrapper,
-    deleteTexture: makeDeleteWrapper,
-    deleteShader: makeDeleteWrapper,
-    deleteQuery: makeDeleteWrapper,
-    deleteSampler: makeDeleteWrapper,
-    deleteSync: makeDeleteWrapper,
-    deleteTransformFeedback: makeDeleteWrapper,
-    deleteVertexArray: makeDeleteWrapper,
-    deleteVertexArrayOES: makeDeleteWrapper,
   };
+
+  // Makes a function that calls a WebGL function and then calls getError.
+  function makeErrorWrapper(ctx, funcName) {
+    const origFn = ctx[funcName];
+    const preCheck = preChecks[funcName] || noop;
+    const postCheck = postChecks[funcName] || noop;
+    ctx[funcName] = function(...args) {
+      preCheck(ctx, funcName, args);
+      checkArgs(ctx, funcName, args);
+      const result = origFn.call(ctx, ...args);
+      const gl = sharedState.baseContext;
+      const err = origGLErrorFn.call(gl);
+      if (err !== 0) {
+        glErrorShadow[err] = true;
+        const msgs = [glEnumToString(err)];
+        if (isDrawFunction(funcName)) {
+          const program = gl.getParameter(gl.CURRENT_PROGRAM);
+          if (program) {
+            msgs.push(...checkFramebufferFeedback(gl, getWebGLObjectString));
+            msgs.push(...checkAttributesForBufferOverflow(gl, funcName, args, getWebGLObjectString, getIndicesForBuffer));
+          }
+        }
+        reportFunctionError(ctx, funcName, args, msgs.join('\n'));
+      } else {
+        postCheck(ctx, funcName, args, result);
+      }
+      return result;
+    };
+    const extraWrapperFn = extraWrappers[funcName];
+    if (extraWrapperFn) {
+      extraWrapperFn(ctx, funcName, origGLErrorFn);
+    }
+  }
+
+  function range(start, end) {
+    const array = [];
+    for (let i = start; i < end; ++i) {
+      array.push(i);
+    }
+    return array;
+  }
 
   // Wrap each function
   for (const propertyName in ctx) {
     if (typeof ctx[propertyName] === 'function') {
       origFuncs[propertyName] = ctx[propertyName];
       makeErrorWrapper(ctx, propertyName);
-      const postHandler = postHandlers[propertyName];
-      if (postHandler) {
-        postHandler(ctx, propertyName, origGLErrorFn);
-      }
     }
   }
 
