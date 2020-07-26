@@ -5,6 +5,7 @@
     "Bufferiv",
     "Bufferuiv",
     "Multisample",
+    "Renderability",
     "Renderbuffers",
     "bvec",
     "camelcase",
@@ -17,6 +18,7 @@
     "nonwords",
     "phong",
     "proto",
+    "unrenderable",
     "usampler",
     "uvec",
     "webgl"
