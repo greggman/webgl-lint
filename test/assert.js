@@ -2,8 +2,12 @@
 /* global document */
 
 export const config = {};
+
 document.querySelectorAll('[data-gman-debug-helper]').forEach(elem => {
   Object.assign(config, JSON.parse(elem.dataset.gmanDebugHelper));
+});
+document.querySelectorAll('[data-webgl-lint-test-config]').forEach(elem => {
+  Object.assign(config, JSON.parse(elem.dataset.webglLintTestConfig));
 });
 
 function formatMsg(msg) {
@@ -11,13 +15,13 @@ function formatMsg(msg) {
 }
 
 export function assertEqual(actual, expected, msg = '') {
-  if (actual !== expected) {
+  if (!config.noLint && actual !== expected) {
     throw new Error(`${formatMsg(msg)}expected: ${expected} to no equal actual: ${actual}`);
   }
 }
 
 export function assertNotEqual(actual, expected, msg = '') {
-  if (actual === expected) {
+  if (!config.noLint && actual === expected) {
     throw new Error(`${formatMsg(msg)}expected: ${expected} to no equal actual: ${actual}`);
   }
 }
@@ -44,6 +48,10 @@ export function assertThrowsWith(func, expectations, msg = '') {
       error = e;
     }
 
+  }
+
+  if (config.noLint) {
+    return true;
   }
 
   const actualNoBreaks = error.toString().replace(/\n/g, ' ');

@@ -7,7 +7,7 @@ import {gl, tagObject, not} from '../shared.js';
 
 describe('unset uniform tests', () => {
 
-  it('test unset uniforms', () => {
+  it('test unset uniforms base', () => {
     const prg = twgl.createProgram(gl, [
       `
         void main() {
@@ -26,6 +26,13 @@ describe('unset uniform tests', () => {
       `,
     ]);
     tagObject(prg, 'uniforms-program');
+
+    // bind a texture so we don't get an error about the texture missing
+    const tex = gl.createTexture();
+    tagObject(tex, 'onePixelTexture');
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
     gl.useProgram(prg);
     assertThrowsWith(() => {
       gl.drawArrays(gl.POINTS, 0, 1);  // error, unset uniforms
@@ -102,6 +109,13 @@ describe('unset uniform tests', () => {
     ]);
     tagObject(prg, 'uniforms-program-with-samplers');
     gl.useProgram(prg);
+
+    // bind a texture so we don't get an error about the texture missing
+    const tex = gl.createTexture();
+    tagObject(tex, 'onePixelTexture');
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
     assertThrowsWith(() => {
       gl.drawArrays(gl.POINTS, 0, 1);  // error, unset uniforms
     }, [/ambient/, /diffuseColor/, /diffuseTex/]);

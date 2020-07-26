@@ -2,8 +2,6 @@
 /* global URLSearchParams */
 /* global window */
 
-import '../src/wrap.js';
-
 import './tests/arrays-with-offsets-tests.js';
 import './tests/bad-data-tests.js';
 import './tests/buffer-overflow-tests.js';

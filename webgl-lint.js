@@ -829,23 +829,25 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     constructor(gl) {
       const needPOT = !isWebGL2(gl);
       const textureToTextureInfoMap = new Map();
+      const samplerToParametersMap = new Map();
       const textureUnits = createTextureUnits(gl);
       let activeTextureUnitIndex = 0;
       let activeTextureUnit = textureUnits[0];
       this.numTextureUnits = textureUnits.length;
 
       function recomputeRenderability(textureInfo) {
-        const {type, mips, parameters} = textureInfo;
+        textureInfo.notRenderable = computeRenderability(textureInfo, textureInfo.parameters);
+      }
+
+      function computeRenderability(textureInfo, parameters) {
+        const {type, mips} = textureInfo;
         const level0Faces = mips[0];
-        textureInfo.notRenderable = undefined;
         if (!level0Faces) {
-          textureInfo.notRenderable = 'no mip level 0';
-          return;
+          return 'no mip level 0';
         }
         const mipFace0 = level0Faces[0];
         if (!mipFace0) {
-          textureInfo.notRenderable = 'TEXTURE_CUBE_MAP_POSITIVE_X face does not exist';
-          return;
+          return 'TEXTURE_CUBE_MAP_POSITIVE_X face does not exist';
         }
         const {width: level0Width, height: level0Height, depth: level0Depth, internalFormatString: level0InternalFormatString} = mipFace0;
         const numFaces = type === TEXTURE_CUBE_MAP$2 ? 6 : 1;
@@ -861,23 +863,20 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           for (let mipLevel = 0; mipLevel < numMipsNeeded; ++mipLevel) {
             const faceMips = mips[mipLevel];
             if (!faceMips) {
-              textureInfo.notRenderable = `filtering is set to use mips (TEXTURE_MIN_FILTER = ${glEnumToString(minFilter)}) but mip level ${mipLevel} does not exist`;
-              return;
+              return `filtering is set to use mips (TEXTURE_MIN_FILTER = ${glEnumToString(minFilter)}) but mip level ${mipLevel} does not exist`;
             }
             for (let face = 0; face < numFaces; ++face) {
               const mip = faceMips[face];
               if (!mip) {
-                textureInfo.notRenderable = `filtering is set to use mips (TEXTURE_MIN_FILTER = ${glEnumToString(minFilter)}) but mip level ${mipLevel}${getFaceTarget(face, type)} does not exist`;
-                return;
+                return `filtering is set to use mips (TEXTURE_MIN_FILTER = ${glEnumToString(minFilter)}) but mip level ${mipLevel}${getFaceTarget(face, type)} does not exist`;
               }
               if (mip.width !== mipWidth ||
                   mip.height !== mipHeight ||
                   mip.depth !== mipDepth) {
-                textureInfo.notRenderable = `mip level ${mipLevel}${getFaceTarget(face, type)} needs to be ${mipWidth}x${mipHeight}x${mipDepth} but it is ${mip.width}x${mip.height}x${mip.depth}`;
-                return;
+                return `mip level ${mipLevel}${getFaceTarget(face, type)} needs to be ${mipWidth}x${mipHeight}x${mipDepth} but it is ${mip.width}x${mip.height}x${mip.depth}`;
               }
               if (mip.internalFormatString !== level0InternalFormatString) {
-                textureInfo.notRenderable = `mip level ${mipLevel}${getFaceTarget(face, type)}'s internal format ${mip.internalFormatString} does not match mip level 0's internal format ${level0InternalFormatString}`;
+                return `mip level ${mipLevel}${getFaceTarget(face, type)}'s internal format ${mip.internalFormatString} does not match mip level 0's internal format ${level0InternalFormatString}`;
               }
             }
             mipWidth = Math.max(1, mipWidth / 2 | 0);
@@ -891,24 +890,23 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         if (needPOT) {
           if (!isPowerOf2(level0Width) || !isPowerOf2(level0Height)) {
             if (numMipsNeeded > 1) {
-              textureInfo.notRenderable = `texture's ${getNPotIssues(level0Width, level0Height)} but TEXTURE_MIN_FILTER (${glEnumToString(minFilter)}) is set to need mips`;
-              return;
+              return `texture's ${getNPotIssues(level0Width, level0Height)} but TEXTURE_MIN_FILTER (${glEnumToString(minFilter)}) is set to need mips`;
             }
             const wrapS = parameters.get(TEXTURE_WRAP_S);
             const wrapT = parameters.get(TEXTURE_WRAP_T);
             if (wrapS !== CLAMP_TO_EDGE || wrapT !== CLAMP_TO_EDGE) {
-              textureInfo.notRenderable = `texture's ${getNPotIssues(level0Width, level0Height)} but ${getClampToEdgeIssues(wrapS, wrapT)}.`;
-              return;
+              return `texture's ${getNPotIssues(level0Width, level0Height)} but ${getClampToEdgeIssues(wrapS, wrapT)}.`;
             }
           }
         }
 
         if (type === TEXTURE_CUBE_MAP$2) {
           if (level0Width !== level0Height) {
-            textureInfo.notRenderable = `texture is CUBE_MAP but dimensions ${level0Width}x${level0Height} are not square`;
-            return;
+            return `texture is CUBE_MAP but dimensions ${level0Width}x${level0Height} are not square`;
           }
         }
+
+        return undefined;
       }
 
       function getTextureInfoForTarget(target) {
@@ -929,18 +927,36 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         recomputeRenderability(textureInfo);
       }
 
+      function removeFromTextureUnits(type, obj) {
+        for (let i = 0; i < textureUnits.length; ++i) {
+          const unit = textureUnits[i];
+          if (unit.get(type) === obj) {
+            unit.set(type, null);
+          }
+        }
+      }
+
       this.getTextureForTextureUnit = function(texUnit, target) {
 
         return textureUnits[texUnit].get(target);
       };
 
-      this.getTextureUnitUnrenderableReason = function(texUnit, target) {
+      this.getTextureUnitUnrenderableReason = function(texUnit, target, getWebGLObjectString) {
         const texture = textureUnits[texUnit].get(target);
         if (!texture) {
           return `no texture bound to texture unit ${texUnit} ${target}`;
         }
         const textureInfo = textureToTextureInfoMap.get(texture);
-        return textureInfo.notRenderable;
+        const sampler = textureUnits[texUnit].get('SAMPLER');
+        if (sampler) {
+          const parameters = samplerToParametersMap.get(sampler);
+          const reason = computeRenderability(textureInfo, parameters);
+          return reason
+             ? `${reason} with sampler ${getWebGLObjectString(sampler)} bound to texture unit ${texUnit}`
+             : reason;
+        } else {
+          return textureInfo.notRenderable;
+        }
       };
 
       function setMipFaceInfoForTarget(target, level, internalFormat, width, height, depth, type = 0) {
@@ -997,6 +1013,34 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
             renderable: false,
           };
           textureToTextureInfoMap.set(result, textureInfo);
+        },
+
+        deleteTexture(ctx, funcName, args) {
+          const [texture] = args;
+          const {type} = textureToTextureInfoMap.get(texture);
+          textureToTextureInfoMap.delete(texture);
+          removeFromTextureUnits(type, texture);
+        },
+
+        createSampler(ctx, funcName, args, sampler) {
+          samplerToParametersMap.set(sampler, new Map());
+        },
+
+        deleteSampler(ctx, funcName, args) {
+          const [sampler] = args;
+          samplerToParametersMap.delete(sampler);
+          removeFromTextureUnits('SAMPLER', sampler);
+        },
+
+        bindSampler(ctx, funcName, args) {
+          const [unit, sampler] = args;
+          textureUnits[unit].set('SAMPLER', sampler);
+        },
+
+        samplerParameteri(ctx, funcName, args) {
+          const [sampler, pname, value] = args;
+          const parameters = samplerToParametersMap.get(sampler);
+          parameters.set(pname, value);
         },
 
         copyTexImage2D(ctx, funcName, args) {
@@ -1779,6 +1823,9 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     function checkUnRenderableTextures(ctx, funcName, args) {
+      if (!sharedState.config.failUnrenderableTextures) {
+        return;
+      }
       const uniformSamplerInfos = sharedState.programToUniformSamplerValues.get(sharedState.currentProgram);
       const numTextureUnits = sharedState.textureManager.numTextureUnits;
       for (const {type, values, name} of uniformSamplerInfos) {
@@ -1789,7 +1836,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
             reportFunctionError(ctx, funcName, args, `uniform ${getUniformTypeInfo(type).name} ${getUniformElementName(name, values.length, i)} is set to ${texUnit} which is out of range. There are only ${numTextureUnits} texture units`);
             return;
           }
-          const unrenderableReason = sharedState.textureManager.getTextureUnitUnrenderableReason(texUnit, bindPoint);
+          const unrenderableReason = sharedState.textureManager.getTextureUnitUnrenderableReason(texUnit, bindPoint, getWebGLObjectString);
           if (unrenderableReason) {
             // TODO:
             //   * is the type of texture compatible with the sampler?
@@ -1886,7 +1933,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
               }
             }
             if (allZero) {
-              reportFunctionError(gl, funcName, [webGLUniformLocation, transpose, ...args], 'matrix is all zeros\nSee docs at https://github.com/greggman/webgl-list/ for how to turn off this check');
+              reportFunctionError(gl, funcName, [webGLUniformLocation, transpose, ...args], 'matrix is all zeros\nSee docs at https://github.com/greggman/webgl-lint/ for how to turn off this check');
               return;
             }
           }
@@ -2142,8 +2189,16 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       deleteTransformFeedback: makeDeleteWrapper,
       deleteVertexArray: makeDeleteWrapper,
       deleteVertexArrayOES: makeDeleteWrapper,
-      ...sharedState.textureManager.postChecks,
     };
+    Object.entries(sharedState.textureManager.postChecks).forEach(([funcName, func]) => {
+      const existingFn = postChecks[funcName] || noop;
+      postChecks[funcName] = function(...args) {
+        existingFn(...args);
+        if (sharedState.config.failUnrenderableTextures) {
+          func(...args);
+        }
+      };
+    });
 
     /*
     function getWebGLObject(gl, funcName, args, value) {
@@ -2599,6 +2654,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           failUnsetUniforms: true,
           failUnsetSamplerUniforms: false,
           failZeroMatrixUniforms: true,
+          failUnrenderableTextures: true,
           ignoreUniforms: [],
         };
         augmentAPI(ctx, type, config);

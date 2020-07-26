@@ -8,8 +8,8 @@ import {gl, tagObject} from '../shared.js';
 describe('namings test', () => {
 
   it('test naming objects', () => {
-    console.assert(gl.getExtension('OES_vertex_array_objects') === gl.getExtension('OES_vertex_array_objects'));
-    console.assert(gl.getSupportedExtensions().includes('GMAN_debug_helper'));
+    // console.assert(gl.getExtension('OES_vertex_array_objects') === gl.getExtension('OES_vertex_array_objects'));
+    // console.assert(gl.getSupportedExtensions().includes('GMAN_debug_helper'));
     const p = gl.createProgram();
     tagObject(p, 'my-test-prg');
     assertThrowsWith(() => {
