@@ -106,6 +106,24 @@ for special needs.
   zero matrix. If you have a reason a matrix needs to be all zeros you may want
   to turn this off. 
 
+* `failUnrenderableTextures`: (default: true)
+
+  Unrenderable textures are not an error in WebGL, they just don't render.
+  WebGL itself usually print's a warning but it's usually fairly cryptic
+  just telling you an unrenderable texture exists but not much else.
+
+  Examples of unrenderable textures are non-power of 2 textures in WebGL1
+  with filtering set to need mips are wrap not set to `CLAMP_TO_EDGE` or
+  in both WebGL and WebGL2 would be mips of different internal formats
+  or the wrong size.
+
+* `failZeroMatrixUniforms`: (default: true)
+
+  Checks that a uniform matrix not all zeros. It's a common source of errors to
+  forget to set a matrix to the identity and it seems uncommon to have an all
+  zero matrix. If you have a reason a matrix needs to be all zeros you may want
+  to turn this off. 
+
 * `ignoreUniforms`: (default: [])
 
   Lets out configure certain uniforms not to be checked. This why you can turn
@@ -160,7 +178,7 @@ There 2 ways to configure
 
    ```html
    <script
-     src="https://github.greggman.io/webgl-helpers/webgl-gl-error-check.js"
+     src="https://github.greggman.io/webgl-lint/webgl-lint.js"
      data-gman-debug-helper='
        {
          "maxDrawCalls": 2000, 

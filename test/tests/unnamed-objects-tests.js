@@ -1,12 +1,14 @@
+import {assertThrowsWith} from '../assert.js';
+import {describe, it} from '../mocha-support.js';
 import {gl} from '../shared.js';
 
-export default [
-  {
-    desc: 'test unnamed buffer is called unnamed',
-    expect: [/\*unnamed\*/],
-    func() {
+describe('unnamed objects test', () => {
+
+  it('test unnamed buffer is called unnamed', () => {
       gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-      gl.bufferData(gl.ARRAY_BUFFER, 3, gl.BLEND);
-    },
-  },
-];
+      assertThrowsWith(() => {
+        gl.bufferData(gl.ARRAY_BUFFER, 3, gl.BLEND);
+      }, [/\*unnamed\*/]);
+  });
+
+});

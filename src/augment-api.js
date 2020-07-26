@@ -702,7 +702,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
           uniformNames.push(name);
         }
       }
-      reportFunctionError(ctx, funcName, args, `uniforms "${uniformNames.join('", "')}" have not been set\nSee docs at https://github.com/greggman/webgl-helpers/ for how to turn off this check`);
+      reportFunctionError(ctx, funcName, args, `uniforms "${uniformNames.join('", "')}" have not been set\nSee docs at https://github.com/greggman/webgl-list/ for how to turn off this check`);
     }
   }
 
@@ -823,7 +823,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
             }
           }
           if (allZero) {
-            reportFunctionError(gl, funcName, [webGLUniformLocation, transpose, ...args], 'matrix is all zeros\nSee docs at https://github.com/greggman/webgl-helpers/ for how to turn off this check');
+            reportFunctionError(gl, funcName, [webGLUniformLocation, transpose, ...args], 'matrix is all zeros\nSee docs at https://github.com/greggman/webgl-lint/ for how to turn off this check');
             return;
           }
         }

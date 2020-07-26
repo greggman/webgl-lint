@@ -1,11 +1,11 @@
 import * as twgl from '../js/twgl-full.module.js';
+import {assertThrowsWith} from '../assert.js';
+import {describe, it} from '../mocha-support.js';
 import {gl, tagObject} from '../shared.js';
 
-export default [
-  {
-    desc: 'test feedback check',
-    expect: [/fbPrg/, /fbTex/, /fbTest/, /u_diffuse/, /COLOR_ATTACHMENT0/],
-    func() {
+describe('framebuffer feedback tests', () => {
+
+  it('test feedback check', () => {
       const vs = `
       void main() {
         gl_Position = vec4(0, 0, 0, 1);
@@ -35,7 +35,9 @@ export default [
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
 
       gl.useProgram(prg);
-      gl.drawArrays(gl.POINTS, 0, 1);  // feedback
-    },
-  },
-];
+      assertThrowsWith(() => {
+        gl.drawArrays(gl.POINTS, 0, 1);  // feedback
+      }, [/fbPrg/, /fbTex/, /fbTest/, /u_diffuse/, /COLOR_ATTACHMENT0/]);
+  });
+
+});

@@ -1,5 +1,7 @@
 /* global document */
 
+import {afterEach} from './mocha-support.js';
+
 export const gl = document.createElement('canvas').getContext('webgl');
 export const gl2 = document.createElement('canvas').getContext('webgl2');
 document.body.appendChild(gl.canvas);
@@ -20,7 +22,8 @@ function resetContext(gl) {
   gl.useProgram(null);
 }
 
-export function resetContexts() {
+afterEach(function resetContexts() {
+  console.log('reset-contexts');
   if (vaoExt) {
     vaoExt.bindVertexArrayOES(null);
   }
@@ -30,7 +33,7 @@ export function resetContexts() {
     gl2.bindVertexArray(null);
     resetContext(gl2);
   }
-}
+});
 
 export function escapeRE(str) {
     return str.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');

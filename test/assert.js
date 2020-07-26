@@ -45,9 +45,11 @@ export function assertThrowsWith(func, expectations, msg = '') {
     }
 
   }
+
+  const actualNoBreaks = error.toString().replace(/\n/g, ' ');
   for (const expectation of expectations) {
     if (expectation instanceof RegExp) {
-      if (!expectation.test(error)) {
+      if (!expectation.test(actualNoBreaks)) {
         throw new Error(`${formatMsg(msg)}expected: ${expectation}, actual: ${error}`);
       }
     }
