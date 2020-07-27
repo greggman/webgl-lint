@@ -1,4 +1,4 @@
-/* webgl-lint@1.2.1, license MIT */
+/* webgl-lint@1.3.0, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -433,29 +433,37 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
   const UNSIGNED_INT_SAMPLER_2D_ARRAY$1 = 0x8DD7;
 
   const samplerTypes = new Map([
-    [SAMPLER_2D$1,                    {bindPoint: '2D'}],
-    [SAMPLER_CUBE$1,                  {bindPoint: 'CUBE'}],
-    [SAMPLER_3D$1,                    {bindPoint: '3D'}],
-    [SAMPLER_2D_SHADOW$1,             {bindPoint: '2D'}],
-    [SAMPLER_2D_ARRAY$1,              {bindPoint: '2D_ARRAY'}],
-    [SAMPLER_2D_ARRAY_SHADOW$1,       {bindPoint: '2D_ARRAY'}],
-    [SAMPLER_CUBE_SHADOW$1,           {bindPoint: 'CUBE'}],
-    [INT_SAMPLER_2D$1,                {bindPoint: '2D'}],
-    [INT_SAMPLER_3D$1,                {bindPoint: '3D'}],
-    [INT_SAMPLER_CUBE$1,              {bindPoint: 'CUBE'}],
-    [INT_SAMPLER_2D_ARRAY$1,          {bindPoint: '2D_ARRAY'}],
-    [UNSIGNED_INT_SAMPLER_2D$1,       {bindPoint: '2D'}],
-    [UNSIGNED_INT_SAMPLER_3D$1,       {bindPoint: '3D'}],
-    [UNSIGNED_INT_SAMPLER_CUBE$1,     {bindPoint: 'CUBE'}],
-    [UNSIGNED_INT_SAMPLER_2D_ARRAY$1, {bindPoint: '2D_ARRAY'}],
+    [SAMPLER_2D$1,                    {uniformType: 'sampler2D',       numberType: 'float/normalized', bindPoint: '2D'}],
+    [SAMPLER_CUBE$1,                  {uniformType: 'samplerCube',     numberType: 'float/normalized', bindPoint: 'CUBE'}],
+    [SAMPLER_3D$1,                    {uniformType: 'sampler3D',       numberType: 'float/normalized', bindPoint: '3D'}],
+    [SAMPLER_2D_SHADOW$1,             {uniformType: 'sampler2D',       numberType: 'float/normalized', bindPoint: '2D'}],
+    [SAMPLER_2D_ARRAY$1,              {uniformType: 'sampler2DArray',  numberType: 'float/normalized', bindPoint: '2D_ARRAY'}],
+    [SAMPLER_2D_ARRAY_SHADOW$1,       {uniformType: 'sampler2DArray',  numberType: 'float/normalized', bindPoint: '2D_ARRAY'}],
+    [SAMPLER_CUBE_SHADOW$1,           {uniformType: 'samplerCube',     numberType: 'float/normalized', bindPoint: 'CUBE'}],
+    [INT_SAMPLER_2D$1,                {uniformType: 'isampler2D',      numberType: 'int',              bindPoint: '2D'}],
+    [INT_SAMPLER_3D$1,                {uniformType: 'isampler3D',      numberType: 'int',              bindPoint: '3D'}],
+    [INT_SAMPLER_CUBE$1,              {uniformType: 'isamplerCube',    numberType: 'int',              bindPoint: 'CUBE'}],
+    [INT_SAMPLER_2D_ARRAY$1,          {uniformType: 'isampler2DArray', numberType: 'int',              bindPoint: '2D_ARRAY'}],
+    [UNSIGNED_INT_SAMPLER_2D$1,       {uniformType: 'usampler2D',      numberType: 'unsigned int',     bindPoint: '2D'}],
+    [UNSIGNED_INT_SAMPLER_3D$1,       {uniformType: 'usampler3D',      numberType: 'unsigned int',     bindPoint: '3D'}],
+    [UNSIGNED_INT_SAMPLER_CUBE$1,     {uniformType: 'usamplerCube',    numberType: 'unsigned int',     bindPoint: 'CUBE'}],
+    [UNSIGNED_INT_SAMPLER_2D_ARRAY$1, {uniformType: 'usampler2DArray', numberType: 'unsigned int',     bindPoint: '2D_ARRAY'}],
   ]);
 
   function getBindPointForSampler(type) {
-    return samplerTypes.get(type);
+    return samplerTypes.get(type).bindPoint;
   }
 
   function uniformTypeIsSampler(type) {
     return samplerTypes.has(type);
+  }
+
+  function getNumberTypeForUniformSamplerType(type) {
+    return samplerTypes.get(type).numberType;
+  }
+
+  function getUniformTypeForUniformSamplerType(type) {
+    return samplerTypes.get(type).uniformType;
   }
 
   const TEXTURE_2D$1                     = 0x0DE1;
@@ -755,6 +763,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
   const RGBA                           = 0x1908;
   const LUMINANCE                      = 0x1909;
   const LUMINANCE_ALPHA                = 0x190A;
+  const DEPTH_COMPONENT                = 0x1902;
+  const DEPTH_STENCIL                  = 0x84F9;
 
   const unsizedInternalFormats = new Set([
     ALPHA,
@@ -763,6 +773,12 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     RGB,
     RGBA,
   ]);
+
+  function getInternalFormatStringForInternalFormatType(internalFormat, type) {
+    return unsizedInternalFormats.has(internalFormat)
+       ? `${glEnumToString(internalFormat)}/${glEnumToString(type)}`
+       : glEnumToString(internalFormat);
+  }
 
   const targetToFaceIndex = new Map([
     [TEXTURE_2D$2, 0],
@@ -799,6 +815,192 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
   ]);
   */
 
+  const R8                           = 0x8229;
+  const R8_SNORM                     = 0x8F94;
+  const R16F                         = 0x822D;
+  const R32F                         = 0x822E;
+  const R8UI                         = 0x8232;
+  const R8I                          = 0x8231;
+  const RG16UI                       = 0x823A;
+  const RG16I                        = 0x8239;
+  const RG32UI                       = 0x823C;
+  const RG32I                        = 0x823B;
+  const RG8                          = 0x822B;
+  const RG8_SNORM                    = 0x8F95;
+  const RG16F                        = 0x822F;
+  const RG32F                        = 0x8230;
+  const RG8UI                        = 0x8238;
+  const RG8I                         = 0x8237;
+  const R16UI                        = 0x8234;
+  const R16I                         = 0x8233;
+  const R32UI                        = 0x8236;
+  const R32I                         = 0x8235;
+  const RGB8                         = 0x8051;
+  const SRGB8                        = 0x8C41;
+  const RGB565                       = 0x8D62;
+  const RGB8_SNORM                   = 0x8F96;
+  const R11F_G11F_B10F               = 0x8C3A;
+  const RGB9_E5                      = 0x8C3D;
+  const RGB16F                       = 0x881B;
+  const RGB32F                       = 0x8815;
+  const RGB8UI                       = 0x8D7D;
+  const RGB8I                        = 0x8D8F;
+  const RGB16UI                      = 0x8D77;
+  const RGB16I                       = 0x8D89;
+  const RGB32UI                      = 0x8D71;
+  const RGB32I                       = 0x8D83;
+  const RGBA8                        = 0x8058;
+  const SRGB8_ALPHA8                 = 0x8C43;
+  const RGBA8_SNORM                  = 0x8F97;
+  const RGB5_A1                      = 0x8057;
+  const RGBA4                        = 0x8056;
+  const RGB10_A2                     = 0x8059;
+  const RGBA16F                      = 0x881A;
+  const RGBA32F                      = 0x8814;
+  const RGBA8UI                      = 0x8D7C;
+  const RGBA8I                       = 0x8D8E;
+  const RGB10_A2UI                   = 0x906F;
+  const RGBA16UI                     = 0x8D76;
+  const RGBA16I                      = 0x8D88;
+  const RGBA32I                      = 0x8D82;
+  const RGBA32UI                     = 0x8D70;
+
+  const DEPTH_COMPONENT16            = 0x81A5;
+  const DEPTH_COMPONENT24            = 0x81A6;
+  const DEPTH_COMPONENT32F           = 0x8CAC;
+  const DEPTH32F_STENCIL8            = 0x8CAD;
+  const DEPTH24_STENCIL8             = 0x88F0;
+
+  /* DataType */
+  const BYTE$1                         = 0x1400;
+  const UNSIGNED_BYTE$1                = 0x1401;
+  const SHORT$1                        = 0x1402;
+  const UNSIGNED_SHORT$1               = 0x1403;
+  const INT$1                          = 0x1404;
+  const UNSIGNED_INT$1                 = 0x1405;
+  const FLOAT$1                        = 0x1406;
+  const UNSIGNED_SHORT_4_4_4_4       = 0x8033;
+  const UNSIGNED_SHORT_5_5_5_1       = 0x8034;
+  const UNSIGNED_SHORT_5_6_5         = 0x8363;
+  const HALF_FLOAT                   = 0x140B;
+  const HALF_FLOAT_OES               = 0x8D61;  // Thanks Khronos for making this different >:(
+  const UNSIGNED_INT_2_10_10_10_REV  = 0x8368;
+  const UNSIGNED_INT_10F_11F_11F_REV = 0x8C3B;
+  const UNSIGNED_INT_5_9_9_9_REV     = 0x8C3E;
+  const FLOAT_32_UNSIGNED_INT_24_8_REV = 0x8DAD;
+  const UNSIGNED_INT_24_8            = 0x84FA;
+
+  const RG                           = 0x8227;
+  const RG_INTEGER                   = 0x8228;
+  const RED                          = 0x1903;
+  const RED_INTEGER                  = 0x8D94;
+  const RGB_INTEGER                  = 0x8D98;
+  const RGBA_INTEGER                 = 0x8D99;
+
+  function createTextureInternalFormatInfoMap() {
+    const textureInternalFormatInfoMap = new Map([
+        // unsized formats
+       [ALPHA,              { textureFormat: ALPHA,           colorRenderable: true,  textureFilterable: true,  bytesPerElement: [1, 2, 2, 4],        type: [UNSIGNED_BYTE$1], }],
+       [LUMINANCE,          { textureFormat: LUMINANCE,       colorRenderable: true,  textureFilterable: true,  bytesPerElement: [1, 2, 2, 4],        type: [UNSIGNED_BYTE$1], }],
+       [LUMINANCE_ALPHA,    { textureFormat: LUMINANCE_ALPHA, colorRenderable: true,  textureFilterable: true,  bytesPerElement: [2, 4, 4, 8],        type: [UNSIGNED_BYTE$1], }],
+       [RGB,                { textureFormat: RGB,             colorRenderable: true,  textureFilterable: true,  bytesPerElement: [3, 6, 6, 12, 2],    type: [UNSIGNED_BYTE$1, UNSIGNED_SHORT_5_6_5], }],
+       [RGBA,               { textureFormat: RGBA,            colorRenderable: true,  textureFilterable: true,  bytesPerElement: [4, 8, 8, 16, 2, 2], type: [UNSIGNED_BYTE$1, UNSIGNED_SHORT_4_4_4_4, UNSIGNED_SHORT_5_5_5_1], }],
+
+        // sized formats
+       [R8,                 { textureFormat: RED,             colorRenderable: true,  textureFilterable: true,  bytesPerElement: [1],        type: [UNSIGNED_BYTE$1], }],
+       [R8_SNORM,           { textureFormat: RED,             colorRenderable: false, textureFilterable: true,  bytesPerElement: [1],        type: [BYTE$1], }],
+       [R16F,               { textureFormat: RED,             colorRenderable: false, textureFilterable: true,  bytesPerElement: [4, 2],     type: [FLOAT$1, HALF_FLOAT], }],
+       [R32F,               { textureFormat: RED,             colorRenderable: false, textureFilterable: false, bytesPerElement: [4],        type: [FLOAT$1], }],
+       [R8UI,               { textureFormat: RED_INTEGER,     colorRenderable: true,  textureFilterable: false, bytesPerElement: [1],        type: [UNSIGNED_BYTE$1], }],
+       [R8I,                { textureFormat: RED_INTEGER,     colorRenderable: true,  textureFilterable: false, bytesPerElement: [1],        type: [BYTE$1], }],
+       [R16UI,              { textureFormat: RED_INTEGER,     colorRenderable: true,  textureFilterable: false, bytesPerElement: [2],        type: [UNSIGNED_SHORT$1], }],
+       [R16I,               { textureFormat: RED_INTEGER,     colorRenderable: true,  textureFilterable: false, bytesPerElement: [2],        type: [SHORT$1], }],
+       [R32UI,              { textureFormat: RED_INTEGER,     colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [UNSIGNED_INT$1], }],
+       [R32I,               { textureFormat: RED_INTEGER,     colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [INT$1], }],
+       [RG8,                { textureFormat: RG,              colorRenderable: true,  textureFilterable: true,  bytesPerElement: [2],        type: [UNSIGNED_BYTE$1], }],
+       [RG8_SNORM,          { textureFormat: RG,              colorRenderable: false, textureFilterable: true,  bytesPerElement: [2],        type: [BYTE$1], }],
+       [RG16F,              { textureFormat: RG,              colorRenderable: false, textureFilterable: true,  bytesPerElement: [8, 4],     type: [FLOAT$1, HALF_FLOAT], }],
+       [RG32F,              { textureFormat: RG,              colorRenderable: false, textureFilterable: false, bytesPerElement: [8],        type: [FLOAT$1], }],
+       [RG8UI,              { textureFormat: RG_INTEGER,      colorRenderable: true,  textureFilterable: false, bytesPerElement: [2],        type: [UNSIGNED_BYTE$1], }],
+       [RG8I,               { textureFormat: RG_INTEGER,      colorRenderable: true,  textureFilterable: false, bytesPerElement: [2],        type: [BYTE$1], }],
+       [RG16UI,             { textureFormat: RG_INTEGER,      colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [UNSIGNED_SHORT$1], }],
+       [RG16I,              { textureFormat: RG_INTEGER,      colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [SHORT$1], }],
+       [RG32UI,             { textureFormat: RG_INTEGER,      colorRenderable: true,  textureFilterable: false, bytesPerElement: [8],        type: [UNSIGNED_INT$1], }],
+       [RG32I,              { textureFormat: RG_INTEGER,      colorRenderable: true,  textureFilterable: false, bytesPerElement: [8],        type: [INT$1], }],
+       [RGB8,               { textureFormat: RGB,             colorRenderable: true,  textureFilterable: true,  bytesPerElement: [3],        type: [UNSIGNED_BYTE$1], }],
+       [SRGB8,              { textureFormat: RGB,             colorRenderable: false, textureFilterable: true,  bytesPerElement: [3],        type: [UNSIGNED_BYTE$1], }],
+       [RGB565,             { textureFormat: RGB,             colorRenderable: true,  textureFilterable: true,  bytesPerElement: [3, 2],     type: [UNSIGNED_BYTE$1, UNSIGNED_SHORT_5_6_5], }],
+       [RGB8_SNORM,         { textureFormat: RGB,             colorRenderable: false, textureFilterable: true,  bytesPerElement: [3],        type: [BYTE$1], }],
+       [R11F_G11F_B10F,     { textureFormat: RGB,             colorRenderable: false, textureFilterable: true,  bytesPerElement: [12, 6, 4], type: [FLOAT$1, HALF_FLOAT, UNSIGNED_INT_10F_11F_11F_REV], }],
+       [RGB9_E5,            { textureFormat: RGB,             colorRenderable: false, textureFilterable: true,  bytesPerElement: [12, 6, 4], type: [FLOAT$1, HALF_FLOAT, UNSIGNED_INT_5_9_9_9_REV], }],
+       [RGB16F,             { textureFormat: RGB,             colorRenderable: false, textureFilterable: true,  bytesPerElement: [12, 6],    type: [FLOAT$1, HALF_FLOAT], }],
+       [RGB32F,             { textureFormat: RGB,             colorRenderable: false, textureFilterable: false, bytesPerElement: [12],       type: [FLOAT$1], }],
+       [RGB8UI,             { textureFormat: RGB_INTEGER,     colorRenderable: false, textureFilterable: false, bytesPerElement: [3],        type: [UNSIGNED_BYTE$1], }],
+       [RGB8I,              { textureFormat: RGB_INTEGER,     colorRenderable: false, textureFilterable: false, bytesPerElement: [3],        type: [BYTE$1], }],
+       [RGB16UI,            { textureFormat: RGB_INTEGER,     colorRenderable: false, textureFilterable: false, bytesPerElement: [6],        type: [UNSIGNED_SHORT$1], }],
+       [RGB16I,             { textureFormat: RGB_INTEGER,     colorRenderable: false, textureFilterable: false, bytesPerElement: [6],        type: [SHORT$1], }],
+       [RGB32UI,            { textureFormat: RGB_INTEGER,     colorRenderable: false, textureFilterable: false, bytesPerElement: [12],       type: [UNSIGNED_INT$1], }],
+       [RGB32I,             { textureFormat: RGB_INTEGER,     colorRenderable: false, textureFilterable: false, bytesPerElement: [12],       type: [INT$1], }],
+       [RGBA8,              { textureFormat: RGBA,            colorRenderable: true,  textureFilterable: true,  bytesPerElement: [4],        type: [UNSIGNED_BYTE$1], }],
+       [SRGB8_ALPHA8,       { textureFormat: RGBA,            colorRenderable: true,  textureFilterable: true,  bytesPerElement: [4],        type: [UNSIGNED_BYTE$1], }],
+       [RGBA8_SNORM,        { textureFormat: RGBA,            colorRenderable: false, textureFilterable: true,  bytesPerElement: [4],        type: [BYTE$1], }],
+       [RGB5_A1,            { textureFormat: RGBA,            colorRenderable: true,  textureFilterable: true,  bytesPerElement: [4, 2, 4],  type: [UNSIGNED_BYTE$1, UNSIGNED_SHORT_5_5_5_1, UNSIGNED_INT_2_10_10_10_REV], }],
+       [RGBA4,              { textureFormat: RGBA,            colorRenderable: true,  textureFilterable: true,  bytesPerElement: [4, 2],     type: [UNSIGNED_BYTE$1, UNSIGNED_SHORT_4_4_4_4], }],
+       [RGB10_A2,           { textureFormat: RGBA,            colorRenderable: true,  textureFilterable: true,  bytesPerElement: [4],        type: [UNSIGNED_INT_2_10_10_10_REV], }],
+       [RGBA16F,            { textureFormat: RGBA,            colorRenderable: false, textureFilterable: true,  bytesPerElement: [16, 8],    type: [FLOAT$1, HALF_FLOAT], }],
+       [RGBA32F,            { textureFormat: RGBA,            colorRenderable: false, textureFilterable: false, bytesPerElement: [16],       type: [FLOAT$1], }],
+       [RGBA8UI,            { textureFormat: RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [UNSIGNED_BYTE$1], }],
+       [RGBA8I,             { textureFormat: RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [BYTE$1], }],
+       [RGB10_A2UI,         { textureFormat: RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [UNSIGNED_INT_2_10_10_10_REV], }],
+       [RGBA16UI,           { textureFormat: RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [8],        type: [UNSIGNED_SHORT$1], }],
+       [RGBA16I,            { textureFormat: RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [8],        type: [SHORT$1], }],
+       [RGBA32I,            { textureFormat: RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [16],       type: [INT$1], }],
+       [RGBA32UI,           { textureFormat: RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [16],       type: [UNSIGNED_INT$1], }],
+        // Sized Internal
+       [DEPTH_COMPONENT16,  { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: false, bytesPerElement: [2, 4],     type: [UNSIGNED_SHORT$1, UNSIGNED_INT$1], }],
+       [DEPTH_COMPONENT24,  { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [UNSIGNED_INT$1], }],
+       [DEPTH_COMPONENT32F, { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [FLOAT$1], }],
+       [DEPTH24_STENCIL8,   { textureFormat: DEPTH_STENCIL,   colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [UNSIGNED_INT_24_8], }],
+       [DEPTH32F_STENCIL8,  { textureFormat: DEPTH_STENCIL,   colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [FLOAT_32_UNSIGNED_INT_24_8_REV], }],
+    ]);
+
+    textureInternalFormatInfoMap.forEach((info) =>{
+      info.bytesPerElementMap = {};
+      info.bytesPerElement.forEach(function(bytesPerElement, ndx) {
+        const type = info.type[ndx];
+        info.bytesPerElementMap[type] = bytesPerElement;
+      });
+    });
+
+    const internalFormatStringToFormatInfoMap = new Map();
+    textureInternalFormatInfoMap.forEach((info, internalFormat) => {
+      if (unsizedInternalFormats.has(internalFormat)) {
+        info.type.forEach(type => {
+          internalFormatStringToFormatInfoMap.set(
+              getInternalFormatStringForInternalFormatType(internalFormat, type),
+              info);
+        });
+      } else {
+        internalFormatStringToFormatInfoMap.set(
+            getInternalFormatStringForInternalFormatType(internalFormat),
+            info);
+      }
+    });
+
+    return {
+      textureInternalFormatInfoMap,
+      internalFormatStringToFormatInfoMap,
+    };
+  }
+  /*
+  HALF_FLOAT, HALF_FLOAT_OES, FLOAT
+        textureManager.addInternalFormats([
+          { internalFormat: RGBA,      format: gl.RGBA, type: gl.FLOAT, },
+          { internalFormat: RGB,       format: gl.RGB, type: gl.FLOAT, },
+          { internalFormat: LUMINANCE, format: gl.RGBA, type: gl.FLOAT, },
+        ]);
+  */
+
   function isPowerOf2(value) {
     return (value & (value - 1)) === 0;
   }
@@ -825,18 +1027,36 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     ].join(' and ');
   }
 
+  function getNumberTypeForInternalFormat(internalFormat) {
+    const str = glEnumToString(internalFormat);
+    if (str.endsWith('UI')) {
+      return 'unsigned int';
+    }
+    if (str.endsWith('I')) {
+      return 'int';
+    }
+    return 'float/normalized';
+  }
+
   class TextureManager {
     constructor(gl) {
-      const needPOT = !isWebGL2(gl);
+      const isWebGL2$1 = isWebGL2(gl);
+      const needPOT = !isWebGL2$1;
+      const extensions = new Set();
       const textureToTextureInfoMap = new Map();
       const samplerToParametersMap = new Map();
       const textureUnits = createTextureUnits(gl);
+      const {internalFormatStringToFormatInfoMap} = createTextureInternalFormatInfoMap();
       let activeTextureUnitIndex = 0;
       let activeTextureUnit = textureUnits[0];
       this.numTextureUnits = textureUnits.length;
 
       function recomputeRenderability(textureInfo) {
         textureInfo.notRenderable = computeRenderability(textureInfo, textureInfo.parameters);
+      }
+
+      function recomputeAllTextureUnrenderability() {
+        textureToTextureInfoMap.forEach(recomputeRenderability);
       }
 
       function computeRenderability(textureInfo, parameters) {
@@ -849,9 +1069,34 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         if (!mipFace0) {
           return 'TEXTURE_CUBE_MAP_POSITIVE_X face does not exist';
         }
-        const {width: level0Width, height: level0Height, depth: level0Depth, internalFormatString: level0InternalFormatString} = mipFace0;
+        const {
+          width: level0Width,
+          height: level0Height,
+          depth: level0Depth,
+          // internalFormat: level0InternalFormat,
+          internalFormatString: level0InternalFormatString,
+        } = mipFace0;
         const numFaces = type === TEXTURE_CUBE_MAP$2 ? 6 : 1;
         const minFilter = parameters.get(TEXTURE_MIN_FILTER);
+        const internalFormatInfo = internalFormatStringToFormatInfoMap.get(level0InternalFormatString);
+        // there is no format info for compressed texture ATM.
+        // we could add it but AFAIK compressed textures are colorFilterable
+        // so for now let's just not do the check if we don't know about the format
+        if (internalFormatInfo) {
+          const textureFilterable = internalFormatInfo.textureFilterable;
+    //if tex is int/unit then check filtering
+          if (!textureFilterable) {
+            if (minFilter !== NEAREST) {
+              return `texture of type (${level0InternalFormatString}) is not filterable but TEXTURE_MIN_FILTER is set to ${glEnumToString(minFilter)}`;
+            } else {
+              const magFilter = parameters.get(TEXTURE_MAG_FILTER);
+              if (magFilter !== NEAREST) {
+                return `texture of type (${level0InternalFormatString}) is not filterable but TEXTURE_MAG_FILTER is set to ${glEnumToString(magFilter)}`;
+              }
+            }
+          }
+        }
+
         const numMipsNeeded = (minFilter === LINEAR || minFilter === NEAREST)
            ? 1
            : computeNumMipsNeeded(level0Width, level0Height, level0Depth);
@@ -936,17 +1181,104 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         }
       }
 
-      this.getTextureForTextureUnit = function(texUnit, target) {
+      function getInternalFormatStringForTextureInfo(textureInfo) {
+        const {mips} = textureInfo;
+        const level0Faces = mips[0];
+        if (!level0Faces) {
+          return '';
+        }
+        const mipFace0 = level0Faces[0];
+        if (!mipFace0) {
+          return '';
+        }
+        return mipFace0.internalFormatString;
+      }
 
+      function addInternalFormatStringInfos(type, textureFilterableExtensionName) {
+        const textureFilterable = extensions.has(textureFilterableExtensionName);
+        [
+          RGBA,
+          RGB,
+          LUMINANCE,
+          LUMINANCE_ALPHA,
+          ALPHA,
+        ].forEach(internalFormat => {
+          internalFormatStringToFormatInfoMap.set(
+              getInternalFormatStringForInternalFormatType(internalFormat, type),
+              { textureFormat: gl.RGBA, textureFilterable });
+        });
+      }
+
+      function markInternalFormatsAsTextureFilterable(internalFormats) {
+        for (const internalFormat of internalFormats) {
+          const info = internalFormatStringToFormatInfoMap.get(
+              getInternalFormatStringForInternalFormatType(internalFormat));
+          info.textureFilterable = true;
+        }
+      }
+
+      this.addExtension = function(extensionName) {
+        extensions.add(extensionName);
+        switch (extensionName) {
+          case 'oes_texture_float':
+            addInternalFormatStringInfos(FLOAT$1, 'oes_texture_float_linear');
+            break;
+          case 'oes_texture_float_linear':
+            if (isWebGL2$1) {
+              markInternalFormatsAsTextureFilterable([
+                  R32F,
+                  RG32F,
+                  RGB32F,
+                  RGBA32F,
+              ]);
+            } else {
+              if (extensions.has('oes_texture_float')) {
+                addInternalFormatStringInfos(FLOAT$1, 'oes_texture_float_linear');
+              }
+            }
+            recomputeAllTextureUnrenderability();
+            break;
+          case 'oes_texture_half_float':
+            addInternalFormatStringInfos(HALF_FLOAT, 'oes_texture_half_float_linear');
+            addInternalFormatStringInfos(HALF_FLOAT_OES, 'oes_texture_half_float_linear');
+            break;
+          case 'oes_texture_half_float_linear':
+            if (isWebGL2$1) {
+              markInternalFormatsAsTextureFilterable([
+                  R16F,
+                  RG16F,
+                  RGB16F,
+                  RGBA16F,
+              ]);
+            } else {
+              if (extensions.has('oes_texture_half_float')) {
+                addInternalFormatStringInfos(HALF_FLOAT, 'oes_texture_half_float_linear');
+                addInternalFormatStringInfos(HALF_FLOAT_OES, 'oes_texture_half_float_linear');
+              }
+            }
+            recomputeAllTextureUnrenderability();
+            break;
+          default:
+            return;
+        }
+      };
+
+      this.getTextureForTextureUnit = function(texUnit, target) {
         return textureUnits[texUnit].get(target);
       };
 
-      this.getTextureUnitUnrenderableReason = function(texUnit, target, getWebGLObjectString) {
+      this.getTextureUnitUnrenderableReason = function(uniformType, texUnit, target, getWebGLObjectString) {
         const texture = textureUnits[texUnit].get(target);
         if (!texture) {
           return `no texture bound to texture unit ${texUnit} ${target}`;
         }
         const textureInfo = textureToTextureInfoMap.get(texture);
+        if (textureInfo.numberType) {
+          const neededNumberType = getNumberTypeForUniformSamplerType(uniformType);
+          if (textureInfo.numberType !== neededNumberType) {
+            return `uniform ${getUniformTypeForUniformSamplerType(uniformType)} needs a ${neededNumberType} texture but ${getWebGLObjectString(texture)} on texture unit ${texUnit} is ${textureInfo.numberType} texture (${getInternalFormatStringForTextureInfo(textureInfo)})`;
+          }
+        }
         const sampler = textureUnits[texUnit].get('SAMPLER');
         if (sampler) {
           const parameters = samplerToParametersMap.get(sampler);
@@ -960,10 +1292,11 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       };
 
       function setMipFaceInfoForTarget(target, level, internalFormat, width, height, depth, type = 0) {
-        const internalFormatString = unsizedInternalFormats.has(internalFormat)
-           ? `${glEnumToString(internalFormat)}/${glEnumToString(type)}`
-           : glEnumToString(internalFormat);
+        const internalFormatString = getInternalFormatStringForInternalFormatType(internalFormat, type);
         const textureInfo = getTextureInfoForTarget(target);
+        if (level === 0) {
+          textureInfo.numberType = getNumberTypeForInternalFormat(internalFormat);
+        }
         const {mips} = textureInfo;
         if (!mips[level]) {
           mips[level] = [];
@@ -1239,6 +1572,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
    */
   function augmentAPI(ctx, nameOfClass, options = {}) {
     const origGLErrorFn = options.origGLErrorFn || ctx.getError;
+    addEnumsFromAPI(ctx);
 
     function createSharedState(ctx) {
       const sharedState = {
@@ -1333,7 +1667,38 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
     const sharedState = options.sharedState || createSharedState(ctx);
     options.sharedState = sharedState;
-    addEnumsFromAPI(ctx);
+
+    const {
+      apis,
+      baseContext,
+      bufferToIndices,
+      config,
+      ignoredUniforms,
+      locationsToNamesMap,
+      programToLocationsMap,
+      programToUniformInfoMap,
+      programToUniformSamplerValues,
+      programToUnsetUniformsMap,
+      textureManager,
+      webglObjectToNamesMap,
+    } = sharedState;
+
+    const extensionFuncs = {
+      oes_texture_float(...args) {
+        textureManager.addExtension(...args);
+      },
+      oes_texture_float_linear(...args) {
+        textureManager.addExtension(...args);
+      },
+      OES_texture_half_float(...args) {
+        textureManager.addExtension(...args);
+      },
+      oes_texture_half_float_linear(...args) {
+        textureManager.addExtension(...args);
+      },
+    };
+    (extensionFuncs[nameOfClass] || noop)(nameOfClass);
+
     /**
      * Info about functions based on the number of arguments to the function.
      *
@@ -1739,18 +2104,18 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     const origFuncs = {};
 
     function discardInfoForProgram(program) {
-      const oldLocations = sharedState.programToLocationsMap.get(program);
+      const oldLocations = programToLocationsMap.get(program);
       if (oldLocations) {
-        oldLocations.forEach(loc => sharedState.locationsToNamesMap.delete(loc));
+        oldLocations.forEach(loc => locationsToNamesMap.delete(loc));
       }
-      sharedState.programToLocationsMap.set(program, new Set());
-      sharedState.programToUnsetUniformsMap.delete(program);
-      sharedState.programToUniformInfoMap.delete(program);
-      sharedState.programToUniformSamplerValues.delete(program);
+      programToLocationsMap.set(program, new Set());
+      programToUnsetUniformsMap.delete(program);
+      programToUniformInfoMap.delete(program);
+      programToUniformSamplerValues.delete(program);
     }
 
     function removeChecks() {
-      for (const {ctx, origFuncs} of Object.values(sharedState.apis)) {
+      for (const {ctx, origFuncs} of Object.values(apis)) {
         Object.assign(ctx, origFuncs);
       }
       for (const key of [...Object.keys(sharedState)]) {
@@ -1768,8 +2133,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         console.warn(`instanceCount for ${funcName} is 0!`);
       }
 
-      --sharedState.config.maxDrawCalls;
-      if (sharedState.config.maxDrawCalls === 0) {
+      --config.maxDrawCalls;
+      if (config.maxDrawCalls === 0) {
         removeChecks();
       }
     }
@@ -1782,7 +2147,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       const msg = errorInfo
           ? `${errorInfo.url}:${errorInfo.lineNo}: ${errorMsg}`
           : errorMsg;
-      if (sharedState.config.throwOnError) {
+      if (config.throwOnError) {
         throw new Error(msg);
       } else {
         console.error(msg);
@@ -1797,14 +2162,14 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     const VERTEX_ARRAY_BINDING = 0x85B5;
 
     function getCurrentVertexArray() {
-      const gl = sharedState.baseContext;
-      return (gl instanceof WebGL2RenderingContext || sharedState.apis.oes_vertex_array_object)
+      const gl = baseContext;
+      return (gl instanceof WebGL2RenderingContext || apis.oes_vertex_array_object)
          ? gl.getParameter(VERTEX_ARRAY_BINDING)
          : null;
     }
 
     function checkUnsetUniforms(ctx, funcName, args) {
-      const unsetUniforms = sharedState.programToUnsetUniformsMap.get(sharedState.currentProgram);
+      const unsetUniforms = programToUnsetUniformsMap.get(sharedState.currentProgram);
       if (unsetUniforms) {
         const uniformNames = [];
         for (const [name, {index, unset}] of unsetUniforms) {
@@ -1823,32 +2188,32 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     function checkUnRenderableTextures(ctx, funcName, args) {
-      if (!sharedState.config.failUnrenderableTextures) {
+      if (!config.failUnrenderableTextures) {
         return;
       }
-      const uniformSamplerInfos = sharedState.programToUniformSamplerValues.get(sharedState.currentProgram);
-      const numTextureUnits = sharedState.textureManager.numTextureUnits;
+      const uniformSamplerInfos = programToUniformSamplerValues.get(sharedState.currentProgram);
+      const numTextureUnits = textureManager.numTextureUnits;
       for (const {type, values, name} of uniformSamplerInfos) {
-        const {bindPoint} = getBindPointForSampler(type);
+        const bindPoint = getBindPointForSampler(type);
         for (let i = 0; i < values.length; ++i) {
           const texUnit = values[i];
           if (texUnit >= numTextureUnits) {
             reportFunctionError(ctx, funcName, args, `uniform ${getUniformTypeInfo(type).name} ${getUniformElementName(name, values.length, i)} is set to ${texUnit} which is out of range. There are only ${numTextureUnits} texture units`);
             return;
           }
-          const unrenderableReason = sharedState.textureManager.getTextureUnitUnrenderableReason(texUnit, bindPoint, getWebGLObjectString);
+          const unrenderableReason = textureManager.getTextureUnitUnrenderableReason(type, texUnit, bindPoint, getWebGLObjectString);
           if (unrenderableReason) {
             // TODO:
             //   * is the type of texture compatible with the sampler?
             //     int textures for int samplers, unsigned for unsigned.
             //   *
-            const texture = sharedState.textureManager.getTextureForTextureUnit(texUnit, bindPoint);
+            const texture = textureManager.getTextureForTextureUnit(texUnit, bindPoint);
             reportFunctionError(
                 ctx,
                 funcName,
                 args,
                 texture
-                    ? `texture ${getWebGLObjectString(texture)} on texture unit ${texUnit} referenced by uniform ${getUniformElementName(name, values.length, i)} is not renderable: ${unrenderableReason}`
+                    ? `texture ${getWebGLObjectString(texture)} on texture unit ${texUnit} referenced by uniform ${getUniformTypeForUniformSamplerType(type)} ${getUniformElementName(name, values.length, i)} is not renderable: ${unrenderableReason}`
                     : `no texture on texture unit ${texUnit} referenced by uniform ${getUniformElementName(name, values.length, i)}`);
             return;
           }
@@ -1876,12 +2241,12 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     };
 
     function markUniformRangeAsSet(webGLUniformLocation, count) {
-      const unsetUniforms = sharedState.programToUnsetUniformsMap.get(sharedState.currentProgram);
+      const unsetUniforms = programToUnsetUniformsMap.get(sharedState.currentProgram);
       if (!unsetUniforms) {
         // no unset uniforms
         return;
       }
-      const uniformName = sharedState.locationsToNamesMap.get(webGLUniformLocation);
+      const uniformName = locationsToNamesMap.get(webGLUniformLocation);
       const info = unsetUniforms.get(uniformName);
       if (!info) {
         // this uniform already set
@@ -1900,7 +2265,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         // have all uniforms in this program been set?
         if (!unsetUniforms.size) {
           // yes, so no checking needed for this program anymore
-          sharedState.programToUnsetUniformsMap.delete(sharedState.currentProgram);
+          programToUnsetUniformsMap.delete(sharedState.currentProgram);
         }
       }
     }
@@ -1914,7 +2279,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     function isUniformIgnored(webglUniformLocation) {
-      return sharedState.ignoredUniforms.has(sharedState.locationsToNamesMap.get(webglUniformLocation));
+      return ignoredUniforms.has(locationsToNamesMap.get(webglUniformLocation));
     }
 
     function markUniformSetMatrixV(numValuesPer) {
@@ -1922,7 +2287,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         const [webGLUniformLocation, transpose, data, srcOffset = 0, srcLength = 0] = args;
         const length = srcLength ? srcLength : data.length - srcOffset;
         const count = length / numValuesPer | 0;
-        if (sharedState.config.failZeroMatrixUniforms && !isUniformIgnored(webGLUniformLocation)) {
+        if (config.failZeroMatrixUniforms && !isUniformIgnored(webGLUniformLocation)) {
           for (let c = 0; c < count; ++c) {
             let allZero = true;
             const baseOffset = srcOffset + numValuesPer * c;
@@ -1958,18 +2323,18 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
     function markUniformSetAndRecordSamplerValue(gl, funcName, args) {
       markUniformSet(gl, funcName, args);
-        const [webglUniformLocation, value] = args;
-        recordSamplerValues(webglUniformLocation, [value]);
+      const [webglUniformLocation, value] = args;
+      recordSamplerValues(webglUniformLocation, [value]);
     }
 
     function recordSamplerValues(webglUniformLocation, newValues) {
-      const name = sharedState.locationsToNamesMap.get(webglUniformLocation);
-      const uniformInfos = sharedState.programToUniformInfoMap.get(sharedState.currentProgram);
+      const name = locationsToNamesMap.get(webglUniformLocation);
+      const uniformInfos = programToUniformInfoMap.get(sharedState.currentProgram);
       const {index, type, values} = uniformInfos.get(name);
       if (!uniformTypeIsSampler(type)) {
         return;
       }
-      const numToCopy = Math.min(newValues.length, index - values.length);
+      const numToCopy = Math.min(newValues.length, values.length - index);
       for (let i = 0; i < numToCopy; ++i) {
         values[i] = newValues[i];
       }
@@ -1977,7 +2342,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
     function makeDeleteWrapper(ctx, funcName, args) {
       const [obj] = args;
-      sharedState.webglObjectToNamesMap.delete(obj);
+      webglObjectToNamesMap.delete(obj);
     }
 
     const postChecks = {
@@ -1994,7 +2359,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         }
         const buffer = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
         if (isNumber(src)) {
-          sharedState.bufferToIndices.set(buffer, new ArrayBuffer(src));
+          bufferToIndices.set(buffer, new ArrayBuffer(src));
         } else {
           const isDataView = src instanceof DataView;
           const copyLength = length ? length : isDataView
@@ -2003,7 +2368,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           const elemSize = isDataView ? 1 : src.BYTES_PER_ELEMENT;
           const bufSize = copyLength * elemSize;
           const arrayBuffer = src.buffer ? src.buffer : src;
-          sharedState.bufferToIndices.set(buffer, arrayBuffer.slice(srcOffset * elemSize, bufSize));
+          bufferToIndices.set(buffer, arrayBuffer.slice(srcOffset * elemSize, bufSize));
         }
       },
       // WebGL1
@@ -2017,7 +2382,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           return;
         }
         const buffer = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
-        const data = sharedState.bufferToIndices.get(buffer);
+        const data = bufferToIndices.get(buffer);
         const view = new Uint8Array(data);
         const isDataView = src instanceof DataView;
         const copyLength = length ? length : isDataView
@@ -2088,8 +2453,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       getUniformLocation(ctx, funcName, args, location) {
         const [program, name] = args;
         if (location) {
-          sharedState.locationsToNamesMap.set(location, name);
-          sharedState.programToLocationsMap.get(program).add(location);
+          locationsToNamesMap.set(location, name);
+          programToLocationsMap.get(program).add(location);
         }
       },
 
@@ -2125,8 +2490,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
             }
 
             const addUnsetUniform =
-                (!uniformTypeIsSampler(type) || sharedState.config.failUnsetSamplerUniforms)
-                && !sharedState.ignoredUniforms.has(name);
+                (!uniformTypeIsSampler(type) || config.failUnsetSamplerUniforms)
+                && !ignoredUniforms.has(name);
 
             const values = uniformTypeIsSampler(type) ? new Array(size).fill(0) : undefined;
             if (values) {
@@ -2150,10 +2515,10 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
               });
             }
           }
-          sharedState.programToUniformSamplerValues.set(program, uniformSamplerValues);
-          sharedState.programToUniformInfoMap.set(program, uniformInfos);
+          programToUniformSamplerValues.set(program, uniformSamplerValues);
+          programToUniformInfoMap.set(program, uniformInfos);
           if (unsetUniforms.size) {
-            sharedState.programToUnsetUniformsMap.set(program, unsetUniforms);
+            programToUnsetUniformsMap.set(program, unsetUniforms);
           }
         }
       },
@@ -2176,7 +2541,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         // meh! technically this doesn't work because buffers
         // are ref counted so if you have an index buffer on
         // vao you can still use it. Sigh!
-        sharedState.bufferToIndices.delete(buffer);
+        bufferToIndices.delete(buffer);
       },
 
       deleteFramebuffer: makeDeleteWrapper,
@@ -2190,11 +2555,11 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       deleteVertexArray: makeDeleteWrapper,
       deleteVertexArrayOES: makeDeleteWrapper,
     };
-    Object.entries(sharedState.textureManager.postChecks).forEach(([funcName, func]) => {
+    Object.entries(textureManager.postChecks).forEach(([funcName, func]) => {
       const existingFn = postChecks[funcName] || noop;
       postChecks[funcName] = function(...args) {
         existingFn(...args);
-        if (sharedState.config.failUnrenderableTextures) {
+        if (config.failUnrenderableTextures) {
           func(...args);
         }
       };
@@ -2212,12 +2577,12 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     */
 
     function getWebGLObjectString(webglObject) {
-      const name = sharedState.webglObjectToNamesMap.get(webglObject) || '*unnamed*';
+      const name = webglObjectToNamesMap.get(webglObject) || '*unnamed*';
       return `${webglObject.constructor.name}(${quotedStringOrEmpty(name)})`;
     }
 
     function getIndicesForBuffer(buffer) {
-      return sharedState.bufferToIndices.get(buffer);
+      return bufferToIndices.get(buffer);
     }
 
     /**
@@ -2233,12 +2598,12 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       // there's apparently no easy to find out if something is a WebGLObject
       // as `WebGLObject` has been hidden. We could check all the types but lets
       // just check if the user mapped something
-      const name = sharedState.webglObjectToNamesMap.get(value);
+      const name = webglObjectToNamesMap.get(value);
       if (name) {
         return `${value.constructor.name}("${name}")`;
       }
       if (value instanceof WebGLUniformLocation) {
-        const name = sharedState.locationsToNamesMap.get(value);
+        const name = locationsToNamesMap.get(value);
         return `WebGLUniformLocation("${name}")`;
       }
       const funcInfos = glFunctionInfos[funcName];
@@ -2365,14 +2730,14 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       if (!webglUniformLocation) {
         return;
       }
-      const uniformInfos = sharedState.programToUniformInfoMap.get(sharedState.currentProgram);
+      const uniformInfos = programToUniformInfoMap.get(sharedState.currentProgram);
       if (!uniformInfos) {
         return;
       }
       // The uniform info type might be 'vec3' but they
       // might be calling uniform2fv. WebGL itself will catch that error but we might
       // report the wrong error here if we check for vec3 amount of data
-      const name = sharedState.locationsToNamesMap.get(webglUniformLocation);
+      const name = locationsToNamesMap.get(webglUniformLocation);
       const {type, size, index} = uniformInfos.get(name);
       const valuesPerElementUniformRequires = getUniformTypeInfo(type).size;
       if (valuesPerElementFunctionRequires !== valuesPerElementUniformRequires) {
@@ -2441,7 +2806,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     function reportFunctionError(ctx, funcName, args, msg) {
-      const gl = sharedState.baseContext;
+      const gl = baseContext;
       const msgs = [msg];
       const funcInfos = glFunctionInfos[funcName];
       if (funcInfos && funcInfos.errorHelper) {
@@ -2457,7 +2822,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       }
       if (funcName.includes('vertexAttrib') || isDrawFunction(funcName)) {
         const vao = getCurrentVertexArray();
-        const name = sharedState.webglObjectToNamesMap.get(vao);
+        const name = webglObjectToNamesMap.get(vao);
         const vaoName = `WebGLVertexArrayObject(${quotedStringOrEmpty(name || '*unnamed*')})`;
         msgs.push(`with ${vao ? vaoName : 'the default vertex array'} bound`);
       }
@@ -2533,7 +2898,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         const origFn = ctx[propertyName];
         ctx[propertyName] = function(...args) {
           const extensionName = args[0].toLowerCase();
-          const api = sharedState.apis[extensionName];
+          const api = apis[extensionName];
           if (api) {
             return api.ctx;
           }
@@ -2555,7 +2920,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         preCheck(ctx, funcName, args);
         checkArgs(ctx, funcName, args);
         const result = origFn.call(ctx, ...args);
-        const gl = sharedState.baseContext;
+        const gl = baseContext;
         const err = origGLErrorFn.call(gl);
         if (err !== 0) {
           glErrorShadow[err] = true;
@@ -2608,7 +2973,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       };
     }
 
-    sharedState.apis[nameOfClass.toLowerCase()] = { ctx, origFuncs };
+    apis[nameOfClass.toLowerCase()] = { ctx, origFuncs };
   }
 
   /*
