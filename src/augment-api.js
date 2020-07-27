@@ -881,8 +881,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
 
   function markUniformSetAndRecordSamplerValue(gl, funcName, args) {
     markUniformSet(gl, funcName, args);
-      const [webglUniformLocation, value] = args;
-      recordSamplerValues(webglUniformLocation, [value]);
+    const [webglUniformLocation, value] = args;
+    recordSamplerValues(webglUniformLocation, [value]);
   }
 
   function recordSamplerValues(webglUniformLocation, newValues) {
@@ -892,7 +892,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     if (!uniformTypeIsSampler(type)) {
       return;
     }
-    const numToCopy = Math.min(newValues.length, index - values.length);
+    const numToCopy = Math.min(newValues.length, values.length - index);
     for (let i = 0; i < numToCopy; ++i) {
       values[i] = newValues[i];
     }
