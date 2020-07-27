@@ -26,6 +26,7 @@ import {checkFramebufferFeedback} from './check-framebuffer-feedback.js';
 import {parseStack} from './parse-stack.js';
 import {
   getBindPointForSampler,
+  getUniformTypeForUniformSamplerType,
   uniformTypeIsSampler,
 } from './samplers.js';
 import {TextureManager} from './texture-manager.js';
@@ -129,6 +130,7 @@ function getUniformNameErrorMsg(ctx, funcName, args, sharedState) {
  */
 export function augmentAPI(ctx, nameOfClass, options = {}) {
   const origGLErrorFn = options.origGLErrorFn || ctx.getError;
+  addEnumsFromAPI(ctx);
 
   function createSharedState(ctx) {
     const sharedState = {
@@ -223,7 +225,38 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
 
   const sharedState = options.sharedState || createSharedState(ctx);
   options.sharedState = sharedState;
-  addEnumsFromAPI(ctx);
+
+  const {
+    apis,
+    baseContext,
+    bufferToIndices,
+    config,
+    ignoredUniforms,
+    locationsToNamesMap,
+    programToLocationsMap,
+    programToUniformInfoMap,
+    programToUniformSamplerValues,
+    programToUnsetUniformsMap,
+    textureManager,
+    webglObjectToNamesMap,
+  } = sharedState;
+
+  const extensionFuncs = {
+    oes_texture_float(...args) {
+      textureManager.addExtension(...args);
+    },
+    oes_texture_float_linear(...args) {
+      textureManager.addExtension(...args);
+    },
+    OES_texture_half_float(...args) {
+      textureManager.addExtension(...args);
+    },
+    oes_texture_half_float_linear(...args) {
+      textureManager.addExtension(...args);
+    },
+  };
+  (extensionFuncs[nameOfClass] || noop)(nameOfClass);
+
   /**
    * Info about functions based on the number of arguments to the function.
    *
@@ -629,18 +662,18 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
   const origFuncs = {};
 
   function discardInfoForProgram(program) {
-    const oldLocations = sharedState.programToLocationsMap.get(program);
+    const oldLocations = programToLocationsMap.get(program);
     if (oldLocations) {
-      oldLocations.forEach(loc => sharedState.locationsToNamesMap.delete(loc));
+      oldLocations.forEach(loc => locationsToNamesMap.delete(loc));
     }
-    sharedState.programToLocationsMap.set(program, new Set());
-    sharedState.programToUnsetUniformsMap.delete(program);
-    sharedState.programToUniformInfoMap.delete(program);
-    sharedState.programToUniformSamplerValues.delete(program);
+    programToLocationsMap.set(program, new Set());
+    programToUnsetUniformsMap.delete(program);
+    programToUniformInfoMap.delete(program);
+    programToUniformSamplerValues.delete(program);
   }
 
   function removeChecks() {
-    for (const {ctx, origFuncs} of Object.values(sharedState.apis)) {
+    for (const {ctx, origFuncs} of Object.values(apis)) {
       Object.assign(ctx, origFuncs);
     }
     for (const key of [...Object.keys(sharedState)]) {
@@ -658,8 +691,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
       console.warn(`instanceCount for ${funcName} is 0!`);
     }
 
-    --sharedState.config.maxDrawCalls;
-    if (sharedState.config.maxDrawCalls === 0) {
+    --config.maxDrawCalls;
+    if (config.maxDrawCalls === 0) {
       removeChecks();
     }
   }
@@ -672,7 +705,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     const msg = errorInfo
         ? `${errorInfo.url}:${errorInfo.lineNo}: ${errorMsg}`
         : errorMsg;
-    if (sharedState.config.throwOnError) {
+    if (config.throwOnError) {
       throw new Error(msg);
     } else {
       console.error(msg);
@@ -687,14 +720,14 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
   const VERTEX_ARRAY_BINDING = 0x85B5;
 
   function getCurrentVertexArray() {
-    const gl = sharedState.baseContext;
-    return (gl instanceof WebGL2RenderingContext || sharedState.apis.oes_vertex_array_object)
+    const gl = baseContext;
+    return (gl instanceof WebGL2RenderingContext || apis.oes_vertex_array_object)
        ? gl.getParameter(VERTEX_ARRAY_BINDING)
        : null;
   }
 
   function checkUnsetUniforms(ctx, funcName, args) {
-    const unsetUniforms = sharedState.programToUnsetUniformsMap.get(sharedState.currentProgram);
+    const unsetUniforms = programToUnsetUniformsMap.get(sharedState.currentProgram);
     if (unsetUniforms) {
       const uniformNames = [];
       for (const [name, {index, unset}] of unsetUniforms) {
@@ -713,32 +746,32 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
   }
 
   function checkUnRenderableTextures(ctx, funcName, args) {
-    if (!sharedState.config.failUnrenderableTextures) {
+    if (!config.failUnrenderableTextures) {
       return;
     }
-    const uniformSamplerInfos = sharedState.programToUniformSamplerValues.get(sharedState.currentProgram);
-    const numTextureUnits = sharedState.textureManager.numTextureUnits;
+    const uniformSamplerInfos = programToUniformSamplerValues.get(sharedState.currentProgram);
+    const numTextureUnits = textureManager.numTextureUnits;
     for (const {type, values, name} of uniformSamplerInfos) {
-      const {bindPoint} = getBindPointForSampler(type);
+      const bindPoint = getBindPointForSampler(type);
       for (let i = 0; i < values.length; ++i) {
         const texUnit = values[i];
         if (texUnit >= numTextureUnits) {
           reportFunctionError(ctx, funcName, args, `uniform ${getUniformTypeInfo(type).name} ${getUniformElementName(name, values.length, i)} is set to ${texUnit} which is out of range. There are only ${numTextureUnits} texture units`);
           return;
         }
-        const unrenderableReason = sharedState.textureManager.getTextureUnitUnrenderableReason(texUnit, bindPoint, getWebGLObjectString);
+        const unrenderableReason = textureManager.getTextureUnitUnrenderableReason(type, texUnit, bindPoint, getWebGLObjectString);
         if (unrenderableReason) {
           // TODO:
           //   * is the type of texture compatible with the sampler?
           //     int textures for int samplers, unsigned for unsigned.
           //   *
-          const texture = sharedState.textureManager.getTextureForTextureUnit(texUnit, bindPoint);
+          const texture = textureManager.getTextureForTextureUnit(texUnit, bindPoint);
           reportFunctionError(
               ctx,
               funcName,
               args,
               texture
-                  ? `texture ${getWebGLObjectString(texture)} on texture unit ${texUnit} referenced by uniform ${getUniformElementName(name, values.length, i)} is not renderable: ${unrenderableReason}`
+                  ? `texture ${getWebGLObjectString(texture)} on texture unit ${texUnit} referenced by uniform ${getUniformTypeForUniformSamplerType(type)} ${getUniformElementName(name, values.length, i)} is not renderable: ${unrenderableReason}`
                   : `no texture on texture unit ${texUnit} referenced by uniform ${getUniformElementName(name, values.length, i)}`);
           return;
         }
@@ -766,12 +799,12 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
   };
 
   function markUniformRangeAsSet(webGLUniformLocation, count) {
-    const unsetUniforms = sharedState.programToUnsetUniformsMap.get(sharedState.currentProgram);
+    const unsetUniforms = programToUnsetUniformsMap.get(sharedState.currentProgram);
     if (!unsetUniforms) {
       // no unset uniforms
       return;
     }
-    const uniformName = sharedState.locationsToNamesMap.get(webGLUniformLocation);
+    const uniformName = locationsToNamesMap.get(webGLUniformLocation);
     const info = unsetUniforms.get(uniformName);
     if (!info) {
       // this uniform already set
@@ -790,7 +823,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
       // have all uniforms in this program been set?
       if (!unsetUniforms.size) {
         // yes, so no checking needed for this program anymore
-        sharedState.programToUnsetUniformsMap.delete(sharedState.currentProgram);
+        programToUnsetUniformsMap.delete(sharedState.currentProgram);
       }
     }
   }
@@ -804,7 +837,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
   }
 
   function isUniformIgnored(webglUniformLocation) {
-    return sharedState.ignoredUniforms.has(sharedState.locationsToNamesMap.get(webglUniformLocation));
+    return ignoredUniforms.has(locationsToNamesMap.get(webglUniformLocation));
   }
 
   function markUniformSetMatrixV(numValuesPer) {
@@ -812,7 +845,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
       const [webGLUniformLocation, transpose, data, srcOffset = 0, srcLength = 0] = args;
       const length = srcLength ? srcLength : data.length - srcOffset;
       const count = length / numValuesPer | 0;
-      if (sharedState.config.failZeroMatrixUniforms && !isUniformIgnored(webGLUniformLocation)) {
+      if (config.failZeroMatrixUniforms && !isUniformIgnored(webGLUniformLocation)) {
         for (let c = 0; c < count; ++c) {
           let allZero = true;
           const baseOffset = srcOffset + numValuesPer * c;
@@ -853,8 +886,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
   }
 
   function recordSamplerValues(webglUniformLocation, newValues) {
-    const name = sharedState.locationsToNamesMap.get(webglUniformLocation);
-    const uniformInfos = sharedState.programToUniformInfoMap.get(sharedState.currentProgram);
+    const name = locationsToNamesMap.get(webglUniformLocation);
+    const uniformInfos = programToUniformInfoMap.get(sharedState.currentProgram);
     const {index, type, values} = uniformInfos.get(name);
     if (!uniformTypeIsSampler(type)) {
       return;
@@ -867,7 +900,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
 
   function makeDeleteWrapper(ctx, funcName, args) {
     const [obj] = args;
-    sharedState.webglObjectToNamesMap.delete(obj);
+    webglObjectToNamesMap.delete(obj);
   }
 
   const postChecks = {
@@ -884,7 +917,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
       }
       const buffer = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
       if (isNumber(src)) {
-        sharedState.bufferToIndices.set(buffer, new ArrayBuffer(src));
+        bufferToIndices.set(buffer, new ArrayBuffer(src));
       } else {
         const isDataView = src instanceof DataView;
         const copyLength = length ? length : isDataView
@@ -893,7 +926,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
         const elemSize = isDataView ? 1 : src.BYTES_PER_ELEMENT;
         const bufSize = copyLength * elemSize;
         const arrayBuffer = src.buffer ? src.buffer : src;
-        sharedState.bufferToIndices.set(buffer, arrayBuffer.slice(srcOffset * elemSize, bufSize));
+        bufferToIndices.set(buffer, arrayBuffer.slice(srcOffset * elemSize, bufSize));
       }
     },
     // WebGL1
@@ -907,7 +940,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
         return;
       }
       const buffer = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
-      const data = sharedState.bufferToIndices.get(buffer);
+      const data = bufferToIndices.get(buffer);
       const view = new Uint8Array(data);
       const isDataView = src instanceof DataView;
       const copyLength = length ? length : isDataView
@@ -978,8 +1011,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     getUniformLocation(ctx, funcName, args, location) {
       const [program, name] = args;
       if (location) {
-        sharedState.locationsToNamesMap.set(location, name);
-        sharedState.programToLocationsMap.get(program).add(location);
+        locationsToNamesMap.set(location, name);
+        programToLocationsMap.get(program).add(location);
       }
     },
 
@@ -1015,8 +1048,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
           }
 
           const addUnsetUniform =
-              (!uniformTypeIsSampler(type) || sharedState.config.failUnsetSamplerUniforms)
-              && !sharedState.ignoredUniforms.has(name);
+              (!uniformTypeIsSampler(type) || config.failUnsetSamplerUniforms)
+              && !ignoredUniforms.has(name);
 
           const values = uniformTypeIsSampler(type) ? new Array(size).fill(0) : undefined;
           if (values) {
@@ -1040,10 +1073,10 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
             });
           }
         }
-        sharedState.programToUniformSamplerValues.set(program, uniformSamplerValues);
-        sharedState.programToUniformInfoMap.set(program, uniformInfos);
+        programToUniformSamplerValues.set(program, uniformSamplerValues);
+        programToUniformInfoMap.set(program, uniformInfos);
         if (unsetUniforms.size) {
-          sharedState.programToUnsetUniformsMap.set(program, unsetUniforms);
+          programToUnsetUniformsMap.set(program, unsetUniforms);
         }
       }
     },
@@ -1066,7 +1099,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
       // meh! technically this doesn't work because buffers
       // are ref counted so if you have an index buffer on
       // vao you can still use it. Sigh!
-      sharedState.bufferToIndices.delete(buffer);
+      bufferToIndices.delete(buffer);
     },
 
     deleteFramebuffer: makeDeleteWrapper,
@@ -1080,11 +1113,11 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     deleteVertexArray: makeDeleteWrapper,
     deleteVertexArrayOES: makeDeleteWrapper,
   };
-  Object.entries(sharedState.textureManager.postChecks).forEach(([funcName, func]) => {
+  Object.entries(textureManager.postChecks).forEach(([funcName, func]) => {
     const existingFn = postChecks[funcName] || noop;
     postChecks[funcName] = function(...args) {
       existingFn(...args);
-      if (sharedState.config.failUnrenderableTextures) {
+      if (config.failUnrenderableTextures) {
         func(...args);
       }
     };
@@ -1102,12 +1135,12 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
   */
 
   function getWebGLObjectString(webglObject) {
-    const name = sharedState.webglObjectToNamesMap.get(webglObject) || '*unnamed*';
+    const name = webglObjectToNamesMap.get(webglObject) || '*unnamed*';
     return `${webglObject.constructor.name}(${quotedStringOrEmpty(name)})`;
   }
 
   function getIndicesForBuffer(buffer) {
-    return sharedState.bufferToIndices.get(buffer);
+    return bufferToIndices.get(buffer);
   }
 
   /**
@@ -1123,12 +1156,12 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     // there's apparently no easy to find out if something is a WebGLObject
     // as `WebGLObject` has been hidden. We could check all the types but lets
     // just check if the user mapped something
-    const name = sharedState.webglObjectToNamesMap.get(value);
+    const name = webglObjectToNamesMap.get(value);
     if (name) {
       return `${value.constructor.name}("${name}")`;
     }
     if (value instanceof WebGLUniformLocation) {
-      const name = sharedState.locationsToNamesMap.get(value);
+      const name = locationsToNamesMap.get(value);
       return `WebGLUniformLocation("${name}")`;
     }
     const funcInfos = glFunctionInfos[funcName];
@@ -1255,14 +1288,14 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     if (!webglUniformLocation) {
       return;
     }
-    const uniformInfos = sharedState.programToUniformInfoMap.get(sharedState.currentProgram);
+    const uniformInfos = programToUniformInfoMap.get(sharedState.currentProgram);
     if (!uniformInfos) {
       return;
     }
     // The uniform info type might be 'vec3' but they
     // might be calling uniform2fv. WebGL itself will catch that error but we might
     // report the wrong error here if we check for vec3 amount of data
-    const name = sharedState.locationsToNamesMap.get(webglUniformLocation);
+    const name = locationsToNamesMap.get(webglUniformLocation);
     const {type, size, index} = uniformInfos.get(name);
     const valuesPerElementUniformRequires = getUniformTypeInfo(type).size;
     if (valuesPerElementFunctionRequires !== valuesPerElementUniformRequires) {
@@ -1331,7 +1364,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
   }
 
   function reportFunctionError(ctx, funcName, args, msg) {
-    const gl = sharedState.baseContext;
+    const gl = baseContext;
     const msgs = [msg];
     const funcInfos = glFunctionInfos[funcName];
     if (funcInfos && funcInfos.errorHelper) {
@@ -1347,7 +1380,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     }
     if (funcName.includes('vertexAttrib') || isDrawFunction(funcName)) {
       const vao = getCurrentVertexArray(ctx);
-      const name = sharedState.webglObjectToNamesMap.get(vao);
+      const name = webglObjectToNamesMap.get(vao);
       const vaoName = `WebGLVertexArrayObject(${quotedStringOrEmpty(name || '*unnamed*')})`;
       msgs.push(`with ${vao ? vaoName : 'the default vertex array'} bound`);
     }
@@ -1423,7 +1456,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
       const origFn = ctx[propertyName];
       ctx[propertyName] = function(...args) {
         const extensionName = args[0].toLowerCase();
-        const api = sharedState.apis[extensionName];
+        const api = apis[extensionName];
         if (api) {
           return api.ctx;
         }
@@ -1445,7 +1478,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
       preCheck(ctx, funcName, args);
       checkArgs(ctx, funcName, args);
       const result = origFn.call(ctx, ...args);
-      const gl = sharedState.baseContext;
+      const gl = baseContext;
       const err = origGLErrorFn.call(gl);
       if (err !== 0) {
         glErrorShadow[err] = true;
@@ -1498,6 +1531,6 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     };
   }
 
-  sharedState.apis[nameOfClass.toLowerCase()] = { ctx, origFuncs };
+  apis[nameOfClass.toLowerCase()] = { ctx, origFuncs };
 }
 

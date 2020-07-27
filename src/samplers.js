@@ -29,29 +29,37 @@ export function isSampler(type) {
 }
 
 const samplerTypes = new Map([
-  [SAMPLER_2D,                    {bindPoint: '2D'}],
-  [SAMPLER_CUBE,                  {bindPoint: 'CUBE'}],
-  [SAMPLER_3D,                    {bindPoint: '3D'}],
-  [SAMPLER_2D_SHADOW,             {bindPoint: '2D'}],
-  [SAMPLER_2D_ARRAY,              {bindPoint: '2D_ARRAY'}],
-  [SAMPLER_2D_ARRAY_SHADOW,       {bindPoint: '2D_ARRAY'}],
-  [SAMPLER_CUBE_SHADOW,           {bindPoint: 'CUBE'}],
-  [INT_SAMPLER_2D,                {bindPoint: '2D'}],
-  [INT_SAMPLER_3D,                {bindPoint: '3D'}],
-  [INT_SAMPLER_CUBE,              {bindPoint: 'CUBE'}],
-  [INT_SAMPLER_2D_ARRAY,          {bindPoint: '2D_ARRAY'}],
-  [UNSIGNED_INT_SAMPLER_2D,       {bindPoint: '2D'}],
-  [UNSIGNED_INT_SAMPLER_3D,       {bindPoint: '3D'}],
-  [UNSIGNED_INT_SAMPLER_CUBE,     {bindPoint: 'CUBE'}],
-  [UNSIGNED_INT_SAMPLER_2D_ARRAY, {bindPoint: '2D_ARRAY'}],
+  [SAMPLER_2D,                    {uniformType: 'sampler2D',       numberType: 'float/normalized', bindPoint: '2D'}],
+  [SAMPLER_CUBE,                  {uniformType: 'samplerCube',     numberType: 'float/normalized', bindPoint: 'CUBE'}],
+  [SAMPLER_3D,                    {uniformType: 'sampler3D',       numberType: 'float/normalized', bindPoint: '3D'}],
+  [SAMPLER_2D_SHADOW,             {uniformType: 'sampler2D',       numberType: 'float/normalized', bindPoint: '2D'}],
+  [SAMPLER_2D_ARRAY,              {uniformType: 'sampler2DArray',  numberType: 'float/normalized', bindPoint: '2D_ARRAY'}],
+  [SAMPLER_2D_ARRAY_SHADOW,       {uniformType: 'sampler2DArray',  numberType: 'float/normalized', bindPoint: '2D_ARRAY'}],
+  [SAMPLER_CUBE_SHADOW,           {uniformType: 'samplerCube',     numberType: 'float/normalized', bindPoint: 'CUBE'}],
+  [INT_SAMPLER_2D,                {uniformType: 'isampler2D',      numberType: 'int',              bindPoint: '2D'}],
+  [INT_SAMPLER_3D,                {uniformType: 'isampler3D',      numberType: 'int',              bindPoint: '3D'}],
+  [INT_SAMPLER_CUBE,              {uniformType: 'isamplerCube',    numberType: 'int',              bindPoint: 'CUBE'}],
+  [INT_SAMPLER_2D_ARRAY,          {uniformType: 'isampler2DArray', numberType: 'int',              bindPoint: '2D_ARRAY'}],
+  [UNSIGNED_INT_SAMPLER_2D,       {uniformType: 'usampler2D',      numberType: 'unsigned int',     bindPoint: '2D'}],
+  [UNSIGNED_INT_SAMPLER_3D,       {uniformType: 'usampler3D',      numberType: 'unsigned int',     bindPoint: '3D'}],
+  [UNSIGNED_INT_SAMPLER_CUBE,     {uniformType: 'usamplerCube',    numberType: 'unsigned int',     bindPoint: 'CUBE'}],
+  [UNSIGNED_INT_SAMPLER_2D_ARRAY, {uniformType: 'usampler2DArray', numberType: 'unsigned int',     bindPoint: '2D_ARRAY'}],
 ]);
 
 export function getBindPointForSampler(type) {
-  return samplerTypes.get(type);
+  return samplerTypes.get(type).bindPoint;
 }
 
 export function uniformTypeIsSampler(type) {
   return samplerTypes.has(type);
+}
+
+export function getNumberTypeForUniformSamplerType(type) {
+  return samplerTypes.get(type).numberType;
+}
+
+export function getUniformTypeForUniformSamplerType(type) {
+  return samplerTypes.get(type).uniformType;
 }
 
 const TEXTURE_2D                     = 0x0DE1;
