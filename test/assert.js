@@ -1,14 +1,10 @@
 /* global console */
-/* global document */
 
 export const config = {};
 
-document.querySelectorAll('[data-gman-debug-helper]').forEach(elem => {
-  Object.assign(config, JSON.parse(elem.dataset.gmanDebugHelper));
-});
-document.querySelectorAll('[data-webgl-lint-test-config]').forEach(elem => {
-  Object.assign(config, JSON.parse(elem.dataset.webglLintTestConfig));
-});
+export function setConfig(options) {
+  Object.assign(config, options);
+}
 
 function formatMsg(msg) {
   return `${msg}${msg ? ': ' : ''}`;
@@ -27,7 +23,7 @@ export function assertNotEqual(actual, expected, msg = '') {
 }
 
 export function assertThrowsWith(func, expectations, msg = '') {
-  let error;
+  let error = '';
   if (config.throwOnError === false) {
     const origFn = console.error;
     const errors = [];
@@ -51,7 +47,7 @@ export function assertThrowsWith(func, expectations, msg = '') {
   }
 
   if (config.noLint) {
-    return true;
+    return;
   }
 
   const actualNoBreaks = error.toString().replace(/\n/g, ' ');

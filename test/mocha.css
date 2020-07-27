@@ -134,6 +134,7 @@ body {
   color: #c00;
   max-height: 300px;
   overflow: auto;
+  white-space: pre-wrap;
 }
 
 #mocha .test .html-error {

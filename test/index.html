@@ -5,10 +5,15 @@
     <title>WebGL Lint Tests</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="mocha.css">
+    <style>
+      #mocha #other {
+        text-decoration: underline;
+      }
+    </style>
   </head>
   <body>
     <div id="mocha">
-      <h1><b>** SEE JAVASCRIPT CONSOLE!! **<br>compare the error messages to [<a href="errors-without-webgl-lint.html">this</a>]</b></h1>
+      <h1><b>** SEE JAVASCRIPT CONSOLE!! **<br>compare the error messages to <a id="other" href="index.html">this</a></b></h1>
     </div>
     <script>
       /* global window */
@@ -29,15 +34,35 @@
     /* global mocha */
     /* global URLSearchParams */
     /* global window */
-
-    import '../webgl-lint.js';
+    import {setConfig} from './assert.js';
 
     async function main() {
       mocha.setup('bdd');
       mocha.fullTrace();
+      mocha.timeout(0);
       const query = Object.fromEntries(new URLSearchParams(window.location.search).entries());
       if (query.timeout !== undefined) {
         mocha.timeout(query.timeout);
+      }
+      const lint = query.lint !== 'false';
+      const throwOnError = !query.warn;
+
+      if (!throwOnError) {
+        const elem = document.createElement('script');
+        elem.dataset.gmanDebugHelper = JSON.stringify({throwOnError:false});
+        document.body.appendChild(elem);
+      }
+
+      const link = document.querySelector('#other');
+      link.href = lint ? '?lint=false' : '?';
+
+      setConfig({
+        noLint: !lint,
+        throwOnError,
+      });
+      if (lint) {
+        const src = query.src ? '../src/wrap.js' : '../webgl-lint.js';
+        await loadScript(src, 'module');
       }
       loadScript('index.js', 'module');
     }
