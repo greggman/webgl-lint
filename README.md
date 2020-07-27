@@ -30,8 +30,8 @@ to check for common WebGL errors.
 Open the JavaScript console. You'll see first example prints fewer errors and less info
 where as the second prints much more info.
 
-* [without script](https://greggman.github.io/webgl-lint/test/errors-without-webgl-lint.html)
-* [with script](https://greggman.github.io/webgl-lint/test/errors-with-webgl-lint.html)
+* [without script](https://greggman.github.io/webgl-lint/test/)
+* [with script](https://greggman.github.io/webgl-lint/test/?lint=false)
 
 # Usage
 
