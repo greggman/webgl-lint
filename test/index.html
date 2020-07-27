@@ -15,6 +15,22 @@
     <div id="mocha">
       <h1><b>** SEE JAVASCRIPT CONSOLE!! **<br>compare the error messages to <a id="other" href="index.html">this</a></b></h1>
     </div>
+    <script>
+      /* global window */
+
+      // this is here for puppeteer. It's resolved in index.js
+      // so we can await on window.testPromiseInfo
+      function makePromise() {
+        const info = {};
+        const promise = new Promise((resolve, reject) => {
+          Object.assign(info, {resolve, reject});
+        });
+        info.promise = promise;
+        return info;
+      }
+
+      window.testsPromiseInfo = makePromise();
+    </script>
     <script src="mocha.js"></script>
     <script type="module">
     /* global document */
