@@ -9,6 +9,7 @@
     "Renderbuffers",
     "SNORM",
     "SRGB",
+    "Unrenderability",
     "bvec",
     "camelcase",
     "eqeqeq",
