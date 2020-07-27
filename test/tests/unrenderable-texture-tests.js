@@ -350,7 +350,7 @@ describe('unrenderable texture tests', () => {
       gl.drawArrays(gl.POINTS, 0, 1);
     });
 
-  };
+  }
 
   describe('unrenderable tests', () => {
     addTests(globalContexts);
