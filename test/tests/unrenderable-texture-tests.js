@@ -262,7 +262,10 @@ describe('unrenderable texture tests', () => {
     });
 
     it('test texture samplers', () => {
-      const {gl2, tagObject2} = contexts;
+      const {gl2: gl, tagObject2: tagObject} = contexts;
+      if (!gl) {
+        return;
+      }
       const vs = `
       void main() {
         gl_Position = vec4(0);
@@ -277,8 +280,6 @@ describe('unrenderable texture tests', () => {
       }
       `;
 
-      const gl = gl2;
-      const tagObject = tagObject2;
       const prg = twgl.createProgram(gl, [vs, fs]);
       tagObject(prg, 'noTexPrg');
       gl.useProgram(prg);
@@ -303,7 +304,53 @@ describe('unrenderable texture tests', () => {
         gl.drawArrays(gl.POINTS, 0, 1);
       }, [/mip level 1 does not exist/]);
     });
-  }
+
+    it('test base level, max level', () => {
+      const {gl2: gl, tagObject2: tagObject} = contexts;
+      if (!gl) {
+        return;
+      }
+      const vs = `#version 300 es
+      void main() {
+        gl_Position = vec4(0, 0, 0, 1);
+        gl_PointSize = 128.0;
+      }
+      `;
+      const fs = `#version 300 es
+      precision highp float;
+      uniform highp sampler2D tex;
+      out vec4 outColor;
+      void main() {
+        outColor = texture(tex, gl_PointCoord.xy);
+      }
+      `;
+      const prg = twgl.createProgram(gl, [vs, fs]);
+      tagObject(prg, 'simpleTexProgram');
+      gl.useProgram(prg);
+
+      const tex = gl.createTexture();
+      tagObject(tex, 'mixedFormatTex');
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32UI, 1, 3, 0, gl.RGBA_INTEGER, gl.UNSIGNED_INT, null);
+      gl.texImage2D(gl.TEXTURE_2D, 1, gl.RGBA, 4, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texImage2D(gl.TEXTURE_2D, 2, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texImage2D(gl.TEXTURE_2D, 3, gl.R8, 73, 11, 0, gl.RED, gl.UNSIGNED_BYTE, null);
+      assertThrowsWith(() => {
+        gl.drawArrays(gl.POINTS, 0, 1);
+      }, [/uniform sampler2D needs a float\/normalized texture but WebGLTexture\("mixedFormatTex"\) on texture unit 0 is unsigned int texture \(RGBA32UI\)/]);
+
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, 1);
+
+      assertThrowsWith(() => {
+        gl.drawArrays(gl.POINTS, 0, 1);
+      }, [/texture WebGLTexture\("mixedFormatTex"\) on texture unit 0 referenced by uniform sampler2D tex is not renderable: mip level 3 needs to be 1x1 but it is 73x11/]);
+
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, 2);
+      gl.drawArrays(gl.POINTS, 0, 1);
+    });
+
+  };
 
   describe('unrenderable tests', () => {
     addTests(globalContexts);
