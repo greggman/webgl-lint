@@ -1,2 +1,3 @@
 test/js
+test/mocha.js
 /webgl-lint.js
