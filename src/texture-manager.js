@@ -26,6 +26,8 @@ const TEXTURE_CUBE_MAP_POSITIVE_Z    = 0x8519;
 const TEXTURE_CUBE_MAP_NEGATIVE_Z    = 0x851A;
 const TEXTURE_MIN_FILTER             = 0x2801;
 const TEXTURE_MAG_FILTER             = 0x2800;
+const TEXTURE_BASE_LEVEL             = 0x813c;  // int
+const TEXTURE_MAX_LEVEL              = 0x813d;  // int
 const TEXTURE_WRAP_S                 = 0x2802;
 const TEXTURE_WRAP_T                 = 0x2803;
 const REPEAT                         = 0x2901;
@@ -281,20 +283,12 @@ function createTextureInternalFormatInfoMap() {
     internalFormatStringToFormatInfoMap,
   };
 }
-/*
-HALF_FLOAT, HALF_FLOAT_OES, FLOAT
-      textureManager.addInternalFormats([
-        { internalFormat: RGBA,      format: gl.RGBA, type: gl.FLOAT, },
-        { internalFormat: RGB,       format: gl.RGB, type: gl.FLOAT, },
-        { internalFormat: LUMINANCE, format: gl.RGBA, type: gl.FLOAT, },
-      ]);
-*/
 
 function isPowerOf2(value) {
   return (value & (value - 1)) === 0;
 }
 
-function computeNumMipsNeeded(width, height, depth) {
+function computeNumMipsNeeded(width, height = 0, depth = 0) {
   return (Math.log2(Math.max(width, height, depth)) | 0) + 1;
 }
 
@@ -327,6 +321,12 @@ function getNumberTypeForInternalFormat(internalFormat) {
   return 'float/normalized';
 }
 
+function getDimensionsString(type, width, height, depth) {
+  return (type === TEXTURE_2D || type === TEXTURE_CUBE_MAP)
+     ? `${width}x${height}`
+     : `${width}x${height}x${depth}`;
+}
+
 export class TextureManager {
   constructor(gl) {
     const isWebGL2 = isWebGL2Check(gl);
@@ -335,6 +335,7 @@ export class TextureManager {
     const textureToTextureInfoMap = new Map();
     const samplerToParametersMap = new Map();
     const textureUnits = createTextureUnits(gl);
+    const maxMips = computeNumMipsNeeded(gl.getParameter(gl.MAX_TEXTURE_SIZE));
     const {internalFormatStringToFormatInfoMap} = createTextureInternalFormatInfoMap();
     let activeTextureUnitIndex = 0;
     let activeTextureUnit = textureUnits[0];
@@ -350,37 +351,41 @@ export class TextureManager {
 
     function computeRenderability(textureInfo, parameters) {
       const {type, mips} = textureInfo;
-      const level0Faces = mips[0];
-      if (!level0Faces) {
-        return 'no mip level 0';
+      const baseLevel = parameters.get(TEXTURE_BASE_LEVEL) || 0;
+      const maxLevel = parameters.get(TEXTURE_MAX_LEVEL) || maxMips;
+      if (maxLevel < baseLevel) {
+        return `TEXTURE_MAX_LEVEL(${maxLevel}) is less than TEXTURE_BASE_LEVEL(${baseLevel})`;
       }
-      const mipFace0 = level0Faces[0];
-      if (!mipFace0) {
+      const baseLevelFaces = mips[baseLevel];
+      if (!baseLevelFaces) {
+        return 'no base level mip ${baseLevel}';
+      }
+      const baseMipFace = baseLevelFaces[0];
+      if (!baseMipFace) {
         return 'TEXTURE_CUBE_MAP_POSITIVE_X face does not exist';
       }
       const {
-        width: level0Width,
-        height: level0Height,
-        depth: level0Depth,
-        // internalFormat: level0InternalFormat,
-        internalFormatString: level0InternalFormatString,
-      } = mipFace0;
+        width: baseWidth,
+        height: baseHeight,
+        depth: baseDepth,
+        // internalFormat: baseInternalFormat,
+        internalFormatString: baseInternalFormatString,
+      } = baseMipFace;
       const numFaces = type === TEXTURE_CUBE_MAP ? 6 : 1;
       const minFilter = parameters.get(TEXTURE_MIN_FILTER);
-      const internalFormatInfo = internalFormatStringToFormatInfoMap.get(level0InternalFormatString);
+      const internalFormatInfo = internalFormatStringToFormatInfoMap.get(baseInternalFormatString);
       // there is no format info for compressed texture ATM.
       // we could add it but AFAIK compressed textures are colorFilterable
       // so for now let's just not do the check if we don't know about the format
       if (internalFormatInfo) {
         const textureFilterable = internalFormatInfo.textureFilterable;
-  //if tex is int/unit then check filtering
         if (!textureFilterable) {
           if (minFilter !== NEAREST) {
-            return `texture of type (${level0InternalFormatString}) is not filterable but TEXTURE_MIN_FILTER is set to ${glEnumToString(minFilter)}`;
+            return `texture of type (${baseInternalFormatString}) is not filterable but TEXTURE_MIN_FILTER is set to ${glEnumToString(minFilter)}`;
           } else {
             const magFilter = parameters.get(TEXTURE_MAG_FILTER);
             if (magFilter !== NEAREST) {
-              return `texture of type (${level0InternalFormatString}) is not filterable but TEXTURE_MAG_FILTER is set to ${glEnumToString(magFilter)}`;
+              return `texture of type (${baseInternalFormatString}) is not filterable but TEXTURE_MAG_FILTER is set to ${glEnumToString(magFilter)}`;
             }
           }
         }
@@ -388,13 +393,13 @@ export class TextureManager {
 
       const numMipsNeeded = (minFilter === LINEAR || minFilter === NEAREST)
          ? 1
-         : computeNumMipsNeeded(level0Width, level0Height, level0Depth);
-
+         : computeNumMipsNeeded(baseWidth, baseHeight, baseDepth);
       {
-        let mipWidth = level0Width;
-        let mipHeight = level0Height;
-        let mipDepth = level0Depth;
-        for (let mipLevel = 0; mipLevel < numMipsNeeded; ++mipLevel) {
+        let mipWidth = baseWidth;
+        let mipHeight = baseHeight;
+        let mipDepth = baseDepth;
+        const lastMip = Math.min(maxLevel, baseLevel + numMipsNeeded - 1);
+        for (let mipLevel = baseLevel; mipLevel <= lastMip; ++mipLevel) {
           const faceMips = mips[mipLevel];
           if (!faceMips) {
             return `filtering is set to use mips (TEXTURE_MIN_FILTER = ${glEnumToString(minFilter)}) but mip level ${mipLevel} does not exist`;
@@ -407,10 +412,10 @@ export class TextureManager {
             if (mip.width !== mipWidth ||
                 mip.height !== mipHeight ||
                 mip.depth !== mipDepth) {
-              return `mip level ${mipLevel}${getFaceTarget(face, type)} needs to be ${mipWidth}x${mipHeight}x${mipDepth} but it is ${mip.width}x${mip.height}x${mip.depth}`;
+              return `mip level ${mipLevel}${getFaceTarget(face, type)} needs to be ${getDimensionsString(type, mipWidth, mipHeight, mipDepth)} but it is ${getDimensionsString(type, mip.width, mip.height, mip.depth)}`;
             }
-            if (mip.internalFormatString !== level0InternalFormatString) {
-              return `mip level ${mipLevel}${getFaceTarget(face, type)}'s internal format ${mip.internalFormatString} does not match mip level 0's internal format ${level0InternalFormatString}`;
+            if (mip.internalFormatString !== baseInternalFormatString) {
+              return `mip level ${mipLevel}${getFaceTarget(face, type)}'s internal format ${mip.internalFormatString} does not match mip level 0's internal format ${baseInternalFormatString}`;
             }
           }
           mipWidth = Math.max(1, mipWidth / 2 | 0);
@@ -422,21 +427,21 @@ export class TextureManager {
       }
 
       if (needPOT) {
-        if (!isPowerOf2(level0Width) || !isPowerOf2(level0Height)) {
+        if (!isPowerOf2(baseWidth) || !isPowerOf2(baseHeight)) {
           if (numMipsNeeded > 1) {
-            return `texture's ${getNPotIssues(level0Width, level0Height)} but TEXTURE_MIN_FILTER (${glEnumToString(minFilter)}) is set to need mips`;
+            return `texture's ${getNPotIssues(baseWidth, baseHeight)} but TEXTURE_MIN_FILTER (${glEnumToString(minFilter)}) is set to need mips`;
           }
           const wrapS = parameters.get(TEXTURE_WRAP_S);
           const wrapT = parameters.get(TEXTURE_WRAP_T);
           if (wrapS !== CLAMP_TO_EDGE || wrapT !== CLAMP_TO_EDGE) {
-            return `texture's ${getNPotIssues(level0Width, level0Height)} but ${getClampToEdgeIssues(wrapS, wrapT)}.`;
+            return `texture's ${getNPotIssues(baseWidth, baseHeight)} but ${getClampToEdgeIssues(wrapS, wrapT)}.`;
           }
         }
       }
 
       if (type === TEXTURE_CUBE_MAP) {
-        if (level0Width !== level0Height) {
-          return `texture is CUBE_MAP but dimensions ${level0Width}x${level0Height} are not square`;
+        if (baseWidth !== baseHeight) {
+          return `texture is CUBE_MAP but dimensions ${baseWidth}x${baseHeight} are not square`;
         }
       }
 
@@ -471,16 +476,17 @@ export class TextureManager {
     }
 
     function getInternalFormatStringForTextureInfo(textureInfo) {
-      const {mips} = textureInfo;
-      const level0Faces = mips[0];
-      if (!level0Faces) {
+      const {mips, parameters} = textureInfo;
+      const baseLevel = parameters.get(TEXTURE_BASE_LEVEL) || 0;
+      const baseFaces = mips[baseLevel];
+      if (!baseFaces) {
         return '';
       }
-      const mipFace0 = level0Faces[0];
-      if (!mipFace0) {
+      const baseMipFace = baseFaces[0];
+      if (!baseMipFace) {
         return '';
       }
-      return mipFace0.internalFormatString;
+      return baseMipFace.internalFormatString;
     }
 
     function addInternalFormatStringInfos(type, textureFilterableExtensionName) {
@@ -562,11 +568,20 @@ export class TextureManager {
         return `no texture bound to texture unit ${texUnit} ${target}`;
       }
       const textureInfo = textureToTextureInfoMap.get(texture);
-      if (textureInfo.numberType) {
-        const neededNumberType = getNumberTypeForUniformSamplerType(uniformType);
-        if (textureInfo.numberType !== neededNumberType) {
-          return `uniform ${getUniformTypeForUniformSamplerType(uniformType)} needs a ${neededNumberType} texture but ${getWebGLObjectString(texture)} on texture unit ${texUnit} is ${textureInfo.numberType} texture (${getInternalFormatStringForTextureInfo(textureInfo)})`;
-        }
+      const {mips, parameters} = textureInfo;
+      const baseLevel = parameters.get(TEXTURE_BASE_LEVEL) || 0;
+      const baseLevelFaces = mips[baseLevel];
+      if (!baseLevelFaces) {
+        return 'no mip level 0';
+      }
+      const baseMipFace = baseLevelFaces[0];
+      if (!baseMipFace) {
+        return 'TEXTURE_CUBE_MAP_POSITIVE_X face does not exist';
+      }
+      const textureNumberType = getNumberTypeForInternalFormat(baseMipFace.internalFormat);
+      const neededNumberType = getNumberTypeForUniformSamplerType(uniformType);
+      if (textureNumberType !== neededNumberType) {
+        return `uniform ${getUniformTypeForUniformSamplerType(uniformType)} needs a ${neededNumberType} texture but ${getWebGLObjectString(texture)} on texture unit ${texUnit} is ${textureNumberType} texture (${getInternalFormatStringForTextureInfo(textureInfo)})`;
       }
       const sampler = textureUnits[texUnit].get('SAMPLER');
       if (sampler) {
@@ -583,9 +598,6 @@ export class TextureManager {
     function setMipFaceInfoForTarget(target, level, internalFormat, width, height, depth, type = 0) {
       const internalFormatString = getInternalFormatStringForInternalFormatType(internalFormat, type);
       const textureInfo = getTextureInfoForTarget(target);
-      if (level === 0) {
-        textureInfo.numberType = getNumberTypeForInternalFormat(internalFormat);
-      }
       const {mips} = textureInfo;
       if (!mips[level]) {
         mips[level] = [];
