@@ -9,7 +9,7 @@ import {createContext} from '../webgl.js';
 
 describe('undefined uniform tests', () => {
 
-  it('test it warns when querying the location of an undefined uniform', () => {
+  it('warns when querying the location of an undefined uniform', () => {
     const {gl, tagObject} = createContext();
     const prg = twgl.createProgram(gl, [
       `
@@ -37,7 +37,7 @@ describe('undefined uniform tests', () => {
     assertEqual(loc, null);
   });
 
-  it('test it warns when setting an undefined uniform', () => {
+  it('warns when setting an undefined uniform', () => {
     const {gl, tagObject} = createContext();
     const prg = twgl.createProgram(gl, [
       `
@@ -63,6 +63,34 @@ describe('undefined uniform tests', () => {
       /attempt to set non-existent uniform/,
       /point program/,
     ]);
+  });
+
+  it('does not warn when querying the location of an ignored undefined uniform', () => {
+    const {gl, ext, tagObject} = createContext();
+    ext.setConfiguration({
+      ignoreUniforms: ['badColor'],
+    })
+    const prg = twgl.createProgram(gl, [
+      `
+        void main() {
+           gl_Position = vec4(0, 0, 0, 1);
+        }
+      `,
+      `
+        precision mediump float;
+        uniform vec4 pointColor;
+        void main() {
+          gl_FragColor = pointColor;
+        }
+      `,
+    ]);
+    tagObject(prg, 'point program');
+    gl.useProgram(prg);
+    let loc = 0;
+    assertWarnsWith(() => {
+      loc = gl.getUniformLocation(prg, 'badColor');
+    }, [/^$/]);
+    assertEqual(loc, null);
   });
 
   describe('undefined uniform warnings disabled', () => {

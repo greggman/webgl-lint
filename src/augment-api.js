@@ -848,8 +848,12 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     };
   }
 
+  function isUniformNameIgnored(name) {
+    return ignoredUniforms.has(name);
+  }
+
   function isUniformIgnored(webglUniformLocation) {
-    return ignoredUniforms.has(locationsToNamesMap.get(webglUniformLocation));
+    return isUniformNameIgnored(locationsToNamesMap.get(webglUniformLocation));
   }
 
   function markUniformSetMatrixV(numValuesPer) {
@@ -1026,13 +1030,15 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
         locationsToNamesMap.set(location, name);
         programToLocationsMap.get(program).add(location);
       } else {
-        warnOrThrowFunctionError(
-            ctx,
-            funcName,
-            args,
-            `uniform '${name}' does not exist in ${getWebGLObjectString(program)}`,
-            config.failUndefinedUniforms,
-            config.warnUndefinedUniforms);
+        if (!isUniformNameIgnored(name)) {
+          warnOrThrowFunctionError(
+              ctx,
+              funcName,
+              args,
+              `uniform '${name}' does not exist in ${getWebGLObjectString(program)}`,
+              config.failUndefinedUniforms,
+              config.warnUndefinedUniforms);
+        }
       }
     },
 
