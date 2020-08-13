@@ -1,11 +1,12 @@
 import * as twgl from '../js/twgl-full.module.js';
 import {assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {createContext, gl, tagObject, not} from '../shared.js';
+import {createContext, not} from '../webgl.js';
 
 describe('unset uniform tests', () => {
 
   it('test unset uniforms base', () => {
+    const {gl, tagObject} = createContext();
     const prg = twgl.createProgram(gl, [
       `
         void main() {
@@ -42,6 +43,7 @@ describe('unset uniform tests', () => {
   });
 
   it('test unset uniforms array', () => {
+    const {gl, tagObject} = createContext();
     const prg = twgl.createProgram(gl, [
       `
         void main() {

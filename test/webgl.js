@@ -1,7 +1,5 @@
 /* global document */
 
-import {afterEach} from './mocha-support.js';
-
 export function createContext() {
   const gl = document.createElement('canvas').getContext('webgl');
   const ext = gl.getExtension('GMAN_debug_helper');
@@ -22,15 +20,6 @@ export function createContexts() {
   const {gl: gl2, ext: ext2, tagObject: tagObject2} = createContext2();
   return { gl, gl2, ext, ext2, vaoExt, tagObject, tagObject2 };
 }
-
-export const contexts = createContexts();
-
-const {
-  gl, gl2, ext, ext2, vaoExt, tagObject, tagObject2,
-} = contexts;
-export {
-  gl, gl2, ext, ext2, vaoExt, tagObject, tagObject2,
-};
 
 function resetContext(gl) {
   gl.bindBuffer(gl.ARRAY_BUFFER, null);
@@ -55,11 +44,6 @@ export function resetContexts(context) {
     resetContext(gl2);
   }
 }
-
-afterEach(() => {
-  resetContexts(contexts);
-});
-
 
 export function escapeRE(str) {
     return str.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');

@@ -1,11 +1,12 @@
 import * as twgl from '../js/twgl-full.module.js';
 import {assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {gl, tagObject} from '../shared.js';
+import {createContext} from '../webgl.js';
 
 describe('uniformXXv tests', () => {
 
   it('test arrays when uniformXXv has offset', () => {
+    const {gl, tagObject} = createContext();
     const prg = twgl.createProgram(gl, [
       `
         void main() {
@@ -31,6 +32,7 @@ describe('uniformXXv tests', () => {
   });
 
   it('test arrays when uniformXXv has offset and length', () => {
+    const {gl, tagObject} = createContext();
     const prg = twgl.createProgram(gl, [
       `
         void main() {

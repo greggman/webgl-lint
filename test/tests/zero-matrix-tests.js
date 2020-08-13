@@ -1,11 +1,12 @@
 import * as twgl from '../js/twgl-full.module.js';
 import {assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {createContext, gl, tagObject, not} from '../shared.js';
+import {createContext, not} from '../webgl.js';
 
 describe('zero matrix tests', () => {
 
   it('test zero matrix', () => {
+    const {gl, tagObject} = createContext();
     const prg = twgl.createProgram(gl, [
       `
         attribute vec4 position;

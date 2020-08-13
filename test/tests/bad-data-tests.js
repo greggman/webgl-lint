@@ -1,10 +1,11 @@
 import {assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {gl, tagObject} from '../shared.js';
+import {createContext} from '../webgl.js';
 
 describe('bad data tests', () => {
 
   it('test bad vertex data', () => {
+    const {gl, tagObject} = createContext();
     const buf = gl.createBuffer();
     tagObject(buf, 'positions-buffer');
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -18,6 +19,7 @@ describe('bad data tests', () => {
   });
 
   it('test bad texture data', () => {
+    const {gl, tagObject} = createContext();
     const ext = gl.getExtension('OES_texture_float');
     if (!ext) {
       return;

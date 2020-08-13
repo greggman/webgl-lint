@@ -1,10 +1,11 @@
-import {gl} from '../shared.js';
+import {createContext} from '../webgl.js';
 import {assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
 
 describe('extension enum test', () => {
 
   it('test extension enums', () => {
+    const {gl} = createContext();
     const ext = gl.getExtension('OES_standard_derivatives');
     if (!ext) {
       throw new Error('FRAGMENT_SHADER_DERIVATIVE_HINT_OES');

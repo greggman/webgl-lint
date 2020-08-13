@@ -5,11 +5,12 @@ import {
   assertWarnsWith,
 } from '../assert.js';
 import {before, describe, it} from '../mocha-support.js';
-import {gl, tagObject, createContext} from '../shared.js';
+import {createContext} from '../webgl.js';
 
 describe('undefined uniform tests', () => {
 
   it('test it warns when querying the location of an undefined uniform', () => {
+    const {gl, tagObject} = createContext();
     const prg = twgl.createProgram(gl, [
       `
         void main() {
@@ -37,6 +38,7 @@ describe('undefined uniform tests', () => {
   });
 
   it('test it warns when setting an undefined uniform', () => {
+    const {gl, tagObject} = createContext();
     const prg = twgl.createProgram(gl, [
       `
         void main() {

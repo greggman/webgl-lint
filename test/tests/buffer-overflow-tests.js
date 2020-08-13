@@ -1,11 +1,12 @@
 import * as twgl from '../js/twgl-full.module.js';
 import {assertIfThrowsItThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {gl, tagObject} from '../shared.js';
+import {createContext} from '../webgl.js';
 
 describe('buffer overflow tests', () => {
 
   it('test buffer overflow with drawArrays', () => {
+    const {gl, tagObject} = createContext();
     const vs = `
     attribute vec4 position;
     attribute vec2 texcoord;
@@ -73,6 +74,7 @@ describe('buffer overflow tests', () => {
   });
 
   it('test buffer overflow with drawElements', () => {
+    const {gl, tagObject} = createContext();
     const vs = `
     attribute vec4 position;
     attribute vec2 texcoord;
@@ -141,6 +143,7 @@ describe('buffer overflow tests', () => {
   });
 
   it('test buffer overflow with drawArraysInstanced', () => {
+    const {gl, tagObject} = createContext();
     const vs = `
     attribute vec4 position;
     attribute vec2 texcoord;

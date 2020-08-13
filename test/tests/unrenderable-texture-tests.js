@@ -6,8 +6,7 @@ import {
   createContext2,
   createContexts,
   resetContexts,
-  contexts as globalContexts,
-} from '../shared.js';
+} from '../webgl.js';
 
 describe('unrenderable texture tests', () => {
 
@@ -353,7 +352,13 @@ describe('unrenderable texture tests', () => {
   }
 
   describe('unrenderable tests', () => {
-    addTests(globalContexts);
+    const contexts = {};
+
+    before(() => {
+      Object.assign(contexts, createContexts());
+    });
+
+    addTests(contexts);
   });
 
   describe('unrenderable tests disabled', () => {

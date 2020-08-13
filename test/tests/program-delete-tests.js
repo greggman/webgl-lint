@@ -1,10 +1,11 @@
 import * as twgl from '../js/twgl-full.module.js';
 import {describe, it} from '../mocha-support.js';
-import {gl, tagObject} from '../shared.js';
+import {createContext} from '../webgl.js';
 
 describe('program re-link/delete tests', () => {
 
   it('test program re-link/delete', () => {
+    const {gl, tagObject} = createContext();
     const vs = `
     attribute vec4 position;
     attribute vec2 texcoord;

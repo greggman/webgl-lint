@@ -1,7 +1,7 @@
 import * as twgl from '../js/twgl-full.module.js';
 import {assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {createContext2} from '../shared.js';
+import {createContext2} from '../webgl.js';
 
 describe('draw reports program and vao tests', () => {
 

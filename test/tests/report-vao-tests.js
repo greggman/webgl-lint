@@ -1,10 +1,11 @@
 import {assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {gl, tagObject} from '../shared.js';
+import {createContext} from '../webgl.js';
 
 describe('report vao tests', () => {
 
   it('test vertex func reports vao', () => {
+    const {gl, tagObject} = createContext();
     const ext = gl.getExtension('OES_vertex_array_object');
     if (!ext) {
       throw new Error('sphere-data'); // something to satisfy test.
@@ -21,6 +22,7 @@ describe('report vao tests', () => {
   });
 
   it('test vertex func reports vao 2', () => {
+    const {gl, tagObject} = createContext();
     const ext = gl.getExtension('OES_vertex_array_object');
     if (!ext) {
       throw new Error('sphere-data'); // something to satisfy test.

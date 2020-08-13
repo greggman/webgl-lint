@@ -1,11 +1,12 @@
 import * as twgl from '../js/twgl-full.module.js';
 import {assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {gl, tagObject} from '../shared.js';
+import {createContext} from '../webgl.js';
 
 describe('namings test', () => {
 
   it('test naming objects', () => {
+    const {gl, tagObject} = createContext();
     // console.assert(gl.getExtension('OES_vertex_array_objects') === gl.getExtension('OES_vertex_array_objects'));
     // console.assert(gl.getSupportedExtensions().includes('GMAN_debug_helper'));
     const p = gl.createProgram();
@@ -16,6 +17,7 @@ describe('namings test', () => {
   });
 
   it('test getting names of uniforms', () => {
+    const {gl, tagObject} = createContext();
     const prg = twgl.createProgram(gl, [
       `
         void main() {
@@ -40,6 +42,7 @@ describe('namings test', () => {
   });
 
   it('test large uniform', () => {
+    const {gl, tagObject} = createContext();
     const prg = twgl.createProgram(gl, [
       `
         void main() {

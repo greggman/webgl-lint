@@ -1,9 +1,13 @@
 import {assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {gl2 as gl, tagObject2 as tagObject} from '../shared.js';
+import {createContext2} from '../webgl.js';
 
 describe('arrays with offsets', () => {
   it('test bufferData with offset and length', () => {
+    const {gl, tagObject} = createContext2();
+    if (!gl) {
+      return;
+    }
     const buf = gl.createBuffer();
     tagObject(buf, 'test-buf');
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -24,6 +28,10 @@ describe('arrays with offsets', () => {
   });
 
   it('test bufferSubData with offset and length', () => {
+    const {gl, tagObject} = createContext2();
+    if (!gl) {
+      return;
+    }
     const buf = gl.createBuffer();
     tagObject(buf, 'test-buf');
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);

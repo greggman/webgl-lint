@@ -1,10 +1,11 @@
 import * as twgl from '../js/twgl-full.module.js';
 import assert from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {gl, tagObject} from '../shared.js';
+import {createContext} from '../webgl.js';
 
 describe('uniform mismatch tests', () => {
   it('test uniform mis-match', () => {
+    const {gl, tagObject} = createContext();
     const prg = twgl.createProgram(gl, [
       `
         void main() {

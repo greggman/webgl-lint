@@ -1,7 +1,7 @@
 import * as twgl from '../js/twgl-full.module.js';
 import {assertEqual, assertNotEqual} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {createContext} from '../shared.js';
+import {createContext} from '../webgl.js';
 
 describe('disable tests', () => {
 
