@@ -17,6 +17,8 @@ to check for common WebGL errors.
 
 * Checks that uniform arrays are not all zero.
 
+* Warns if you try to access an undefined uniform.
+
 * If there is a WebGL error it tries to provide more info about why
 
   * for framebuffer feedback it will tell you which texture assigned to which uniform and which attachment
