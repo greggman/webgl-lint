@@ -1,9 +1,13 @@
-/* global document */
-
 import * as twgl from '../js/twgl-full.module.js';
 import {assertThrowsWith} from '../assert.js';
 import {before, afterEach, describe, it} from '../mocha-support.js';
-import {createContexts, resetContexts, contexts as globalContexts} from '../shared.js';
+import {
+  createContext,
+  createContext2,
+  createContexts,
+  resetContexts,
+  contexts as globalContexts,
+} from '../shared.js';
 
 describe('unrenderable texture tests', () => {
 
@@ -115,9 +119,7 @@ describe('unrenderable texture tests', () => {
     });
 
     it('test float texture filtering webgl1', () => {
-      const gl = document.createElement('canvas').getContext('webgl');
-      const ext = gl.getExtension('GMAN_debug_helper');
-      const tagObject = ext ? ext.tagObject.bind(ext) : () => {};
+      const {gl, tagObject} = createContext();
 
       const tex = gl.createTexture();
       tagObject(tex, 'floatTex');
@@ -166,12 +168,10 @@ describe('unrenderable texture tests', () => {
     });
 
     it('test float texture filtering webgl2', () => {
-      const gl = document.createElement('canvas').getContext('webgl2');
+      const {gl, tagObject} = createContext2();
       if (!gl) {
         return;
       }
-      const ext = gl.getExtension('GMAN_debug_helper');
-      const tagObject = ext ? ext.tagObject.bind(ext) : () => {};
 
       const tex = gl.createTexture();
       tagObject(tex, 'floatTex');

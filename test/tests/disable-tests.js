@@ -1,18 +1,15 @@
-/* global document */
-
 import * as twgl from '../js/twgl-full.module.js';
 import {assertEqual, assertNotEqual} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
+import {createContext} from '../shared.js';
 
 describe('disable tests', () => {
 
   it('test disable', () => {
-    const gl = document.createElement('canvas').getContext('webgl');
-    const ext = gl.getExtension('GMAN_debug_helper');
+    const {gl, ext, vaoExt} = createContext();
     if (!ext) {
       return;
     }
-    const vaoExt = gl.getExtension('OES_vertex_array_objects');
     const before = gl.bufferData.toString();
     const beforeVAO = vaoExt ? vaoExt.createVertexArrayOES.toString() : 'b4';
     ext.disable();
@@ -23,8 +20,7 @@ describe('disable tests', () => {
   });
 
   it('test disable on maxDrawCalls', () => {
-    const gl = document.createElement('canvas').getContext('webgl');
-    const ext = gl.getExtension('GMAN_debug_helper');
+    const {gl, ext} = createContext();
     if (!ext) {
       return;
     }

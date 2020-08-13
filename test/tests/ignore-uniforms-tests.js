@@ -1,17 +1,14 @@
-/* global document */
-
 import * as twgl from '../js/twgl-full.module.js';
 import {describe, it} from '../mocha-support.js';
+import {createContext} from '../shared.js';
 
 describe('ignore uniforms test', () => {
 
   it('test ignore uniforms', () => {
-    const gl = document.createElement('canvas').getContext('webgl');
-    const ext = gl.getExtension('GMAN_debug_helper');
+    const {gl, ext, tagObject} = createContext();
     if (ext) {
       ext.setConfiguration({ignoreUniforms: ['perspective']});
     }
-    const tagObject = ext ? ext.tagObject.bind(ext) : () => {};
     const prg = twgl.createProgram(gl, [
       `
         attribute vec4 position;

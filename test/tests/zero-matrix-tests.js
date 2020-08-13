@@ -1,9 +1,7 @@
-/* global document */
-
 import * as twgl from '../js/twgl-full.module.js';
 import {assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {gl, tagObject, not} from '../shared.js';
+import {createContext, gl, tagObject, not} from '../shared.js';
 
 describe('zero matrix tests', () => {
 
@@ -54,12 +52,10 @@ describe('zero matrix tests', () => {
   });
 
   it('test zero matrix disabled', () => {
-    const gl = document.createElement('canvas').getContext('webgl');
-    const ext = gl.getExtension('GMAN_debug_helper');
+    const {gl, ext, tagObject} = createContext();
     if (ext) {
       ext.setConfiguration({failZeroMatrixUniforms: false});
     }
-    const tagObject = ext ? ext.tagObject.bind(ext) : () => {};
     const prg = twgl.createProgram(gl, [
       `
         attribute vec4 position;

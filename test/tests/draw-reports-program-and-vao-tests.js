@@ -1,18 +1,15 @@
-/* global document */
-
 import * as twgl from '../js/twgl-full.module.js';
 import {assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
+import {createContext2} from '../shared.js';
 
 describe('draw reports program and vao tests', () => {
 
   it('test drawArrays with bad enum reports program and vao', () => {
-    const gl = document.createElement('canvas').getContext('webgl2');
+    const {gl, tagObject} = createContext2();
     if (!gl) {
       throw new Error('drawArraysBE vaoBE');
     }
-    const ext = gl.getExtension('GMAN_debug_helper');
-    const tagObject = ext ? ext.tagObject.bind(ext) : () => {};
 
     const vs = `
     attribute vec4 position;

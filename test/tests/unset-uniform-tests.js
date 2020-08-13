@@ -1,9 +1,7 @@
-/* global document */
-
 import * as twgl from '../js/twgl-full.module.js';
 import {assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {gl, tagObject, not} from '../shared.js';
+import {createContext, gl, tagObject, not} from '../shared.js';
 
 describe('unset uniform tests', () => {
 
@@ -84,12 +82,10 @@ describe('unset uniform tests', () => {
   });
 
   it('test unset uniform sampler', () => {
-    const gl = document.createElement('canvas').getContext('webgl');
-    const ext = gl.getExtension('GMAN_debug_helper');
+    const {gl, ext, tagObject} = createContext();
     if (ext) {
       ext.setConfiguration({failUnsetSamplerUniforms: true});
     }
-    const tagObject = ext ? ext.tagObject.bind(ext) : () => {};
     const prg = twgl.createProgram(gl, [
       `
         void main() {
