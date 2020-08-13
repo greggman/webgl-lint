@@ -1,5 +1,5 @@
 import * as twgl from '../js/twgl-full.module.js';
-import {assertIfThrowsItThrowsWith} from '../assert.js';
+import {assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
 import {createContext} from '../webgl.js';
 
@@ -68,7 +68,7 @@ describe('buffer overflow tests', () => {
     // either limited internally (eg. `ndx = clamp(ndx, 0, maxIndex)`)
     // or if the out of bounds access only accesses data provided by
     // the page itself. (eg. `ndx = ndx % bufferLength`)
-    assertIfThrowsItThrowsWith(() => {
+    assertThrowsWith(() => {
       gl.drawArrays(gl.TRIANGLES, 0, 3); // buffer overflow
     }, [/drawArraysPrg/, /"texcoord"/, /attribute 'texcoord'/]);
   });
@@ -137,7 +137,7 @@ describe('buffer overflow tests', () => {
 
     gl.useProgram(prg);
 
-    assertIfThrowsItThrowsWith(() => {
+    assertThrowsWith(() => {
       gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_SHORT, 0); // buffer overflow
     }, [/drawElementsPrg/, /"texcoord"/, /attribute 'texcoord'/]);
   });
@@ -215,7 +215,7 @@ describe('buffer overflow tests', () => {
     // either limited internally (eg. `ndx = clamp(ndx, 0, maxIndex)`)
     // or if the out of bounds access only accesses data provided by
     // the page itself. (eg. `ndx = ndx % bufferLength`)
-    assertIfThrowsItThrowsWith(() => {
+    assertThrowsWith(() => {
       ext.drawArraysInstancedANGLE(gl.TRIANGLES, 0, 3, 4); // 1 too many instances
     }, [/drawArraysInstancedPrg/, /"color"/, /attribute 'color'/]);
   });

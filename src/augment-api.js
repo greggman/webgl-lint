@@ -1511,6 +1511,12 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     ctx[funcName] = function(...args) {
       preCheck(ctx, funcName, args);
       checkArgs(ctx, funcName, args);
+      if (sharedState.currentProgram && isDrawFunction(funcName)) {
+        const msgs = checkAttributesForBufferOverflow(baseContext, funcName, args, getWebGLObjectString, getIndicesForBuffer);
+        if (msgs.length) {
+          reportFunctionError(ctx, funcName, args, msgs.join('\n'));
+        }
+      }
       const result = origFn.call(ctx, ...args);
       const gl = baseContext;
       const err = origGLErrorFn.call(gl);
@@ -1518,10 +1524,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
         glErrorShadow[err] = true;
         const msgs = [glEnumToString(err)];
         if (isDrawFunction(funcName)) {
-          const program = gl.getParameter(gl.CURRENT_PROGRAM);
-          if (program) {
+          if (sharedState.currentProgram) {
             msgs.push(...checkFramebufferFeedback(gl, getWebGLObjectString));
-            msgs.push(...checkAttributesForBufferOverflow(gl, funcName, args, getWebGLObjectString, getIndicesForBuffer));
           }
         }
         reportFunctionError(ctx, funcName, args, msgs.join('\n'));
