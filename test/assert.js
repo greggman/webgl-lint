@@ -68,14 +68,7 @@ export function assertThrowsWith(func, expectations, msg = '') {
     return;
   }
 
-  const actualNoBreaks = error.toString().replace(/\n/g, ' ');
-  for (const expectation of expectations) {
-    if (expectation instanceof RegExp) {
-      if (!expectation.test(actualNoBreaks)) {
-        throw new Error(`${formatMsg(msg)}expected: ${expectation}, actual: ${error}`);
-      }
-    }
-  }
+  assertStringMatchesREs(error.toString().replace(/\n/g, ' '), expectations, msg);
 }
 
 // check if it throws it throws with x
@@ -113,14 +106,7 @@ export function assertIfThrowsItThrowsWith(func, expectations, msg = '') {
     return;
   }
 
-  const actualNoBreaks = error.toString().replace(/\n/g, ' ');
-  for (const expectation of expectations) {
-    if (expectation instanceof RegExp) {
-      if (!expectation.test(actualNoBreaks)) {
-        throw new Error(`${formatMsg(msg)}expected: ${expectation}, actual: ${error}`);
-      }
-    }
-  }
+  assertStringMatchesREs(error.toString().replace(/\n/g, ' '), expectations, msg);
 }
 
 function assertStringMatchesREs(actual, expectations, msg) {
