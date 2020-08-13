@@ -64,7 +64,7 @@
         throwOnError,
       });
       if (lint) {
-        const src = query.src ? '../src/wrap.js' : '../webgl-lint.js';
+        const src = query.src ? '../src/webgl-lint.js' : '../webgl-lint.js';
         await loadScript(src, 'module');
       }
       loadScript('index.js', 'module');
