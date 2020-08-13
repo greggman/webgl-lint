@@ -684,11 +684,11 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
   function checkMaxDrawCallsAndZeroCount(gl, funcName, args) {
     const {vertCount, instances} = getDrawFunctionArgs(funcName, args);
     if (vertCount === 0) {
-      console.warn(`count for ${funcName} is 0!`);
+      console.warn(generateFunctionError(gl, funcName, args, `count for ${funcName} is 0!`));
     }
 
     if (instances === 0) {
-      console.warn(`instanceCount for ${funcName} is 0!`);
+      console.warn(generateFunctionError(gl, funcName, args, `instanceCount for ${funcName} is 0!`));
     }
 
     --config.maxDrawCalls;
@@ -709,6 +709,14 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
       throw new Error(msg);
     } else {
       console.error(msg);
+    }
+  }
+
+  function throwOrWarn(throws, warns, msg) {
+    if (throws) {
+      reportError(msg);
+    } else if (warns) {
+      console.warn(msg);
     }
   }
 
@@ -799,6 +807,10 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
   };
 
   function markUniformRangeAsSet(webGLUniformLocation, count) {
+    if (!webGLUniformLocation) {
+      throwOrWarn(config.failUndefinedUniforms, config.warnUndefinedUniforms, `attempt to set non-existent uniform on ${getWebGLObjectString(sharedState.currentProgram)}`);
+      return;
+    }
     const unsetUniforms = programToUnsetUniformsMap.get(sharedState.currentProgram);
     if (!unsetUniforms) {
       // no unset uniforms
@@ -1013,6 +1025,14 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
       if (location) {
         locationsToNamesMap.set(location, name);
         programToLocationsMap.get(program).add(location);
+      } else {
+        warnOrThrowFunctionError(
+            ctx,
+            funcName,
+            args,
+            `uniform '${name}' does not exist in ${getWebGLObjectString(program)}`,
+            config.failUndefinedUniforms,
+            config.warnUndefinedUniforms);
       }
     },
 
@@ -1363,7 +1383,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     return stringifiedArgs.join(', ');
   }
 
-  function reportFunctionError(ctx, funcName, args, msg) {
+  function generateFunctionError(ctx, funcName, args, msg) {
     const gl = baseContext;
     const msgs = [msg];
     const funcInfos = glFunctionInfos[funcName];
@@ -1385,9 +1405,17 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
       msgs.push(`with ${vao ? vaoName : 'the default vertex array'} bound`);
     }
     const stringifiedArgs = glFunctionArgsToString(ctx, funcName, args);
-    const errorMsg = `error in ${funcName}(${stringifiedArgs}): ${msgs.join('\n')}`;
-    reportError(errorMsg);
+    return `error in ${funcName}(${stringifiedArgs}): ${msgs.join('\n')}`;
   }
+
+  function warnOrThrowFunctionError(ctx, funcName, args, msg, throws, warns) {
+    throwOrWarn(throws, warns, generateFunctionError(ctx, funcName, args, msg));
+  }
+
+  function reportFunctionError(ctx, funcName, args, msg) {
+    reportError(generateFunctionError(ctx, funcName, args, msg));
+  }
+
 
   function checkArgs(ctx, funcName, args) {
     const funcInfos = glFunctionInfos[funcName];

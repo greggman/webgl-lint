@@ -124,6 +124,28 @@ for special needs.
   zero matrix. If you have a reason a matrix needs to be all zeros you may want
   to turn this off. 
 
+* `failUndefinedUniforms`: (default: false)
+
+  WebGL by default returns `null` when you call `gl.getUniformLocation` for
+  a uniform that does not exist. It then silently ignores calling `gl.uniformXXX`
+  if the location is `null`. This is great when you're editing a shader in that
+  if you remove a uniform from the shader your code will keep working. For example
+  if you go to the bottom of your fragment shader and add `gl_FragColor = vec4(1, 0, 0, 1);`
+  just as a sanity check all the uniforms in your fragment shader will be optimized
+  out. If WebGL suddenly issues errors trying to set those it would be much more
+  frustrating to debug. Conversely though, if you have a typo, for example you
+  want to look up the location of `'color'` and you type
+  `gl.getUniformLocation(prg, 'colour')` you'll get no error and it will likely
+  take you a while to find your typo.
+
+  So, by default webgl-lint only prints a warning. You can make throw by
+  setting `failUndefinedUniforms` to `true`.
+
+* `warnUndefinedUniforms`: (default: true)
+
+  See `failUndefinedUniforms`. Setting this to false turns off warnings
+  about undefined uniforms.
+
 * `ignoreUniforms`: (default: [])
 
   Lets out configure certain uniforms not to be checked. This why you can turn

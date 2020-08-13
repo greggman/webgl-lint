@@ -10,15 +10,33 @@ function formatMsg(msg) {
   return `${msg}${msg ? ': ' : ''}`;
 }
 
+export function assertTruthy(actual, msg = '') {
+  if (!config.noLint && !actual) {
+    throw new Error(`${formatMsg(msg)}expected: truthy, actual: ${actual}`);
+  }
+}
+
+export function assertFalsy(actual, msg = '') {
+  if (!config.noLint && actual) {
+    throw new Error(`${formatMsg(msg)}expected: falsy, actual: ${actual}`);
+  }
+}
+
+export function assertStringMatchesRegEx(actual, regex, msg = '') {
+  if (!config.noLint && !regex.test(actual)) {
+    throw new Error(`${formatMsg(msg)}expected: ${regex}, actual: ${actual}`);
+  }
+}
+
 export function assertEqual(actual, expected, msg = '') {
   if (!config.noLint && actual !== expected) {
-    throw new Error(`${formatMsg(msg)}expected: ${expected} to no equal actual: ${actual}`);
+    throw new Error(`${formatMsg(msg)}expected: ${expected} to equal actual: ${actual}`);
   }
 }
 
 export function assertNotEqual(actual, expected, msg = '') {
   if (!config.noLint && actual === expected) {
-    throw new Error(`${formatMsg(msg)}expected: ${expected} to no equal actual: ${actual}`);
+    throw new Error(`${formatMsg(msg)}expected: ${expected} to not equal actual: ${actual}`);
   }
 }
 
@@ -105,8 +123,45 @@ export function assertIfThrowsItThrowsWith(func, expectations, msg = '') {
   }
 }
 
+function assertStringMatchesREs(actual, expectations, msg) {
+  for (const expectation of expectations) {
+    if (expectation instanceof RegExp) {
+      if (!expectation.test(actual)) {
+        throw new Error(`${formatMsg(msg)}expected: ${expectation}, actual: ${actual}`);
+      }
+    }
+  }
+
+}
+export function assertWarnsWith(func, expectations, msg = '') {
+  const warnings = [];
+  const origWarnFn = console.warn;
+  console.warn = function(...args) {
+    origWarnFn.call(this, ...args);
+    warnings.push(args.join(' '));
+  };
+
+  let error;
+  try {
+    func();
+  } catch (e) {
+    error = e;
+  }
+
+  console.warn = origWarnFn;
+
+  if (error) {
+    throw error;
+  }
+
+  assertStringMatchesREs(warnings.join(' '), expectations, msg);
+}
+
 export default {
+  false: assertFalsy,
   equal: assertEqual,
+  matchesRegEx: assertStringMatchesRegEx,
   notEqual: assertNotEqual,
   throwsWith: assertThrowsWith,
+  true: assertTruthy,
 };

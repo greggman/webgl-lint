@@ -44,6 +44,8 @@ function wrapGetContext(Ctor) {
         failUnsetSamplerUniforms: false,
         failZeroMatrixUniforms: true,
         failUnrenderableTextures: true,
+        failUndefinedUniforms: false,
+        warnUndefinedUniforms: true,
         ignoreUniforms: [],
       };
       augmentAPI(ctx, type, config);
