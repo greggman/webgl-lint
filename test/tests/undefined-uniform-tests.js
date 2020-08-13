@@ -67,9 +67,11 @@ describe('undefined uniform tests', () => {
 
   it('does not warn when querying the location of an ignored undefined uniform', () => {
     const {gl, ext, tagObject} = createContext();
-    ext.setConfiguration({
-      ignoreUniforms: ['badColor'],
-    })
+    if (ext) {
+      ext.setConfiguration({
+        ignoreUniforms: ['badColor'],
+      });
+    }
     const prg = twgl.createProgram(gl, [
       `
         void main() {
@@ -100,9 +102,11 @@ describe('undefined uniform tests', () => {
 
     before(() => {
       const {gl: _gl, ext, tagObject: _tagObject} = createContext();
-      ext.setConfiguration({
-        warnUndefinedUniforms: false,
-      });
+      if (ext) {
+        ext.setConfiguration({
+          warnUndefinedUniforms: false,
+        });
+      }
       gl = _gl;
       tagObject = _tagObject;
     });
@@ -164,9 +168,11 @@ describe('undefined uniform tests', () => {
 
     before(() => {
       const {gl: _gl, ext, tagObject: _tagObject} = createContext();
-      ext.setConfiguration({
-        failUndefinedUniforms: true,
-      });
+      if (ext) {
+        ext.setConfiguration({
+          failUndefinedUniforms: true,
+        });
+      }
       gl = _gl;
       tagObject = _tagObject;
     });

@@ -140,6 +140,10 @@ export function assertWarnsWith(func, expectations, msg = '') {
     throw error;
   }
 
+  if (config.noLint) {
+    return;
+  }
+
   assertStringMatchesREs(warnings.join(' '), expectations, msg);
 }
 
