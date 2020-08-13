@@ -1,4 +1,4 @@
-/* webgl-lint@1.5.0, license MIT */
+/* webgl-lint@1.6.0, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -2302,8 +2302,12 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       };
     }
 
+    function isUniformNameIgnored(name) {
+      return ignoredUniforms.has(name);
+    }
+
     function isUniformIgnored(webglUniformLocation) {
-      return ignoredUniforms.has(locationsToNamesMap.get(webglUniformLocation));
+      return isUniformNameIgnored(locationsToNamesMap.get(webglUniformLocation));
     }
 
     function markUniformSetMatrixV(numValuesPer) {
@@ -2480,13 +2484,15 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           locationsToNamesMap.set(location, name);
           programToLocationsMap.get(program).add(location);
         } else {
-          warnOrThrowFunctionError(
-              ctx,
-              funcName,
-              args,
-              `uniform '${name}' does not exist in ${getWebGLObjectString(program)}`,
-              config.failUndefinedUniforms,
-              config.warnUndefinedUniforms);
+          if (!isUniformNameIgnored(name)) {
+            warnOrThrowFunctionError(
+                ctx,
+                funcName,
+                args,
+                `uniform '${name}' does not exist in ${getWebGLObjectString(program)}`,
+                config.failUndefinedUniforms,
+                config.warnUndefinedUniforms);
+          }
         }
       },
 
@@ -2959,6 +2965,12 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       ctx[funcName] = function(...args) {
         preCheck(ctx, funcName, args);
         checkArgs(ctx, funcName, args);
+        if (sharedState.currentProgram && isDrawFunction(funcName)) {
+          const msgs = checkAttributesForBufferOverflow(baseContext, funcName, args, getWebGLObjectString, getIndicesForBuffer);
+          if (msgs.length) {
+            reportFunctionError(ctx, funcName, args, msgs.join('\n'));
+          }
+        }
         const result = origFn.call(ctx, ...args);
         const gl = baseContext;
         const err = origGLErrorFn.call(gl);
@@ -2966,10 +2978,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           glErrorShadow[err] = true;
           const msgs = [glEnumToString(err)];
           if (isDrawFunction(funcName)) {
-            const program = gl.getParameter(gl.CURRENT_PROGRAM);
-            if (program) {
+            if (sharedState.currentProgram) {
               msgs.push(...checkFramebufferFeedback(gl, getWebGLObjectString));
-              msgs.push(...checkAttributesForBufferOverflow(gl, funcName, args, getWebGLObjectString, getIndicesForBuffer));
             }
           }
           reportFunctionError(ctx, funcName, args, msgs.join('\n'));
