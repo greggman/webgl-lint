@@ -1,4 +1,4 @@
-/* webgl-lint@1.4.0, license MIT */
+/* webgl-lint@1.5.0, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
