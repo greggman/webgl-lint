@@ -1,5 +1,5 @@
 import * as twgl from '../js/twgl-full.module.js';
-import {assertThrowsWith} from '../assert.js';
+import {assertIfThrowsItThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
 import {gl, tagObject} from '../shared.js';
 
@@ -61,7 +61,13 @@ describe('buffer overflow tests', () => {
     makeBuffer(gl, prg, 'color', 4, colors);
 
     gl.useProgram(prg);
-    assertThrowsWith(() => {
+    // an implementation is allowed to not generate an error
+    // for out of bounds access if the guarantees that out of bounds
+    // access is safe. In other words if the out of bound access is
+    // either limited internally (eg. `ndx = clamp(ndx, 0, maxIndex)`)
+    // or if the out of bounds access only accesses data provided by
+    // the page itself. (eg. `ndx = ndx % bufferLength`)
+    assertIfThrowsItThrowsWith(() => {
       gl.drawArrays(gl.TRIANGLES, 0, 3); // buffer overflow
     }, [/drawArraysPrg/, /"texcoord"/, /attribute 'texcoord'/]);
   });
@@ -129,7 +135,7 @@ describe('buffer overflow tests', () => {
 
     gl.useProgram(prg);
 
-    assertThrowsWith(() => {
+    assertIfThrowsItThrowsWith(() => {
       gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_SHORT, 0); // buffer overflow
     }, [/drawElementsPrg/, /"texcoord"/, /attribute 'texcoord'/]);
   });
@@ -200,7 +206,13 @@ describe('buffer overflow tests', () => {
     makeBufferAndSetAttrib(gl, prg, 'color', 4, colors, 1);
 
     gl.useProgram(prg);
-    assertThrowsWith(() => {
+    // an implementation is allowed to not generate an error
+    // for out of bounds access if the guarantees that out of bounds
+    // access is safe. In other words if the out of bound access is
+    // either limited internally (eg. `ndx = clamp(ndx, 0, maxIndex)`)
+    // or if the out of bounds access only accesses data provided by
+    // the page itself. (eg. `ndx = ndx % bufferLength`)
+    assertIfThrowsItThrowsWith(() => {
       ext.drawArraysInstancedANGLE(gl.TRIANGLES, 0, 3, 4); // 1 too many instances
     }, [/drawArraysInstancedPrg/, /"color"/, /attribute 'color'/]);
   });

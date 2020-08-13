@@ -60,6 +60,51 @@ export function assertThrowsWith(func, expectations, msg = '') {
   }
 }
 
+// check if it throws it throws with x
+export function assertIfThrowsItThrowsWith(func, expectations, msg = '') {
+  let error = '';
+  let threw = false;
+  if (config.throwOnError === false) {
+    const origFn = console.error;
+    const errors = [];
+    console.error = function(...args) {
+      errors.push(args.join(' '));
+    };
+    func();
+    console.error = origFn;
+    if (errors.length) {
+      error = errors.join('\n');
+      console.error(error);
+    }
+  } else {
+    try {
+      func();
+    } catch (e) {
+      console.error(e);  // eslint-disable-line
+      error = e;
+      threw = true;
+    }
+
+  }
+
+  if (config.noLint) {
+    return;
+  }
+
+  if (!threw) {
+    return;
+  }
+
+  const actualNoBreaks = error.toString().replace(/\n/g, ' ');
+  for (const expectation of expectations) {
+    if (expectation instanceof RegExp) {
+      if (!expectation.test(actualNoBreaks)) {
+        throw new Error(`${formatMsg(msg)}expected: ${expectation}, actual: ${error}`);
+      }
+    }
+  }
+}
+
 export default {
   equal: assertEqual,
   notEqual: assertNotEqual,
