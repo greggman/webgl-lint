@@ -19,18 +19,20 @@ to check for common WebGL errors.
 
 * Warns if you try to access an undefined uniform.
 
+* Checks for out of range access issues and will tell you which attribute/s are out of range
+
 * If there is a WebGL error it tries to provide more info about why
 
   * for framebuffer feedback it will tell you which texture assigned to which uniform and which attachment
   
-  * access out of range issues, it will tell you which attribute/s are out of range
-
   * for other errors it will try print extra info where possible.
+
+  * it lets you name webgl objects so those names can be shown in the error messages.
 
 ## Example
 
-Open the JavaScript console. You'll see first example prints fewer errors and less info
-where as the second prints much more info.
+**Open the JavaScript console**. You'll see the first example prints fewer
+errors and less info where as the second prints much more info.
 
 * [without script](https://greggman.github.io/webgl-lint/test/?lint=false)
 * [with script](https://greggman.github.io/webgl-lint/test/)
@@ -115,33 +117,27 @@ for special needs.
   just telling you an unrenderable texture exists but not much else.
 
   Examples of unrenderable textures are non-power of 2 textures in WebGL1
-  with filtering set to need mips are wrap not set to `CLAMP_TO_EDGE` or
+  with filtering set to need mips and wrap not set to `CLAMP_TO_EDGE` or
   in both WebGL and WebGL2 would be mips of different internal formats
   or the wrong size.
-
-* `failZeroMatrixUniforms`: (default: true)
-
-  Checks that a uniform matrix not all zeros. It's a common source of errors to
-  forget to set a matrix to the identity and it seems uncommon to have an all
-  zero matrix. If you have a reason a matrix needs to be all zeros you may want
-  to turn this off. 
 
 * `failUndefinedUniforms`: (default: false)
 
   WebGL by default returns `null` when you call `gl.getUniformLocation` for
   a uniform that does not exist. It then silently ignores calling `gl.uniformXXX`
   if the location is `null`. This is great when you're editing a shader in that
-  if you remove a uniform from the shader your code will keep working. For example
-  if you go to the bottom of your fragment shader and add `gl_FragColor = vec4(1, 0, 0, 1);`
-  just as a sanity check all the uniforms in your fragment shader will be optimized
-  out. If WebGL suddenly issues errors trying to set those it would be much more
-  frustrating to debug. Conversely though, if you have a typo, for example you
-  want to look up the location of `'color'` and you type
-  `gl.getUniformLocation(prg, 'colour')` you'll get no error and it will likely
-  take you a while to find your typo.
+  if you remove a uniform from the shader your code will keep working.
+  
+  For example if you are debugging and you go to the bottom of your fragment
+  shader and add `gl_FragColor = vec4(1, 0, 0, 1);` all the uniforms in your
+  fragment shader will be optimized out. If WebGL suddenly issues errors trying
+  to set those it would be much more frustrating to debug. Conversely though, if
+  you have a typo, for example you want to look up the location of `'u_color'` and
+  you type `gl.getUniformLocation(prg, 'uColor')` you'll get no error and it
+  will likely take you a while to find your typo.
 
-  So, by default webgl-lint only prints a warning. You can make throw by
-  setting `failUndefinedUniforms` to `true`.
+  So, by default webgl-lint only prints a warning for undefined uniforms.
+  You can make throw by setting `failUndefinedUniforms` to `true`.
 
 * `warnUndefinedUniforms`: (default: true)
 
@@ -150,8 +146,8 @@ for special needs.
 
 * `ignoreUniforms`: (default: [])
 
-  Lets out configure certain uniforms not to be checked. This why you can turn
-  off checking or certain uniforms if they don't above the rules above and still
+  Lets you configure certain uniforms not to be checked. This way you can turn
+  off checking for certain uniforms if they don't obey the rules above and still
   keep the rules on for other uniforms. This configuration is additive. In other words
 
   ```js
@@ -336,3 +332,6 @@ console.log(ext.getTagForObject(buf));  // prints 'normals'
 
 https://github.com/greggman/webgl-lint/issues
 
+# License
+
+[MIT](LICENSE.md)
