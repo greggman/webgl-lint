@@ -729,7 +729,9 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
 
   function getCurrentVertexArray() {
     const gl = baseContext;
-    return (gl instanceof WebGL2RenderingContext || apis.oes_vertex_array_object)
+    return (
+       (typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext) ||
+       apis.oes_vertex_array_object)
        ? gl.getParameter(VERTEX_ARRAY_BINDING)
        : null;
   }
