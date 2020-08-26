@@ -1,4 +1,4 @@
-/* webgl-lint@1.6.0, license MIT */
+/* webgl-lint@1.6.1, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -2183,7 +2183,9 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
     function getCurrentVertexArray() {
       const gl = baseContext;
-      return (gl instanceof WebGL2RenderingContext || apis.oes_vertex_array_object)
+      return (
+         (typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext) ||
+         apis.oes_vertex_array_object)
          ? gl.getParameter(VERTEX_ARRAY_BINDING)
          : null;
     }
