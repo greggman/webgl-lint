@@ -1064,8 +1064,9 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
             continue;
           }
           const altNames = new Map([[name, 0]]);
+          const isArray = name.endsWith('[0]');
           let baseName = name;
-          if (name.endsWith('[0]')) {
+          if (isArray) {
             baseName = name.substr(0, name.length - 3);
             altNames.set(baseName, 0);
           }
