@@ -1340,6 +1340,9 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
       if (arg[i] === undefined) {
         reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is undefined`);
         return;
+      } else if (isArrayLike(arg[i])) {
+        reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is an array. WebGL expects flat arrays`);
+        return;
       } else if (isNaN(arg[i])) {
         reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is NaN`);
         return;
@@ -1425,6 +1428,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     reportError(generateFunctionError(ctx, funcName, args, msg));
   }
 
+  const isArrayLike = a => Array.isArray(a) || isTypedArray(a);
 
   function checkArgs(ctx, funcName, args) {
     const funcInfos = glFunctionInfos[funcName];
