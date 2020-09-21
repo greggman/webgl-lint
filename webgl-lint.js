@@ -1,4 +1,4 @@
-/* webgl-lint@1.6.2, license MIT */
+/* webgl-lint@1.7.0, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -2794,6 +2794,9 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         if (arg[i] === undefined) {
           reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is undefined`);
           return;
+        } else if (isArrayLike(arg[i])) {
+          reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is an array. WebGL expects flat arrays`);
+          return;
         } else if (isNaN(arg[i])) {
           reportFunctionError(ctx, funcName, args, `element ${i} of argument ${ndx} is NaN`);
           return;
@@ -2879,6 +2882,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       reportError(generateFunctionError(ctx, funcName, args, msg));
     }
 
+    const isArrayLike = a => Array.isArray(a) || isTypedArray(a);
 
     function checkArgs(ctx, funcName, args) {
       const funcInfos = glFunctionInfos[funcName];
