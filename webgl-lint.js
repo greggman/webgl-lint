@@ -1,4 +1,4 @@
-/* webgl-lint@1.7.0, license MIT */
+/* webgl-lint@1.7.1, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -2199,7 +2199,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
             uniformNames.push(name);
           }
         }
-        reportFunctionError(ctx, funcName, args, `uniforms "${uniformNames.join('", "')}" have not been set\nSee docs at https://github.com/greggman/webgl-list/ for how to turn off this check`);
+        reportFunctionError(ctx, funcName, args, `uniforms "${uniformNames.join('", "')}" have not been set\nSee docs at https://github.com/greggman/webgl-lint/ for how to turn off this check using "failUnsetUniforms": false`);
       }
     }
 
@@ -2264,7 +2264,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
     function markUniformRangeAsSet(webGLUniformLocation, count) {
       if (!webGLUniformLocation) {
-        throwOrWarn(config.failUndefinedUniforms, config.warnUndefinedUniforms, `attempt to set non-existent uniform on ${getWebGLObjectString(sharedState.currentProgram)}`);
+        throwOrWarn(config.failUndefinedUniforms, config.warnUndefinedUniforms, `attempt to set non-existent uniform on ${getWebGLObjectString(sharedState.currentProgram)}\nSee docs at https://github.com/greggman/webgl-lint/ for how to turn off this check using "warnUndefinedUniforms: false"`);
         return;
       }
       const unsetUniforms = programToUnsetUniformsMap.get(sharedState.currentProgram);
@@ -2328,7 +2328,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
               }
             }
             if (allZero) {
-              reportFunctionError(gl, funcName, [webGLUniformLocation, transpose, ...args], 'matrix is all zeros\nSee docs at https://github.com/greggman/webgl-lint/ for how to turn off this check');
+              reportFunctionError(gl, funcName, [webGLUniformLocation, transpose, ...args], 'matrix is all zeros\nSee docs at https://github.com/greggman/webgl-lint/ for how to turn off this check using "failZeroMatrixUniforms": false');
               return;
             }
           }
