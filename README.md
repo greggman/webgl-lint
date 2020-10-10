@@ -21,6 +21,10 @@ to check for common WebGL errors.
 
 * Checks for out of range access issues and will tell you which attribute/s are out of range
 
+* Checks that shaders compile. On failure prints the shader and tries to highlight errors.
+
+* Checks that programs link. On failure prints the attached shaders.
+
 * If there is a WebGL error it tries to provide more info about why
 
   * for framebuffer feedback it will tell you which texture assigned to which uniform and which attachment
