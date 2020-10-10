@@ -1,5 +1,4 @@
 import { assertEqual, assertThrowsWith } from '../assert.js';
-import * as twgl from '../js/twgl-full.module.js';
 import {describe, it} from '../mocha-support.js';
 import {createContext} from '../webgl.js';
 
