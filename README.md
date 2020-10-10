@@ -139,6 +139,17 @@ for special needs.
   So, by default webgl-lint only prints a warning for undefined uniforms.
   You can make throw by setting `failUndefinedUniforms` to `true`.
 
+* `failBadShadersAndPrograms`: (default: true)
+
+  Most WebGL programs expect all shaders to compile and all programs
+  to link but often programmers don't check for errors. While it's likely
+  they'd get an error about a bad program further in their code at that point
+  it's likely too late to tell them it's because the program didn't compile or
+  link. Instead the message will just be some like "no valid program in use".
+
+  If you're working on a project that expects shaders to fail to compile
+  and/or programs ot link you can see this to `false`.
+
 * `warnUndefinedUniforms`: (default: true)
 
   See `failUndefinedUniforms`. Setting this to false turns off warnings
@@ -331,6 +342,12 @@ console.log(ext.getTagForObject(buf));  // prints 'normals'
 # Suggestions?
 
 https://github.com/greggman/webgl-lint/issues
+
+# Development
+
+You can run the tests with the un-merged code with `http://localhost:8080/test/?src=true`. You can also filter the tests with `grep=` as in
+`http://localhost:8080/test/?grep=shader` or both 
+`http://localhost:8080/test/?src=true&grep=shader`.
 
 # License
 
