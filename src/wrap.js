@@ -40,6 +40,7 @@ function wrapGetContext(Ctor) {
       const config = {
         maxDrawCalls: 1000,
         throwOnError: true,
+        failBadShadersAndPrograms: true,
         failUnsetUniforms: true,
         failUnsetSamplerUniforms: false,
         failZeroMatrixUniforms: true,

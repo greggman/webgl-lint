@@ -16,6 +16,7 @@ import './tests/ignore-uniforms-tests.js';
 import './tests/naming-tests.js';
 import './tests/program-delete-tests.js';
 import './tests/report-vao-tests.js';
+import './tests/shader-fail-tests.js';
 import './tests/undefined-uniform-tests.js';
 import './tests/uniform-mismatch-tests.js';
 import './tests/uniform-type-tests.js';

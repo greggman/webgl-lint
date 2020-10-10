@@ -921,6 +921,23 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     webglObjectToNamesMap.delete(obj);
   }
 
+  const errorRE = /ERROR:\s*\d+:(\d+)/gi;
+  function addLineNumbersWithError(src, log = '') {
+    // Note: Error message formats are not defined by any spec so this may or may not work.
+    const matches = [...log.matchAll(errorRE)];
+    const lineNoToErrorMap = new Map(matches.map((m, ndx) => {
+      const lineNo = parseInt(m[1]);
+      const next = matches[ndx + 1];
+      const end = next ? next.index : log.length;
+      const msg = log.substring(m.index, end);
+      return [lineNo - 1, msg];
+    }));
+    return src.split('\n').map((line, lineNo) => {
+      const err = lineNoToErrorMap.get(lineNo);
+      return `${lineNo + 1}: ${line}${err ? `\n\n^^^ ${err}` : ''}`;
+    }).join('\n');
+  }
+
   const postChecks = {
     // WebGL1
     //   void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
@@ -969,6 +986,21 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
       const arrayBuffer = src.buffer ? src.buffer : src;
       const newView = new Uint8Array(arrayBuffer, srcOffset * elemSize, copySize);
       view.set(newView, dstByteOffset);
+    },
+
+    compileShader(gl, funcName, args) {
+      if (!config.failBadShadersAndPrograms) {
+        return;
+      }
+      const [shader] = args;
+      const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+      if (!success) {
+        const log = gl.getShaderInfoLog(shader);
+        const src = addLineNumbersWithError(gl.getShaderSource(shader), log);
+        const type = gl.getShaderParameter(shader, gl.SHADER_TYPE);
+        const msg = `failed to compile ${glEnumToString(type)}: ${log}\n------[ shader source ]------\n${src}`;
+        reportFunctionError(gl, funcName, args, msg);
+      }
     },
 
     drawArrays: checkMaxDrawCallsAndZeroCount,
@@ -1107,6 +1139,16 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
         if (unsetUniforms.size) {
           programToUnsetUniformsMap.set(program, unsetUniforms);
         }
+      } else if (config.failBadShadersAndPrograms) {
+        const shaders = gl.getAttachedShaders(program);
+        const shaderMsgs = shaders.map(shader => {
+          const src = addLineNumbersWithError(gl.getShaderSource(shader));
+          const type = gl.getShaderParameter(shader, gl.SHADER_TYPE);
+          return `-------[ ${glEnumToString(type)} ${getWebGLObjectString(shader)} ]-------\n${src}`;
+        }).join('\n');
+        const log = gl.getProgramInfoLog(program);
+        const msg = `failed to link program: ${log}\n${shaderMsgs}`;
+        reportFunctionError(gl, funcName, args, msg);
       }
     },
 
