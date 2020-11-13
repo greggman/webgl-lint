@@ -44,7 +44,7 @@ errors and less info where as the second prints much more info.
 # Usage
 
 ```
-<script src="https://greggman.github.io/webgl-lint/webgl-lint.js" crossorigin="anonymous"></script>
+<script src="https://greggman.github.io/webgl-lint/webgl-lint.js" crossorigin></script>
 ```
 
 or 
