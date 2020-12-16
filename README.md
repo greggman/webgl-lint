@@ -15,7 +15,7 @@ to check for common WebGL errors.
 
 * Checks that all non-sampler uniforms are set. (see configuration below)
 
-* Checks that uniform arrays are not all zero.
+* Checks that uniform matrices are not all zero.
 
 * Warns if you try to access an undefined uniform.
 
@@ -27,7 +27,7 @@ to check for common WebGL errors.
 
 * If there is a WebGL error it tries to provide more info about why
 
-  * for framebuffer feedback it will tell you which texture assigned to which uniform and which attachment
+  * for framebuffer feedback it will tell you which textures assigned to which uniforms and which attachments
   
   * for other errors it will try print extra info where possible.
 
@@ -104,12 +104,12 @@ for special needs.
 
 * `failUnsetSamplerUniforms`: (default: false)
 
-  See above why sampler uniforms are on checked by default. You can force them
+  See above why sampler uniforms are not checked by default. You can force them
   to be checked by this setting.
 
 * `failZeroMatrixUniforms`: (default: true)
 
-  Checks that a uniform matrix not all zeros. It's a common source of errors to
+  Checks that a uniform matrix is not all zeros. It's a common source of errors to
   forget to set a matrix to the identity and it seems uncommon to have an all
   zero matrix. If you have a reason a matrix needs to be all zeros you may want
   to turn this off. 
@@ -130,7 +130,8 @@ for special needs.
   WebGL by default returns `null` when you call `gl.getUniformLocation` for
   a uniform that does not exist. It then silently ignores calling `gl.uniformXXX`
   if the location is `null`. This is great when you're editing a shader in that
-  if you remove a uniform from the shader your code will keep working.
+  if you remove a uniform from the shader your code that is still setting
+  the old uniform will keep working.
   
   For example if you are debugging and you go to the bottom of your fragment
   shader and add `gl_FragColor = vec4(1, 0, 0, 1);` all the uniforms in your
@@ -345,13 +346,17 @@ console.log(ext.getTagForObject(buf));  // prints 'normals'
 
 # Suggestions?
 
-https://github.com/greggman/webgl-lint/issues
+[https://github.com/greggman/webgl-lint/issues](https://github.com/greggman/webgl-lint/issues)
 
 # Development
 
 You can run the tests with the un-merged code with `http://localhost:8080/test/?src=true`. You can also filter the tests with `grep=` as in
 `http://localhost:8080/test/?grep=shader` or both 
 `http://localhost:8080/test/?src=true&grep=shader`.
+
+# Repo
+
+[https://github.com/greggman/webgl-lint/](https://github.com/greggman/webgl-lint/)
 
 # License
 
