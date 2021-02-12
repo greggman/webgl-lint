@@ -1,6 +1,6 @@
 {
   "name": "webgl-lint",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "A semi strict WebGL checker",
   "main": "webgl-lint.js",
   "scripts": {

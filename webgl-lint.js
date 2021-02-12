@@ -1,4 +1,4 @@
-/* webgl-lint@1.8.0, license MIT */
+/* webgl-lint@1.8.1, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -2532,20 +2532,20 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
       linkProgram(gl, funcName, args) {
         const [program] = args;
-        const success = gl.getProgramParameter(program, gl.LINK_STATUS);
+        const success = ctx.getProgramParameter(program, gl.LINK_STATUS);
         if (success) {
           discardInfoForProgram(program);
           const unsetUniforms = new Map();
           const uniformInfos = new Map();
           const uniformSamplerValues = [];
-          const numUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+          const numUniforms = ctx.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
           for (let ii = 0; ii < numUniforms; ++ii) {
-            const {name, type, size} = gl.getActiveUniform(program, ii);
+            const {name, type, size} = ctx.getActiveUniform(program, ii);
             if (isBuiltIn(name)) {
               continue;
             }
             // skip uniform block uniforms
-            const location = gl.getUniformLocation(program, name);
+            const location = ctx.getUniformLocation(program, name);
             if (!location) {
               continue;
             }
