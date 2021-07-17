@@ -214,7 +214,7 @@ There 2 ways to configure
 
    ```html
    <script
-     src="https://github.greggman.io/webgl-lint/webgl-lint.js"
+     src="https://greggman.github.io/webgl-lint/webgl-lint.js"
      data-gman-debug-helper='
        {
          "maxDrawCalls": 2000, 
