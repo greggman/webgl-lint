@@ -1,4 +1,4 @@
-/* webgl-lint@1.8.1, license MIT */
+/* webgl-lint@1.8.2, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -2191,6 +2191,9 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     function checkUnsetUniforms(ctx, funcName, args) {
+      if (!config.failUnsetUniforms) {
+        return;
+      }
       const unsetUniforms = programToUnsetUniformsMap.get(sharedState.currentProgram);
       if (unsetUniforms) {
         const uniformNames = [];
