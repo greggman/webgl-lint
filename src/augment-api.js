@@ -737,6 +737,9 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
   }
 
   function checkUnsetUniforms(ctx, funcName, args) {
+    if (!config.failUnsetUniforms) {
+      return;
+    }
     const unsetUniforms = programToUnsetUniformsMap.get(sharedState.currentProgram);
     if (unsetUniforms) {
       const uniformNames = [];

@@ -1,5 +1,5 @@
 import * as twgl from '../js/twgl-full.module.js';
-import {assertThrowsWith} from '../assert.js';
+import {assertDoesNotThrow, assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
 import {createContext, not} from '../webgl.js';
 
@@ -40,6 +40,43 @@ describe('unset uniform tests', () => {
       /diffuseColor/,
       not('diffuseTex'),
     ]);
+  });
+
+  it('test unset uniforms ignored if disabled', () => {
+    const {gl, ext, tagObject} = createContext();
+    if (!ext) {
+      return;
+    }
+    ext.setConfiguration({failUnsetUniforms: false});
+    const prg = twgl.createProgram(gl, [
+      `
+        void main() {
+           gl_Position = vec4(0);
+           gl_PointSize = 1.0;
+        }
+      `,
+      `
+        precision mediump float;
+        uniform vec4 diffuseColor;
+        uniform vec4 ambient;
+        uniform sampler2D diffuseTex;
+        void main() {
+          gl_FragColor = diffuseColor + ambient + texture2D(diffuseTex, vec2(0));
+        }
+      `,
+    ]);
+    tagObject(prg, 'uniforms-program');
+
+    // bind a texture so we don't get an error about the texture missing
+    const tex = gl.createTexture();
+    tagObject(tex, 'onePixelTexture');
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    gl.useProgram(prg);
+    assertDoesNotThrow(() => {
+      gl.drawArrays(gl.POINTS, 0, 1);  // error, unset uniforms
+    });
   });
 
   it('test unset uniforms array', () => {

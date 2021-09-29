@@ -71,6 +71,37 @@ export function assertThrowsWith(func, expectations, msg = '') {
   assertStringMatchesREs(error.toString().replace(/\n/g, ' '), expectations, msg);
 }
 
+export function assertDoesNotThrow(func, msg = '') {
+  let error = '';
+  if (config.throwOnError === false) {
+    const origFn = console.error;
+    const errors = [];
+    console.error = function(...args) {
+      errors.push(args.join(' '));
+    };
+    func();
+    console.error = origFn;
+    if (errors.length) {
+      error = errors.join('\n');
+      console.error(error);
+    }
+  } else {
+    try {
+      func();
+    } catch (e) {
+      console.error(e);  // eslint-disable-line
+      error = e;
+    }
+
+  }
+
+  if (config.noLint) {
+    return;
+  }
+
+  assertEqual(error.toString(), '', msg);
+}
+
 // check if it throws it throws with x
 export function assertIfThrowsItThrowsWith(func, expectations, msg = '') {
   let error = '';
