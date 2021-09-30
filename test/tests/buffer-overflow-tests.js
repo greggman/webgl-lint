@@ -1,5 +1,5 @@
 import * as twgl from '../js/twgl-full.module.js';
-import {assertThrowsWith} from '../assert.js';
+import {assertDoesNotThrow, assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
 import {createContext} from '../webgl.js';
 
@@ -140,6 +140,58 @@ describe('buffer overflow tests', () => {
     assertThrowsWith(() => {
       gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_SHORT, 0); // buffer overflow
     }, [/drawElementsPrg/, /"texcoord"/, /attribute 'texcoord'/]);
+  });
+
+  it('test buffer overflow with drawElements offset TypedArrays', () => {
+    const {gl, tagObject} = createContext();
+
+    const vs = `
+    attribute vec4 position;
+
+    void main() {
+      gl_Position = position;
+    }
+    `;
+
+    const fs = `
+    precision mediump float;
+
+    void main() {
+      gl_FragColor = vec4(1, 0, 0, 1);
+    }
+    `;
+    const prg = twgl.createProgram(gl, [vs, fs]);
+    gl.useProgram(prg);
+
+    function makeBuffer(gl, name, data, target = gl.ARRAY_BUFFER) {
+      const buf = gl.createBuffer();
+      tagObject(buf, name);
+      gl.bindBuffer(target, buf);
+      gl.bufferData(target, data, gl.STATIC_DRAW);
+    }
+
+    function makeBufferAndSetAttrib(gl, prg, name, size, data) {
+      makeBuffer(gl, name, data);
+      const loc = gl.getAttribLocation(prg, name);
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
+    }
+
+    const arrayBuffer = new ArrayBuffer(12 * 4 + 6 * 2);
+    const positions = new Float32Array(arrayBuffer, 0, 12);
+    const indices = new Uint16Array(arrayBuffer, 12 * 4, 6);
+    positions.set([-1, 1, 0, 1, 1, 0, 1, -1, 0, -1, -1, 0]);
+    indices.set([0, 1, 2, 0, 2, 3]);
+
+    makeBufferAndSetAttrib(gl, prg, 'position', 2, positions);
+    makeBuffer(gl, 'indices', indices, gl.ELEMENT_ARRAY_BUFFER);
+
+    gl.useProgram(prg);
+
+    // there was an internal bug not handling offset TypedArrays
+    assertDoesNotThrow(() => {
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    });
   });
 
   it('test buffer overflow with drawArraysInstanced', () => {

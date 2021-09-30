@@ -964,7 +964,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
         const elemSize = isDataView ? 1 : src.BYTES_PER_ELEMENT;
         const bufSize = copyLength * elemSize;
         const arrayBuffer = src.buffer ? src.buffer : src;
-        bufferToIndices.set(buffer, arrayBuffer.slice(srcOffset * elemSize, bufSize));
+        const viewOffset = src.byteOffset || 0;
+        bufferToIndices.set(buffer, arrayBuffer.slice(viewOffset + srcOffset * elemSize, bufSize));
       }
     },
     // WebGL1
