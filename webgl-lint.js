@@ -1,4 +1,4 @@
-/* webgl-lint@1.8.2, license MIT */
+/* webgl-lint@1.8.3, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -2418,7 +2418,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           const elemSize = isDataView ? 1 : src.BYTES_PER_ELEMENT;
           const bufSize = copyLength * elemSize;
           const arrayBuffer = src.buffer ? src.buffer : src;
-          bufferToIndices.set(buffer, arrayBuffer.slice(srcOffset * elemSize, bufSize));
+          const viewOffset = src.byteOffset || 0;
+          bufferToIndices.set(buffer, arrayBuffer.slice(viewOffset + srcOffset * elemSize, bufSize));
         }
       },
       // WebGL1
