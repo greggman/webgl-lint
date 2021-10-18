@@ -148,12 +148,12 @@ for special needs.
 
   Most WebGL programs expect all shaders to compile and all programs
   to link but often programmers don't check for errors. While it's likely
-  they'd get an error about a bad program further in their code at that point
+  they'd get an error about a bad program further in their code, at that point
   it's likely too late to tell them it's because the program didn't compile or
-  link. Instead the message will just be some like "no valid program in use".
+  link. Instead the message will just be something like "no valid program in use".
 
   If you're working on a project that expects shaders to fail to compile
-  and/or programs ot link you can see this to `false`.
+  and/or programs to link you can set this to `false`.
 
 * `warnUndefinedUniforms`: (default: true)
 
@@ -187,7 +187,7 @@ for special needs.
 
   But, there might be times when you can't avoid the error, say you're
   running a 3rd party library that gets errors. You should go politely
-  ask them to fix the bug or better, fix yourself and send them a pull request.
+  ask them to fix the bug or better, fix it yourself and send them a pull request.
   In any case, if you just want it to print an error instead of throw then
   you can set `throwOnError` to false.
 
