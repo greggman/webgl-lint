@@ -1029,6 +1029,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     createBuffer: makeCreatePostCheck('Buffer'),
     createFramebuffer: makeCreatePostCheck('Framebuffer'),
     createProgram: makeCreatePostCheck('Program'),
+    createQuery: makeCreatePostCheck('Query'),
     createRenderbuffer: makeCreatePostCheck('Renderbuffer'),
     createShader: makeCreatePostCheck('Shader'),
     createTexture: makeCreatePostCheck('Texture'),
