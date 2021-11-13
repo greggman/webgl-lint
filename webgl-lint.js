@@ -1,4 +1,4 @@
-/* webgl-lint@1.9.0, license MIT */
+/* webgl-lint@1.9.1, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -2483,6 +2483,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       createBuffer: makeCreatePostCheck('Buffer'),
       createFramebuffer: makeCreatePostCheck('Framebuffer'),
       createProgram: makeCreatePostCheck('Program'),
+      createQuery: makeCreatePostCheck('Query'),
       createRenderbuffer: makeCreatePostCheck('Renderbuffer'),
       createShader: makeCreatePostCheck('Shader'),
       createTexture: makeCreatePostCheck('Texture'),
