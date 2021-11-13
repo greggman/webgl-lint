@@ -1,4 +1,4 @@
-/* webgl-lint@1.8.3, license MIT */
+/* webgl-lint@1.9.0, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -1574,6 +1574,14 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     return msgs.length ? `: ${msgs.join(' ')}` : '';
   }
 
+  function throwIfNotWebGLObject(webglObject) {
+    // There's no easy way to check if it's a WebGLObject
+    // and I guess we mostly don't care but a minor check is probably
+    // okay
+    if (Array.isArray(webglObject) || isTypedArray(webglObject) || typeof webglObject !== 'object') {
+      throw new Error('not a WebGLObject');
+    }
+  }
 
   /**
    * Given a WebGL context replaces all the functions with wrapped functions
@@ -1595,13 +1603,12 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           gman_debug_helper: {
             ctx: {
               tagObject(webglObject, name) {
-                // There's no easy way to check if it's a WebGLObject
-                // and I guess we mostly don't care but a minor check is probably
-                // okay
-                if (Array.isArray(webglObject) || isTypedArray(webglObject) || typeof webglObject !== 'object') {
-                  throw new Error('not a WebGLObject');
-                }
+                throwIfNotWebGLObject(webglObject);
                 sharedState.webglObjectToNamesMap.set(webglObject, name);
+              },
+              untagObject(webglObject) {
+                throwIfNotWebGLObject(webglObject);
+                sharedState.webglObjectToNamesMap.delete(webglObject);
               },
               getTagForObject(webglObject) {
                 return sharedState.webglObjectToNamesMap.get(webglObject);
@@ -1623,6 +1630,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
             },
           },
         },
+        idCounts: {},
         textureManager: new TextureManager(ctx),
         bufferToIndices: new Map(),
         ignoredUniforms: new Set(),
@@ -1693,6 +1701,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       programToUnsetUniformsMap,
       textureManager,
       webglObjectToNamesMap,
+      idCounts,
     } = sharedState;
 
     const extensionFuncs = {
@@ -2154,6 +2163,16 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     function noop() {
     }
 
+    function makeCreatePostCheck(typeName) {
+      return function(gl, funcName, args, obj) {
+        if (config.makeDefaultTags) {
+          const id = (idCounts[typeName] || 0) + 1;
+          idCounts[typeName] = id;
+          webglObjectToNamesMap.set(obj, `*UNTAGGED:${typeName}${id}*`);
+        }
+      };
+    }
+
     function reportError(errorMsg) {
       const errorInfo = parseStack((new Error()).stack);
       const msg = errorInfo
@@ -2461,6 +2480,17 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         }
       },
 
+      createBuffer: makeCreatePostCheck('Buffer'),
+      createFramebuffer: makeCreatePostCheck('Framebuffer'),
+      createProgram: makeCreatePostCheck('Program'),
+      createRenderbuffer: makeCreatePostCheck('Renderbuffer'),
+      createShader: makeCreatePostCheck('Shader'),
+      createTexture: makeCreatePostCheck('Texture'),
+      createTransformFeedback: makeCreatePostCheck('TransformFeedback'),
+      createSampler: makeCreatePostCheck('Sampler'),
+      createVertexArray: makeCreatePostCheck('VertexArray'),
+      createVertexArrayOES: makeCreatePostCheck('VertexArray'),
+
       drawArrays: checkMaxDrawCallsAndZeroCount,
       drawElements: checkMaxDrawCallsAndZeroCount,
       drawArraysInstanced: checkMaxDrawCallsAndZeroCount,
@@ -2468,6 +2498,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       drawArraysInstancedANGLE: checkMaxDrawCallsAndZeroCount,
       drawElementsInstancedANGLE: checkMaxDrawCallsAndZeroCount,
       drawRangeElements: checkMaxDrawCallsAndZeroCount,
+
+      fenceSync: makeCreatePostCheck('Sync'),
 
       uniform1f: markUniformSet,
       uniform2f: markUniformSet,
@@ -3126,6 +3158,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           failUnrenderableTextures: true,
           failUndefinedUniforms: false,
           warnUndefinedUniforms: true,
+          makeDefaultTags: true,
           ignoreUniforms: [],
         };
         augmentAPI(ctx, type, config);
