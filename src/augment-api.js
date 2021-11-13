@@ -120,6 +120,14 @@ function getUniformNameErrorMsg(ctx, funcName, args, sharedState) {
   return msgs.length ? `: ${msgs.join(' ')}` : '';
 }
 
+function throwIfNotWebGLObject(webglObject) {
+  // There's no easy way to check if it's a WebGLObject
+  // and I guess we mostly don't care but a minor check is probably
+  // okay
+  if (Array.isArray(webglObject) || isTypedArray(webglObject) || typeof webglObject !== 'object') {
+    throw new Error('not a WebGLObject');
+  }
+}
 
 /**
  * Given a WebGL context replaces all the functions with wrapped functions
@@ -141,13 +149,12 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
         gman_debug_helper: {
           ctx: {
             tagObject(webglObject, name) {
-              // There's no easy way to check if it's a WebGLObject
-              // and I guess we mostly don't care but a minor check is probably
-              // okay
-              if (Array.isArray(webglObject) || isTypedArray(webglObject) || typeof webglObject !== 'object') {
-                throw new Error('not a WebGLObject');
-              }
+              throwIfNotWebGLObject(webglObject);
               sharedState.webglObjectToNamesMap.set(webglObject, name);
+            },
+            untagObject(webglObject) {
+              throwIfNotWebGLObject(webglObject);
+              sharedState.webglObjectToNamesMap.delete(webglObject);
             },
             getTagForObject(webglObject) {
               return sharedState.webglObjectToNamesMap.get(webglObject);
@@ -704,9 +711,11 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
 
   function makeCreatePostCheck(typeName) {
     return function(gl, funcName, args, obj) {
-      const id = (idCounts[typeName] || 0) + 1;
-      idCounts[typeName] = id;
-      webglObjectToNamesMap.set(obj, `*UNTAGGED:${typeName}${id}*`);
+      if (config.makeDefaultTags) {
+        const id = (idCounts[typeName] || 0) + 1;
+        idCounts[typeName] = id;
+        webglObjectToNamesMap.set(obj, `*UNTAGGED:${typeName}${id}*`);
+      }
     };
   }
 
@@ -1035,6 +1044,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     drawArraysInstancedANGLE: checkMaxDrawCallsAndZeroCount,
     drawElementsInstancedANGLE: checkMaxDrawCallsAndZeroCount,
     drawRangeElements: checkMaxDrawCallsAndZeroCount,
+
+    fenceSync: makeCreatePostCheck('Sync'),
 
     uniform1f: markUniformSet,
     uniform2f: markUniformSet,

@@ -73,6 +73,7 @@ too! 😉
 WebGL Lint adds a special extension `GMAN_debug_helper` with these functions
 
 * `tagObject(obj: WebGLObject, name: string): void` - see naming below
+* `untagObject(obj: WebGLObject): void` - see naming below
 * `getTagForObject(obj: WebGLObject): string` - see naming below
 * `setConfiguration(settings): void` - see configuration below
 * `disable(): void` - turns off the checking
@@ -190,6 +191,17 @@ for special needs.
   ask them to fix the bug or better, fix it yourself and send them a pull request.
   In any case, if you just want it to print an error instead of throw then
   you can set `throwOnError` to false.
+
+* `makeDefaultTags`: (default: true)
+
+  If true, all objects get a default tag, Example `*UNTAGGED:Buffer1`,
+  `*UNTAGGED:Buffer2` etc. This is a minor convenience to have something
+  to distinguish one object from another though it's highly recommended
+  you tag your objects. (See naming).
+
+  The only reason to turn this off is if you're creating and deleting
+  lots of objects and you want to make sure tags are not leaking memory
+  since tags are never deleted automatically. (See "naming).
 
 There 2 ways to configure
 
@@ -335,7 +347,25 @@ be used with (eg. 'position', 'normal'), naming textures by the URL of the img w
 get their data. Naming vertex array objects by the model ('tree', 'car', 'house'), naming
 framebuffers by their usage ('shadow-depth', 'post-processing'), naming programs by what they do ('phong-shading', 'sky-box')...
 
-Just for symmetry the extension also includes `getTagForObject` if you want to look up
+You can also untag an object with
+
+```js
+ext.untagObject(someObj);
+```
+
+Arguably for debugging you probably don't want to untag. The problem with
+untagging is if you untag and then have a bug where you reuse an untagged
+object, for example using an object you deleted, there will be no tag for the
+object, so your error will just say something like "error: tried to use
+Texture(unknown)" instead of "error: tried to use Texture(yourTag)". At the same
+time, if you're running WebGL-lint indefinitely (see `maxDrawCalls`) and
+creating and deleting lots of objects, for example sync objects, there is a tiny
+bit of memory involved keeping the label of each one so manually untagging
+should mean you are not leaking memory. Honestly I wouldn't worry about
+untagging but it's here just in case you've got special needs. Also see
+`makeDefaultTags` above.
+
+The extension also includes `getTagForObject` if you want to look up
 what string you tagged an object with
 
 ```js
