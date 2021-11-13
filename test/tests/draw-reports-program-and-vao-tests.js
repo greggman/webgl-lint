@@ -35,7 +35,7 @@ describe('draw reports program and vao tests', () => {
     gl.useProgram(prg);
     assertThrowsWith(() => {
       gl.drawArrays(gl.TRAINGLES, 0, 1); // error, TRIANGLES misspelled.
-    }, [/drawArraysBE/, /WebGLVertexArrayObject\("\*unnamed\*"\)/]);
+    }, [/drawArraysBE/, /WebGLVertexArrayObject\("\*UNTAGGED:VertexArray1\*"\)/]);
   });
 
 });

@@ -21,7 +21,7 @@ import './tests/undefined-uniform-tests.js';
 import './tests/uniform-mismatch-tests.js';
 import './tests/uniform-type-tests.js';
 import './tests/uniformXXv-tests.js';
-import './tests/unnamed-objects-tests.js';
+import './tests/untagged-objects-tests.js';
 import './tests/unrenderable-texture-tests.js';
 import './tests/unset-uniform-tests.js';
 import './tests/wrong-number-of-arguments-tests.js';

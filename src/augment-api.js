@@ -169,6 +169,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
           },
         },
       },
+      idCounts: {},
       textureManager: new TextureManager(ctx),
       bufferToIndices: new Map(),
       ignoredUniforms: new Set(),
@@ -239,6 +240,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     programToUnsetUniformsMap,
     textureManager,
     webglObjectToNamesMap,
+    idCounts,
   } = sharedState;
 
   const extensionFuncs = {
@@ -700,6 +702,14 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
   function noop() {
   }
 
+  function makeCreatePostCheck(typeName) {
+    return function(gl, funcName, args, obj) {
+      const id = (idCounts[typeName] || 0) + 1;
+      idCounts[typeName] = id;
+      webglObjectToNamesMap.set(obj, `*UNTAGGED:${typeName}${id}*`);
+    };
+  }
+
   function reportError(errorMsg) {
     const errorInfo = parseStack((new Error()).stack);
     const msg = errorInfo
@@ -1006,6 +1016,17 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
         reportFunctionError(gl, funcName, args, msg);
       }
     },
+
+    createBuffer: makeCreatePostCheck('Buffer'),
+    createFramebuffer: makeCreatePostCheck('Framebuffer'),
+    createProgram: makeCreatePostCheck('Program'),
+    createRenderbuffer: makeCreatePostCheck('Renderbuffer'),
+    createShader: makeCreatePostCheck('Shader'),
+    createTexture: makeCreatePostCheck('Texture'),
+    createTransformFeedback: makeCreatePostCheck('TransformFeedback'),
+    createSampler: makeCreatePostCheck('Sampler'),
+    createVertexArray: makeCreatePostCheck('VertexArray'),
+    createVertexArrayOES: makeCreatePostCheck('VertexArray'),
 
     drawArrays: checkMaxDrawCallsAndZeroCount,
     drawElements: checkMaxDrawCallsAndZeroCount,
