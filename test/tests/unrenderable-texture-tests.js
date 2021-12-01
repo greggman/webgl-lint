@@ -239,7 +239,7 @@ describe('unrenderable texture tests', () => {
       gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
       assertThrowsWith(() => {
         gl.drawArrays(gl.POINTS, 0, 1);
-      }, [/POSITIVE_X face does not exist/]);
+      }, [/POSITIVE_X face at mip level 0 does not exist /]);
 
       gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
       assertThrowsWith(() => {
@@ -349,6 +349,48 @@ describe('unrenderable texture tests', () => {
       gl.drawArrays(gl.POINTS, 0, 1);
     });
 
+    it('test base level, max level, generateMipmap', () => {
+      const {gl2: gl, tagObject2: tagObject} = contexts;
+      if (!gl) {
+        return;
+      }
+      const vs = `#version 300 es
+      void main() {
+        gl_Position = vec4(0, 0, 0, 1);
+        gl_PointSize = 128.0;
+      }
+      `;
+      const fs = `#version 300 es
+      precision highp float;
+      uniform highp sampler2D tex;
+      out vec4 outColor;
+      void main() {
+        outColor = texture(tex, gl_PointCoord.xy);
+      }
+      `;
+      const prg = twgl.createProgram(gl, [vs, fs]);
+      tagObject(prg, 'simpleTexProgram');
+      gl.useProgram(prg);
+
+      const tex = gl.createTexture();
+      tagObject(tex, 'onlyMips2-4');
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+
+      gl.texImage2D(gl.TEXTURE_2D, 2, gl.RGBA, 4, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      assertThrowsWith(() => {
+        gl.drawArrays(gl.POINTS, 0, 1);
+      }, [/texture unit 0 referenced by uniform sampler2D tex is not renderable: no mip level 0/]);
+
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, 2);
+      assertThrowsWith(() => {
+        gl.drawArrays(gl.POINTS, 0, 1);
+      }, [/but mip level 3 does not exist/]);
+
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, 4);
+      gl.generateMipmap(gl.TEXTURE_2D);
+
+      gl.drawArrays(gl.POINTS, 0, 1);
+    });
   }
 
   describe('unrenderable tests', () => {

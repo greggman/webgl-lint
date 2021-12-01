@@ -402,12 +402,12 @@ export class TextureManager {
         for (let mipLevel = baseLevel; mipLevel <= lastMip; ++mipLevel) {
           const faceMips = mips[mipLevel];
           if (!faceMips) {
-            return `filtering is set to use mips (TEXTURE_MIN_FILTER = ${glEnumToString(minFilter)}) but mip level ${mipLevel} does not exist`;
+            return `filtering is set to use mips from level ${baseLevel} to ${lastMip} with (TEXTURE_MIN_FILTER = ${glEnumToString(minFilter)}) but mip level ${mipLevel} does not exist`;
           }
           for (let face = 0; face < numFaces; ++face) {
             const mip = faceMips[face];
             if (!mip) {
-              return `filtering is set to use mips (TEXTURE_MIN_FILTER = ${glEnumToString(minFilter)}) but mip level ${mipLevel}${getFaceTarget(face, type)} does not exist`;
+              return `filtering is set to use mips level ${baseLevel} to ${lastMip} with (TEXTURE_MIN_FILTER = ${glEnumToString(minFilter)}) but mip level ${mipLevel}${getFaceTarget(face, type)} does not exist`;
             }
             if (mip.width !== mipWidth ||
                 mip.height !== mipHeight ||
@@ -415,7 +415,7 @@ export class TextureManager {
               return `mip level ${mipLevel}${getFaceTarget(face, type)} needs to be ${getDimensionsString(type, mipWidth, mipHeight, mipDepth)} but it is ${getDimensionsString(type, mip.width, mip.height, mip.depth)}`;
             }
             if (mip.internalFormatString !== baseInternalFormatString) {
-              return `mip level ${mipLevel}${getFaceTarget(face, type)}'s internal format ${mip.internalFormatString} does not match mip level 0's internal format ${baseInternalFormatString}`;
+              return `mip level ${mipLevel}${getFaceTarget(face, type)}'s internal format ${mip.internalFormatString} does not match mip level ${baseLevel}'s internal format ${baseInternalFormatString}`;
             }
           }
           mipWidth = Math.max(1, mipWidth / 2 | 0);
@@ -572,11 +572,11 @@ export class TextureManager {
       const baseLevel = parameters.get(TEXTURE_BASE_LEVEL) || 0;
       const baseLevelFaces = mips[baseLevel];
       if (!baseLevelFaces) {
-        return 'no mip level 0';
+        return `no mip level ${baseLevel}`;
       }
       const baseMipFace = baseLevelFaces[0];
       if (!baseMipFace) {
-        return 'TEXTURE_CUBE_MAP_POSITIVE_X face does not exist';
+        return `TEXTURE_CUBE_MAP_POSITIVE_X face at mip level ${baseLevel} does not exist`;
       }
       const textureNumberType = getNumberTypeForInternalFormat(baseMipFace.internalFormat);
       const neededNumberType = getNumberTypeForUniformSamplerType(uniformType);
@@ -725,8 +725,13 @@ export class TextureManager {
 
       generateMipmap(ctx, funcName, args) {
         const [target] = args;
-        const {width, height, depth, internalFormat, type} = getMipInfoForTarget(target, 0);
-        const numMipsNeeded = computeNumMipsNeeded(width, height, depth);
+        const textureInfo = getTextureInfoForTarget(target);
+        const {parameters} = textureInfo;
+        const baseLevel = parameters.get(TEXTURE_BASE_LEVEL) || 0;
+        const maxLevel = parameters.get(TEXTURE_MAX_LEVEL) || maxMips;
+        const mipInfo = getMipInfoForTarget(target, baseLevel);
+        const {width, height, depth, internalFormat, type} = mipInfo;
+        const numMipsNeeded = Math.min(computeNumMipsNeeded(width, height, depth), (maxLevel + 1) - baseLevel);
         const numFaces = target === TEXTURE_CUBE_MAP ? 6 : 1;
         let w = width;
         let h = height;
@@ -742,7 +747,7 @@ export class TextureManager {
             const faceTarget =  target === TEXTURE_CUBE_MAP
                ? TEXTURE_CUBE_MAP_POSITIVE_X + face
                : target;
-            setMipFaceInfoForTarget(faceTarget, level, internalFormat, w, h, d, type);
+            setMipFaceInfoForTarget(faceTarget, baseLevel + level, internalFormat, w, h, d, type);
           }
         }
       },
