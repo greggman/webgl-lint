@@ -652,6 +652,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     'getActiveUniforms': { 3: { enums: [2] }, arrays: [1]},  // WebGL2
     'getActiveUniformBlockParameter': { 3: { enums: [2], numbers: [1] }},  // WebGL2
     'getActiveUniformBlockName': { 2: {numbers: [1]}}, // WebGL2
+    'transformFeedbackVaryings': { 3: {enums: [2]}}, // WebGL2
     'uniformBlockBinding': { 3: { numbers: [1, 2]}}, // WebGL2
   };
   for (const [name, fnInfos] of Object.entries(glFunctionInfos)) {
