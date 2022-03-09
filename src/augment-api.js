@@ -129,6 +129,8 @@ function throwIfNotWebGLObject(webglObject) {
   }
 }
 
+const augmentedSet = new Set();
+
 /**
  * Given a WebGL context replaces all the functions with wrapped functions
  * that call gl.getError after every command
@@ -137,6 +139,12 @@ function throwIfNotWebGLObject(webglObject) {
  * @param {string} nameOfClass (eg, webgl, webgl2, OES_texture_float)
  */
 export function augmentAPI(ctx, nameOfClass, options = {}) {
+
+  if (augmentedSet.has(ctx)) {
+    return ctx;
+  }
+  augmentedSet.add(ctx);
+
   const origGLErrorFn = options.origGLErrorFn || ctx.getError;
   addEnumsFromAPI(ctx);
 
@@ -685,6 +693,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
   function removeChecks() {
     for (const {ctx, origFuncs} of Object.values(apis)) {
       Object.assign(ctx, origFuncs);
+      augmentedSet.delete(ctx);
     }
     for (const key of [...Object.keys(sharedState)]) {
       delete sharedState[key];
