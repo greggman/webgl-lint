@@ -1017,7 +1017,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
       const elemSize = isDataView ? 1 : src.BYTES_PER_ELEMENT;
       const copySize = copyLength * elemSize;
       const arrayBuffer = src.buffer ? src.buffer : src;
-      const newView = new Uint8Array(arrayBuffer, srcOffset * elemSize, copySize);
+      const viewOffset = src.byteOffset || 0;
+      const newView = new Uint8Array(arrayBuffer, viewOffset + srcOffset * elemSize, copySize);
       view.set(newView, dstByteOffset);
     },
 
