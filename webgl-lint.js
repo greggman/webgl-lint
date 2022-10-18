@@ -2462,7 +2462,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       //   void bufferSubData(GLenum target, GLintptr dstByteOffset, [AllowShared] ArrayBufferView srcData,
       //                      GLuint srcOffset, optional GLuint length = 0);
       bufferSubData(gl, funcName, args) {
-        const [target, dstByteOffset, src, srcOffset, length = 0] = args;
+        const [target, dstByteOffset, src, srcOffset = 0, length = 0] = args;
         if (target !== gl.ELEMENT_ARRAY_BUFFER) {
           return;
         }
@@ -2476,7 +2476,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         const elemSize = isDataView ? 1 : src.BYTES_PER_ELEMENT;
         const copySize = copyLength * elemSize;
         const arrayBuffer = src.buffer ? src.buffer : src;
-        const newView = new Uint8Array(arrayBuffer, srcOffset * elemSize, copySize);
+        const viewOffset = src.byteOffset || 0;
+        const newView = new Uint8Array(arrayBuffer, viewOffset + srcOffset * elemSize, copySize);
         view.set(newView, dstByteOffset);
       },
 
