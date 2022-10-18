@@ -1,7 +1,7 @@
 import * as twgl from '../js/twgl-full.module.js';
 import {assertDoesNotThrow, assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {createContext} from '../webgl.js';
+import {createContext, checkDest} from '../webgl.js';
 
 describe('buffer overflow tests', () => {
 
@@ -183,7 +183,7 @@ describe('buffer overflow tests', () => {
     positions.set([-1, 1, 0, 1, 1, 0, 1, -1, 0, -1, -1, 0]);
     indices.set([0, 1, 2, 0, 2, 3]);
 
-    makeBufferAndSetAttrib(gl, prg, 'position', 2, positions);
+    makeBufferAndSetAttrib(gl, prg, 'position', 3, positions);
     makeBuffer(gl, 'indices', indices, gl.ELEMENT_ARRAY_BUFFER);
 
     gl.useProgram(prg);
@@ -192,6 +192,64 @@ describe('buffer overflow tests', () => {
     assertDoesNotThrow(() => {
       gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
     });
+  });
+
+  it('test buffer overflow with drawElements offset TypedArrays using bufferSubData', () => {
+    const {gl, tagObject} = createContext();
+
+    const vs = `
+    attribute vec4 position;
+
+    void main() {
+      gl_Position = position;
+    }
+    `;
+
+    const fs = `
+    precision mediump float;
+
+    void main() {
+      gl_FragColor = vec4(0, 1, 0, 1);
+    }
+    `;
+    const prg = twgl.createProgram(gl, [vs, fs]);
+    gl.useProgram(prg);
+
+    function makeBuffer(gl, name, data, target = gl.ARRAY_BUFFER) {
+      const buf = gl.createBuffer();
+      tagObject(buf, name);
+      gl.bindBuffer(target, buf);
+      gl.bufferData(target, data.byteLength, gl.STATIC_DRAW);
+      gl.bufferSubData(target, 0, data);
+    }
+
+    function makeBufferAndSetAttrib(gl, prg, name, size, data) {
+      makeBuffer(gl, name, data);
+      const loc = gl.getAttribLocation(prg, name);
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
+    }
+
+    const arrayBuffer = new ArrayBuffer(12 * 4 + 6 * 2);
+    const positions = new Float32Array(arrayBuffer, 0, 12);
+    const indices = new Uint16Array(arrayBuffer, 12 * 4, 6);
+    positions.set([
+      -1,  1, 0,
+       1,  1, 0,
+       1, -1, 0,
+      -1, -1, 0,
+    ]);
+    indices.set([0, 1, 2, 0, 2, 3]);
+
+    makeBufferAndSetAttrib(gl, prg, 'position', 3, positions);
+    makeBuffer(gl, 'indices', indices, gl.ELEMENT_ARRAY_BUFFER);
+
+    gl.useProgram(prg);
+    gl.clearColor(1, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+
+    checkDest(gl, [0, 255, 0, 255]);
   });
 
   it('test buffer overflow with drawArraysInstanced', () => {

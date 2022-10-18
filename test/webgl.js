@@ -53,3 +53,18 @@ export function not(str) {
   return new RegExp(`^((?!${escapeRE(str)}).)*$`);
 }
 
+export function checkDest(gl, color) {
+  const {width, height} = gl.canvas;
+  const pixels = new Uint8Array(width * height * 4);
+  gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+  for (let i = 0; i < pixels.length; i += 4) {
+    if (pixels[i + 0] !== color[0] ||
+        pixels[i + 1] !== color[1] ||
+        pixels[i + 2] !== color[2] ||
+        pixels[i + 3] !== color[3]) {
+          const x = (i / 4) % width;
+          const y = (i / 4) / width | 0;
+          throw new Error(`pixel at ${x},${y} expected: ${color}, was ${pixels.slice(i, i + 4)}`);
+    }
+  }
+}

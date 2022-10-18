@@ -1003,7 +1003,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     //   void bufferSubData(GLenum target, GLintptr dstByteOffset, [AllowShared] ArrayBufferView srcData,
     //                      GLuint srcOffset, optional GLuint length = 0);
     bufferSubData(gl, funcName, args) {
-      const [target, dstByteOffset, src, srcOffset, length = 0] = args;
+      const [target, dstByteOffset, src, srcOffset = 0, length = 0] = args;
       if (target !== gl.ELEMENT_ARRAY_BUFFER) {
         return;
       }
