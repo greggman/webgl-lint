@@ -48,6 +48,7 @@ import {
 /* global console */
 /* global WebGL2RenderingContext */
 /* global WebGLUniformLocation */
+/* global EventTarget */
 
 //------------ [ from https://github.com/KhronosGroup/WebGLDeveloperTools ]
 
@@ -148,39 +149,110 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
   const origGLErrorFn = options.origGLErrorFn || ctx.getError;
   addEnumsFromAPI(ctx);
 
+  const tagObject = function(webglObject, name) {
+    throwIfNotWebGLObject(webglObject);
+    sharedState.webglObjectToNamesMap.set(webglObject, name);
+  };
+
+  const untagObject = function(webglObject) {
+    throwIfNotWebGLObject(webglObject);
+    sharedState.webglObjectToNamesMap.delete(webglObject);
+  };
+
+  const getTagForObject = function(webglObject) {
+    return sharedState.webglObjectToNamesMap.get(webglObject);
+  };
+
+  const setConfiguration = function(config) {
+    for (const [key, value] of Object.entries(config)) {
+      if (!(key in sharedState.config)) {
+        throw new Error(`unknown configuration option: ${key}`);
+      }
+      sharedState.config[key] = value;
+    }
+    for (const name of sharedState.config.ignoreUniforms) {
+      sharedState.ignoredUniforms.add(name);
+    }
+  };
+
   function createSharedState(ctx) {
+    const eventTarget = new EventTarget();
     const sharedState = {
       baseContext: ctx,
       config: options,
+      eventTarget,
+      debugGroupStack: [
+        {source: 'root', id: 0, message: ''},
+      ],
       apis: {
-        // custom extension
         gman_debug_helper: {
           ctx: {
-            tagObject(webglObject, name) {
-              throwIfNotWebGLObject(webglObject);
-              sharedState.webglObjectToNamesMap.set(webglObject, name);
-            },
-            untagObject(webglObject) {
-              throwIfNotWebGLObject(webglObject);
-              sharedState.webglObjectToNamesMap.delete(webglObject);
-            },
-            getTagForObject(webglObject) {
-              return sharedState.webglObjectToNamesMap.get(webglObject);
-            },
+            tagObject,
+            untagObject,
+            getTagForObject,
             disable() {
               removeChecks();
             },
-            setConfiguration(config) {
-              for (const [key, value] of Object.entries(config)) {
-                if (!(key in sharedState.config)) {
-                  throw new Error(`unknown configuration option: ${key}`);
-                }
-                sharedState.config[key] = value;
-              }
-              for (const name of sharedState.config.ignoreUniforms) {
-                sharedState.ignoredUniforms.add(name);
+            setConfiguration,
+          },
+        },
+        webgl_debug: {
+          ctx: {
+            MAX_DEBUG_MESSAGE_LENGTH_KHR: 0x9143,
+            MAX_DEBUG_GROUP_STACK_DEPTH_KHR: 0x826C,
+            DEBUG_GROUP_STACK_DEPTH_KHR: 0x826D,
+            MAX_LABEL_LENGTH_KHR: 0x82E8,
+
+            DEBUG_SOURCE_API_KHR: 0x8246,
+            DEBUG_SOURCE_WINDOW_SYSTEM_KHR: 0x8247,
+            DEBUG_SOURCE_SHADER_COMPILER_KHR: 0x8248,
+            DEBUG_SOURCE_THIRD_PARTY_KHR: 0x8249,
+            DEBUG_SOURCE_APPLICATION_KHR: 0x824A,
+            DEBUG_SOURCE_OTHER_KHR: 0x824B,
+
+            DEBUG_TYPE_ERROR_KHR: 0x824C,
+            DEBUG_TYPE_DEPRECATED_BEHAVIOR_KHR: 0x824D,
+            DEBUG_TYPE_UNDEFINED_BEHAVIOR_KHR: 0x824E,
+            DEBUG_TYPE_PORTABILITY_KHR: 0x824F,
+            DEBUG_TYPE_PERFORMANCE_KHR: 0x8250,
+            DEBUG_TYPE_OTHER_KHR: 0x8251,
+            DEBUG_TYPE_MARKER_KHR: 0x8268,
+
+            DEBUG_TYPE_PUSH_GROUP_KHR: 0x8269,
+            DEBUG_TYPE_POP_GROUP_KHR: 0x826A,
+
+            DEBUG_SEVERITY_HIGH_KHR: 0x9146,
+            DEBUG_SEVERITY_MEDIUM_KHR: 0x9147,
+            DEBUG_SEVERITY_LOW_KHR: 0x9148,
+            DEBUG_SEVERITY_NOTIFICATION_KHR: 0x826B,
+
+            STACK_UNDERFLOW_KHR: 0x0504,
+            STACK_OVERFLOW_KHR: 0x0503,
+
+            //debugMessageControlKHR(GLenum source, GLenum type, GLenum severity, sequence<GLuint> ids, boolean enabled) {
+            debugMessageControlKHR(source, type, severity, ids, enabled) {
+
+            },
+            //debugMessageInsertKHR(GLenum source, GLenum type, GLuint id, GLenum severity, DOMString buf);
+            debugMessageInsertKHR(source, type, id, severity, buf) {
+
+            },
+            //pushDebugGroupKHR(GLenum source, GLuint id, DOMString message) {
+            pushDebugGroupKHR(source, id, message) {
+              sharedState.debugGroupStack.push({source, id, message});
+            },
+            popDebugGroupKHR() {
+              if (sharedState.debugGroupStack.length > 1) {
+                sharedState.debugGroupStack.pop();
+              } else {
+                // ERROR: STACK_UNDERFLOW_KHR
               }
             },
+            objectLabelKHR: tagObject,
+            getObjectLabelKHR: getTagForObject,
+            addEventListener: eventTarget.addEventListener.bind(eventTarget),
+            removeEventListener: eventTarget.removeEventListener.bind(eventTarget),
+            dispatchEvent: eventTarget.dispatchEvent.bind(eventTarget),
           },
         },
       },
