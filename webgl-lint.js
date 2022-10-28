@@ -1,4 +1,4 @@
-/* webgl-lint@1.9.3, license MIT */
+/* webgl-lint@1.9.4, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -1597,7 +1597,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
    * @param {WebGLRenderingContext|Extension} ctx The webgl context to wrap.
    * @param {string} nameOfClass (eg, webgl, webgl2, OES_texture_float)
    */
-  function augmentAPI(ctx, nameOfClass, options = {}) {
+  function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-line consistent-return
 
     if (augmentedSet.has(ctx)) {
       return ctx;
@@ -2349,6 +2349,11 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       return isUniformNameIgnored(locationsToNamesMap.get(webglUniformLocation));
     }
 
+    function isUniformBlock(ctx, args){
+      const [program, name] = args;
+      return isWebGL2(ctx) && ctx.getUniformIndices(program, [name])[0] !== ctx.INVALID_INDEX;
+    }
+
     function markUniformSetMatrixV(numValuesPer) {
       return function(gl, funcName, args) {
         const [webGLUniformLocation, transpose, data, srcOffset = 0, srcLength = 0] = args;
@@ -2571,7 +2576,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           locationsToNamesMap.set(location, name);
           programToLocationsMap.get(program).add(location);
         } else {
-          if (!isUniformNameIgnored(name)) {
+          if (!isUniformNameIgnored(name) && !isUniformBlock(ctx, args)) {
             warnOrThrowFunctionError(
                 ctx,
                 funcName,

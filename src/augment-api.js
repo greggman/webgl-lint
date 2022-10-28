@@ -41,6 +41,7 @@ import {
   isBuiltIn,
   isDrawFunction,
   isTypedArray,
+  isWebGL2,
   makeBitFieldToStringFunc,
   quotedStringOrEmpty,
   isWebGL2
@@ -139,7 +140,7 @@ const augmentedSet = new Set();
  * @param {WebGLRenderingContext|Extension} ctx The webgl context to wrap.
  * @param {string} nameOfClass (eg, webgl, webgl2, OES_texture_float)
  */
-export function augmentAPI(ctx, nameOfClass, options = {}) {
+export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-line consistent-return
 
   if (augmentedSet.has(ctx)) {
     return ctx;
@@ -891,9 +892,9 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     return isUniformNameIgnored(locationsToNamesMap.get(webglUniformLocation));
   }
 
-  function isUniformBlock(ctx,args){
+  function isUniformBlock(ctx, args){
     const [program, name] = args;
-    return isWebGL2(ctx) && ctx.getUniformIndices(program,[name])[0] !== ctx.INVALID_INDEX;
+    return isWebGL2(ctx) && ctx.getUniformIndices(program, [name])[0] !== ctx.INVALID_INDEX;
   }
 
   function markUniformSetMatrixV(numValuesPer) {
@@ -1118,7 +1119,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
         locationsToNamesMap.set(location, name);
         programToLocationsMap.get(program).add(location);
       } else {
-        if (!isUniformNameIgnored(name)&&!isUniformBlock(ctx,args)) {
+        if (!isUniformNameIgnored(name) && !isUniformBlock(ctx, args)) {
           warnOrThrowFunctionError(
               ctx,
               funcName,
