@@ -43,6 +43,7 @@ import {
   isTypedArray,
   makeBitFieldToStringFunc,
   quotedStringOrEmpty,
+  isWebGL2
 } from './utils.js';
 
 /* global console */
@@ -890,6 +891,11 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
     return isUniformNameIgnored(locationsToNamesMap.get(webglUniformLocation));
   }
 
+  function isUniformBlock(ctx,args){
+    const [program, name] = args;
+    return isWebGL2(ctx) && ctx.getUniformIndices(program,[name])[0] !== ctx.INVALID_INDEX;
+  }
+
   function markUniformSetMatrixV(numValuesPer) {
     return function(gl, funcName, args) {
       const [webGLUniformLocation, transpose, data, srcOffset = 0, srcLength = 0] = args;
@@ -1112,7 +1118,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {
         locationsToNamesMap.set(location, name);
         programToLocationsMap.get(program).add(location);
       } else {
-        if (!isUniformNameIgnored(name)) {
+        if (!isUniformNameIgnored(name)&&!isUniformBlock(ctx,args)) {
           warnOrThrowFunctionError(
               ctx,
               funcName,
