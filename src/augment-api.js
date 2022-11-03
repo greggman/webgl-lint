@@ -822,6 +822,23 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
     }
   }
 
+  function checkTextureTypeInSameSamplerLocation(ctx, funcName, args){
+    const uniformSamplerInfos = programToUniformSamplerValues.get(sharedState.currentProgram);
+    const uniformSamplersMap = new Map();
+    for (const {type, values, name} of uniformSamplerInfos) {
+      const value = values[0];
+      const uniformSamplerType = uniformSamplersMap.get(value);
+      if (!uniformSamplerType){
+        uniformSamplersMap.set(value, type);
+      } else {
+        if (uniformSamplerType !== type){
+          reportFunctionError(ctx, funcName, args, `Two textures of different types can't use the same sampler location. uniform ${getUniformTypeInfo(type).name} ${getUniformElementName(name, values.length, 0)} is not ${getUniformTypeInfo(uniformSamplerType).name}`);
+          return;
+        }
+      }
+    }
+  }
+
   function checkUnsetUniformsAndUnrenderableTextures(ctx, funcName, args) {
     if (!sharedState.currentProgram) {
       reportFunctionError(ctx, funcName, args, 'no current program');
@@ -829,6 +846,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
     }
     checkUnsetUniforms(ctx, funcName, args);
     checkUnRenderableTextures(ctx, funcName, args);
+    checkTextureTypeInSameSamplerLocation(ctx, funcName, args);
   }
 
   const preChecks = {
