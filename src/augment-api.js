@@ -43,8 +43,7 @@ import {
   isTypedArray,
   isWebGL2,
   makeBitFieldToStringFunc,
-  quotedStringOrEmpty,
-  isWebGL2
+  quotedStringOrEmpty
 } from './utils.js';
 
 /* global console */
@@ -832,8 +831,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
       if(!uniformSamplerType){
         uniformSamplersMap.set(value,type);
       }else{
-        if(uniformSamplerType!==type){
-          reportFunctionError(ctx, funcName, args, `Two textures of different types can't use the same sampler location. uniform ${getUniformTypeInfo(type).name} ${getUniformElementName(name, values.length, i)} is not ${getUniformTypeInfo(uniformSamplerType).name}`);
+        if(uniformSamplerType !== type){
+          reportFunctionError(ctx, funcName, args, `Two textures of different types can't use the same sampler location. uniform ${getUniformTypeInfo(type).name} ${getUniformElementName(name, values.length, 0)} is not ${getUniformTypeInfo(uniformSamplerType).name}`);
           return;
         }
       }
