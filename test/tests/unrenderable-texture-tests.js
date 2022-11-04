@@ -391,6 +391,74 @@ describe('unrenderable texture tests', () => {
 
       gl.drawArrays(gl.POINTS, 0, 1);
     });
+
+    it('test two texture type in same sampler location', () => {
+      const {gl, tagObject} = contexts;
+      const vs = `
+      void main() {
+        gl_Position = vec4(0);
+      }
+      `;
+
+      const fs = `
+      precision mediump float;
+      uniform samplerCube u_cubeTex;
+      uniform sampler2D u_tex;
+      void main() {
+        gl_FragColor = textureCube(u_cubeTex, vec3(0)) + texture2D(u_tex, vec2(0));
+      }
+      `;
+
+      const prg = twgl.createProgram(gl, [vs, fs]);
+      tagObject(prg, 'twoLocationPrg');
+      gl.useProgram(prg);
+
+      const cubeLoc = gl.getUniformLocation(prg, 'u_cubeTex');
+      const texLoc = gl.getUniformLocation(prg, 'u_tex');
+      gl.uniform1i(cubeLoc, 0);
+      gl.uniform1i(texLoc, 0);
+
+      const cubeTex = gl.createTexture();
+      tagObject(cubeTex, 'u_cubeTex');
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, cubeTex);
+
+      gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      assertThrowsWith(() => {
+        gl.drawArrays(gl.POINTS, 0, 1);
+      }, [/POSITIVE_X face at mip level 0 does not exist /]);
+
+      gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      assertThrowsWith(() => {
+        gl.drawArrays(gl.POINTS, 0, 1);
+      }, [/MAP_POSITIVE_Y\) does not exist/]);
+
+      gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      assertThrowsWith(() => {
+        gl.drawArrays(gl.POINTS, 0, 1);
+      }, [/mip level 1 does not exist/]);
+
+      const tex = gl.createTexture();
+      tagObject(tex, 'u_tex');
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 4, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+      assertThrowsWith(() => {
+        gl.drawArrays(gl.POINTS, 0, 1);
+      }, [/mip level 1 does not exist/]);
+
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+
+      assertThrowsWith(() => {
+        gl.drawArrays(gl.POINTS, 0, 1);
+      }, [/Two textures of different types can't use the same sampler location/]);
+
+      gl.deleteTexture(tex);
+      gl.deleteTexture(cubeTex);
+    });
   }
 
   describe('unrenderable tests', () => {
