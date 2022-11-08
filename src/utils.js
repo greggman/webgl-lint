@@ -284,8 +284,8 @@ const glTypeToLimitMap = new Map([
 
 export function getEBOTypeByVertCount(vertCount) {
   let type;
-  for(let v of glTypeToLimitMap ) {
-    if(vertCount <= v[1]){
+  for (const v of glTypeToLimitMap ) {
+    if (vertCount <= v[1]){
       type = v[0];
       break;
     }

@@ -392,7 +392,7 @@ describe('unrenderable texture tests', () => {
       gl.drawArrays(gl.POINTS, 0, 1);
     });
 
-    it('test two texture type in same sampler location',() => {
+    it('test two texture type in same sampler location', () => {
       const {gl, tagObject} = contexts;
       const vs = `
       void main() {
@@ -415,8 +415,8 @@ describe('unrenderable texture tests', () => {
 
       const cubeLoc = gl.getUniformLocation(prg, 'u_cubeTex');
       const texLoc = gl.getUniformLocation(prg, 'u_tex');
-      gl.uniform1i(cubeLoc,0);
-      gl.uniform1i(texLoc,0);
+      gl.uniform1i(cubeLoc, 0);
+      gl.uniform1i(texLoc, 0);
 
       const cubeTex = gl.createTexture();
       tagObject(cubeTex, 'u_cubeTex');
@@ -439,19 +439,19 @@ describe('unrenderable texture tests', () => {
       assertThrowsWith(() => {
         gl.drawArrays(gl.POINTS, 0, 1);
       }, [/mip level 1 does not exist/]);
-      
-      
-      
+
+
+
       const tex = gl.createTexture();
       tagObject(tex, 'u_tex');
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 4, 4, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-      
-      
+
+
       assertThrowsWith(() => {
         gl.drawArrays(gl.POINTS, 0, 1);
       }, [/mip level 1 does not exist/]);
-      
+
       gl.generateMipmap(gl.TEXTURE_2D);
       gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
 

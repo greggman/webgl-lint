@@ -22,7 +22,7 @@ function getLastUsedIndexForDrawElements(gl, funcName, startOffset, vertCount, i
     return undefined;
   }
   const eboType = getEBOTypeByVertCount(vertCount);
-  if(eboType !== indexType){
+  if (eboType !== indexType){
     errors.push(`the vert count is ${vertCount}, the type of this values in the element array buffer should be: ${glEnumToString(eboType)}, but the current ELEMENT_ARRAY_BUFFER ${getWebGLObjectString(elementBuffer)} sets ${glEnumToString(indexType)}`);
     return undefined;
   }
