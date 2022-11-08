@@ -276,6 +276,23 @@ export function getBytesPerValueForGLType(type) {
   return glTypeToSizeMap.get(type) || 0;
 }
 
+const glTypeToLimitMap = new Map([
+  [UNSIGNED_BYTE , 256],
+  [UNSIGNED_BYTE , 65536],
+  [UNSIGNED_BYTE , 4294967296],
+]);
+
+export function getEBOTypeByVertCount(vertCount) {
+  let type;
+  for(let v of glTypeToLimitMap ) {
+    if(vertCount <= v[1]){
+      type = v[0];
+      break;
+    }
+  }
+  return type;
+}
+
 const glTypeToTypedArrayMap = new Map([
   [UNSIGNED_BYTE,  Uint8Array],
   [UNSIGNED_SHORT, Uint16Array],
