@@ -1,4 +1,4 @@
-/* webgl-lint@1.10.0, license MIT */
+/* webgl-lint@1.10.1, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -1852,7 +1852,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         5: { enums: [0, 2], numbers: [-1, 3, 4], arrays: { 1: checkBufferSourceWithOffsetAndLength } },  // WebGL2
       },
       'bufferSubData': {
-        3: { enums: [0], numbers: [1], arrays: [2] },
+        3: { enums: [0], numbers: [1], arrays: {2: checkBufferSource} },
         4: { enums: [0], numbers: [1, 3], arrays: {2: checkBufferSourceWithOffset} },  // WebGL2
         5: { enums: [0], numbers: [1, 3, 4], arrays: {2: checkBufferSourceWithOffsetAndLength} },  // WebGL2
       },
@@ -2852,6 +2852,18 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       checkTypedArray(ctx, funcName, args, arg, ndx, offset, length);
     }
 
+    function checkBufferSource(ctx, funcName, args, arg, ndx) {
+      if (isTypedArray(arg) && isArrayThatCanHaveBadValues(arg)) {
+        const offset = 0;
+        const length = arg.length - offset;
+        checkTypedArray(ctx, funcName, args, arg, ndx, offset, length);
+      } else {
+        if (Array.isArray(arg)) {
+          reportFunctionError(ctx, funcName, args, `argument ${ndx} is not an ArrayBufferView or ArrayBuffer`);
+        }
+      }
+    }
+
     function checkBufferSourceWithOffset(ctx, funcName, args, arg, ndx) {
       if (isTypedArray(arg) && isArrayThatCanHaveBadValues(arg)) {
         const offset = args[args.length - 1];
@@ -3039,7 +3051,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
               const isArrayLike = Array.isArray(arg) || isTypedArray(arg);
               if (arraySetting >= 0) {
                 if (!isArrayLike) {
-                  reportFunctionError(ctx, funcName, args, `argument ${ndx} is not a array or typedarray`);
+                  reportFunctionError(ctx, funcName, args, `argument ${ndx} is not am array or typedarray`);
                   return;
                 }
               }
