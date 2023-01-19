@@ -4,6 +4,7 @@
 
 import './tests/arrays-with-offsets-tests.js';
 import './tests/bad-data-tests.js';
+import './tests/buffer-tests.js';
 import './tests/buffer-overflow-tests.js';
 import './tests/data-view-tests.js';
 import './tests/disable-tests.js';
