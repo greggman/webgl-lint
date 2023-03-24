@@ -849,7 +849,26 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
     checkTextureTypeInSameSamplerLocation(ctx, funcName, args);
   }
 
+  function checkBufferSubDataOverflow(ctx, funcName, args) {
+    const [target, dstByteOffset, src, srcOffset = 0, length = 0] = args;
+    const bufferSize = ctx.getBufferParameter(target, ctx.BUFFER_SIZE);
+    const isDataView = src instanceof DataView || src instanceof ArrayBuffer;
+    const copyLength = length ? length : isDataView
+        ? src.byteLength - srcOffset
+        : src.length - srcOffset;
+    if (bufferSize < dstByteOffset + copyLength) {
+      reportFunctionError(
+        ctx,
+        funcName,
+        args,
+        bufferSize === 0
+          ? 'call to bufferData is necessary before calling bufferSubData on the buffer.'
+          : `the buffer should have enough allocated memory! [bufferSize:${bufferSize} dstByteOffset(${dstByteOffset}) + copyLength(${copyLength}) = ${dstByteOffset + copyLength}]`);
+    }
+  }
+
   const preChecks = {
+    bufferSubData:checkBufferSubDataOverflow,
     drawArrays: checkUnsetUniformsAndUnrenderableTextures,
     drawElements: checkUnsetUniformsAndUnrenderableTextures,
     drawArraysInstanced: checkUnsetUniformsAndUnrenderableTextures,
