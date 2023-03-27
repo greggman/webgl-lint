@@ -142,6 +142,17 @@ describe('buffer overflow tests', () => {
     }, [/drawElementsPrg/, /"texcoord"/, /attribute 'texcoord'/]);
   });
 
+  it('test buffer overflow with bufferSubData', () => {
+    const {gl} = createContext();
+    const buffer = gl.createBuffer();
+    const data = new Uint8Array(new Array(512).fill(1.0));
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, 512, gl.STATIC_DRAW);
+    assertThrowsWith(() => {
+      gl.bufferSubData(gl.ARRAY_BUFFER, 1, data);
+    }, [/the buffer should have enough allocated memory!/]);
+  });
+
   it('test buffer overflow with drawElements offset TypedArrays', () => {
     const {gl, tagObject} = createContext();
 
