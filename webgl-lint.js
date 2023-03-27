@@ -1,4 +1,4 @@
-/* webgl-lint@1.10.1, license MIT */
+/* webgl-lint@1.10.2, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -2307,7 +2307,28 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       checkTextureTypeInSameSamplerLocation(ctx, funcName, args);
     }
 
+    function checkBufferSubDataOverflow(ctx, funcName, args) {
+      const [target, dstByteOffset, src, srcOffset = 0, length = 0] = args;
+      const bufferSize = ctx.getBufferParameter(target, ctx.BUFFER_SIZE);
+      const isDataView = src instanceof DataView || src instanceof ArrayBuffer;
+      const copyLength = length ? length : isDataView
+          ? src.byteLength - srcOffset
+          : src.length - srcOffset;
+      if (bufferSize < dstByteOffset + copyLength) {
+        const binding = getBindingQueryEnumForBindPoint(target);
+        const webglObject = ctx.getParameter(binding);
+        reportFunctionError(
+          ctx,
+          funcName,
+          args,
+          bufferSize === 0
+            ? `buffer ${getWebGLObjectString(webglObject)} has 0 size. You need to call bufferData before calling bufferSubData.`
+            : `buffer ${getWebGLObjectString(webglObject)} buffer is too small for data [bufferSize:${bufferSize} dstByteOffset(${dstByteOffset}) + copyLength(${copyLength}) = ${dstByteOffset + copyLength}]`);
+      }
+    }
+
     const preChecks = {
+      bufferSubData:checkBufferSubDataOverflow,
       drawArrays: checkUnsetUniformsAndUnrenderableTextures,
       drawElements: checkUnsetUniformsAndUnrenderableTextures,
       drawArraysInstanced: checkUnsetUniformsAndUnrenderableTextures,
