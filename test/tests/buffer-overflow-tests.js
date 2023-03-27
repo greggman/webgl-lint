@@ -145,12 +145,22 @@ describe('buffer overflow tests', () => {
   it('test buffer overflow with bufferSubData', () => {
     const {gl} = createContext();
     const buffer = gl.createBuffer();
-    const data = new Uint8Array(new Array(512).fill(1.0));
+    const data = new Uint8Array(512);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, 512, gl.STATIC_DRAW);
     assertThrowsWith(() => {
       gl.bufferSubData(gl.ARRAY_BUFFER, 1, data);
-    }, [/the buffer should have enough allocated memory!/]);
+    }, [/buffer is too small for data/]);
+  });
+
+  it('test buffer overflow with bufferSubData on size 0 buffer', () => {
+    const {gl} = createContext();
+    const buffer = gl.createBuffer();
+    const data = new Uint8Array(512);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    assertThrowsWith(() => {
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, data);
+    }, [/has 0 size/]);
   });
 
   it('test buffer overflow with drawElements offset TypedArrays', () => {

@@ -857,13 +857,15 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
         ? src.byteLength - srcOffset
         : src.length - srcOffset;
     if (bufferSize < dstByteOffset + copyLength) {
+      const binding = getBindingQueryEnumForBindPoint(target);
+      const webglObject = ctx.getParameter(binding);
       reportFunctionError(
         ctx,
         funcName,
         args,
         bufferSize === 0
-          ? 'call to bufferData is necessary before calling bufferSubData on the buffer.'
-          : `the buffer should have enough allocated memory! [bufferSize:${bufferSize} dstByteOffset(${dstByteOffset}) + copyLength(${copyLength}) = ${dstByteOffset + copyLength}]`);
+          ? `buffer ${getWebGLObjectString(webglObject)} has 0 size. You need to call bufferData before calling bufferSubData.`
+          : `buffer ${getWebGLObjectString(webglObject)} buffer is too small for data [bufferSize:${bufferSize} dstByteOffset(${dstByteOffset}) + copyLength(${copyLength}) = ${dstByteOffset + copyLength}]`);
     }
   }
 
