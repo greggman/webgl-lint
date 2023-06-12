@@ -321,6 +321,16 @@
     return attrTypeMap.get(type);
   }
 
+  const createWeakRef = obj => obj ? new WeakRef(obj) : null;
+  const isObjectRefEqual = (ref, obj) => {
+    const refed = ref?.deref();
+    // check they both reference something or both don't reference something.
+    if (!!refed !== !!obj) {
+      return false;
+    }
+    return refed ? refed === obj : true;
+  };
+
   const VERTEX_ATTRIB_ARRAY_DIVISOR = 0x88FE;
 
   function computeLastUseIndexForDrawArrays(startOffset, vertCount/*, instances, errors*/) {
@@ -1039,7 +1049,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
   }
 
   class TextureManager {
-    constructor(gl) {
+    constructor(gl, redundantStateSetting) {
+      this.redundantStateSetting = redundantStateSetting;
       const isWebGL2$1 = isWebGL2(gl);
       const needPOT = !isWebGL2$1;
       const extensions = new Set();
@@ -1318,6 +1329,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         recomputeRenderability(textureInfo);
       }
 
+
       this.postChecks = {
         activeTexture(ctx, funcName, args) {
           const unit = args[0] - TEXTURE0;
@@ -1327,15 +1339,20 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
         bindTexture(ctx, funcName, args) {
           const [target, texture] = args;
-          activeTextureUnit.set(getBindPointForTarget(target), texture);
-          if (texture) {
-            const textureInfo = textureToTextureInfoMap.get(texture);
-            if (textureInfo.type) {
-              if (textureInfo.type !== target) {
-                throw new Error('should never get here');
+          const bindPoint = getBindPointForTarget(target);
+          if (activeTextureUnit.get(bindPoint) === texture) {
+            ++redundantStateSetting.bindTexture;
+          } else {
+            activeTextureUnit.set(bindPoint, texture);
+            if (texture) {
+              const textureInfo = textureToTextureInfoMap.get(texture);
+              if (textureInfo.type) {
+                if (textureInfo.type !== target) {
+                  throw new Error('should never get here');
+                }
+              } else {
+                textureInfo.type = target;
               }
-            } else {
-              textureInfo.type = target;
             }
           }
         },
@@ -1481,6 +1498,104 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
   }
 
+  class VertexArray {
+    constructor(numAttribs) {
+      this.elementAttribArray = null;
+      this.attribs = [];
+      for (let i = 0; i < numAttribs; ++i) {
+        this.attribs.push({
+          size: 0,
+          type: 0,
+          normalize: false,
+          stride: 0,
+          offset: 0,
+          divisor: 0,
+          buffer: null,
+          iPointer: false,
+        });
+      }
+    }
+    setElementArrayBuffer(redundantStateSetting, buffer) {
+      if (isObjectRefEqual(this.elementAttribArray, buffer)) {
+        ++redundantStateSetting.bindBuffer;
+      } else {
+        this.elementAttribArray = createWeakRef(buffer);
+      }
+    }
+    setAttrib(redundantStateSetting, iPointer, index, size, type, normalize, stride, offset, buffer) {
+      const attrib = this.attribs[index];
+      if (isObjectRefEqual(attrib.buffer, buffer) &&
+          attrib.iPointer === iPointer &&
+          attrib.size === size &&
+          attrib.type === type &&
+          attrib.normalize === normalize &&
+          attrib.stride === stride &&
+          attrib.offset === offset) {
+        ++redundantStateSetting.vertexAttribPointer;
+      } else {
+        Object.assign(attrib, {
+          iPointer, size, type, normalize, stride, offset, buffer: createWeakRef(buffer),
+        });
+      }
+    }
+  }
+
+  class VertexArrayManager {
+    constructor(gl, redundantStateSetting) {
+      this.redundantStateSetting = redundantStateSetting;
+      this.numAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+      this.vertexArrays = new WeakMap();
+      this.defaultVertexArray = new VertexArray(this.numAttribs);
+      this.currentVertexArray = this.defaultVertexArray;
+
+      const createVertexArray = (ctx, funcName, args, obj) => {
+        this.vertexArrays.set(obj, new VertexArray(this.numAttribs));
+      };
+
+      const deleteVertexArray = (ctx, funcName, args) => {
+        const [obj] = args;
+        const vertexArray = this.vertexArrays.get(obj);
+        if (this.currentVertexArray === vertexArray) {
+          this.currentVertexArray = this.defaultVertexArray;
+        }
+        this.vertexArrays.delete(obj);
+      };
+
+      const bindVertexArray = (ctx, funcName, args) => {
+        let [vertexArray] = args;
+        vertexArray = vertexArray ? this.vertexArrays.get(vertexArray) : this.defaultVertexArray;
+        if (vertexArray === this.currentVertexArray) {
+          ++this.redundantStateSetting.bindVertexArray;
+        } else {
+          this.currentVertexArray = vertexArray;
+        }
+      };
+
+      this.postChecks = {
+        createVertexArray,
+        createVertexArrayOES: createVertexArray,
+        bindVertexArray,
+        bindVertexArrayOES: bindVertexArray,
+        bindBuffer: (ctx, funcName, args) => {
+          const [target, buffer] = args;
+          if (target === gl.ELEMENT_ARRAY_BUFFER) {
+            this.currentVertexArray.setElementArrayBuffer(this.redundantStateSetting, buffer);
+          }
+        },
+        deleteVertexArray,
+        deleteVertexArrayOES: deleteVertexArray,
+        vertexAttribPointer: (ctx, funcName, args) => {
+          const [index, size, type, normalize, stride, offset] = args;
+          this.currentVertexArray.setAttrib(this.redundantStateSetting, false, index, size, type, normalize, stride, offset, ctx.getParameter(gl.ARRAY_BUFFER_BINDING));
+        },
+        vertexAttribIPointer: (ctx, funcName, args) => {
+          const [index, size, type, stride, offset] = args;
+          this.currentVertexArray.setAttrib(this.redundantStateSetting, true, index, size, type, false, stride, offset, ctx.getParameter(gl.ARRAY_BUFFER_BINDING));
+        }
+      };
+    }
+  }
+
   /*
   The MIT License (MIT)
 
@@ -1588,7 +1703,25 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
   }
 
+  function createVertexArray() {
+    return {
+      elementArrayBuffer: null,
+      vertexAttribs: [],
+    };
+  }
+
   const augmentedSet = new Set();
+
+  const zeroRedundantState = {
+    useProgram: 0,
+    bindBuffer: 0,
+    bindFramebuffer: 0,
+    bindRenderbuffer: 0,
+    bindTexture: 0,
+    bindVertexArray: 0,
+    enableDisable: 0,
+    vertexAttribPointer: 0,
+  };
 
   /**
    * Given a WebGL context replaces all the functions with wrapped functions
@@ -1608,6 +1741,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     addEnumsFromAPI(ctx);
 
     function createSharedState(ctx) {
+      const defaultVertexArray = createVertexArray();
+      const redundantStateSetting = { ...zeroRedundantState };
       const sharedState = {
         baseContext: ctx,
         config: options,
@@ -1640,11 +1775,17 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
                   sharedState.ignoredUniforms.add(name);
                 }
               },
+              getAndResetRedundantCallInfo() {
+                const info = { ...redundantStateSetting };
+                Object.assign(redundantStateSetting, zeroRedundantState);
+                return info;
+              },
             },
           },
         },
         idCounts: {},
-        textureManager: new TextureManager(ctx),
+        textureManager: new TextureManager(ctx, redundantStateSetting),
+        vertexArrayManager: new VertexArrayManager(ctx, redundantStateSetting),
         bufferToIndices: new Map(),
         ignoredUniforms: new Set(),
         // Okay or bad? This is a map of all WebGLUniformLocation object looked up
@@ -1694,6 +1835,18 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         // }
         /** @type {WebGLProgram, UniformSamplerInfo[]} */
         programToUniformSamplerValues: new Map(),
+        // state for state tracking
+        defaultVertexArray,
+        webglState: {
+          currentProgram: null,
+          buffers: {},
+          currentReadFramebuffer: null,
+          currentDrawFramebuffer: null,
+          currentRenderbuffer: null,
+          textureUnits: [],
+          enabled: {},
+        },
+        redundantStateSetting,
       };
       return sharedState;
     }
@@ -1713,8 +1866,11 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       programToUniformSamplerValues,
       programToUnsetUniformsMap,
       textureManager,
+      vertexArrayManager,
       webglObjectToNamesMap,
       idCounts,
+      webglState,
+      redundantStateSetting,
     } = sharedState;
 
     const extensionFuncs = {
@@ -1793,7 +1949,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
       // Textures
 
-      'bindTexture': {2: { enums: [0] }},
+      'bindTexture': {2: { enums: [0], undef: [1] }},
       'activeTexture': {1: { enums: [0, 1] }},
       'getTexParameter': {2: { enums: [0, 1] }},
       'texParameterf': {3: { enums: [0, 1] }},
@@ -1845,7 +2001,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
       // Buffer objects
 
-      'bindBuffer': {2: { enums: [0] }},
+      'bindBuffer': {2: { enums: [0], undef: [1] }},
       'bufferData': {
         3: { enums: [0, 2], numbers: [-1], arrays: [-1] },
         4: { enums: [0, 2], numbers: [-1, 3], arrays: { 1: checkBufferSourceWithOffset } },  // WebGL2
@@ -1873,8 +2029,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         7: { enums: [4, 5], numbers: [0, 1, 2, 3, -6] },
         8: { enums: [4, 5], numbers: [0, 1, 2, 3, 7] },  // WebGL2
       },
-      'bindRenderbuffer': {2: { enums: [0] }},
-      'bindFramebuffer': {2: { enums: [0] }},
+      'bindRenderbuffer': {2: { enums: [0], undef: [1] }},
+      'bindFramebuffer': {2: { enums: [0], undef: [1] }},
       'blitFramebuffer': {10: { enums: { 8: destBufferBitFieldToString, 9:true }, numbers: [0, 1, 2, 3, 4, 5, 6, 7]}},  // WebGL2
       'checkFramebufferStatus': {1: { enums: [0] }},
       'framebufferRenderbuffer': {4: { enums: [0, 1, 2], }},
@@ -1888,6 +2044,8 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       'readBuffer': {1: { enums: [0] }},  // WebGL2
       'renderbufferStorage': {4: { enums: [0, 1], numbers: [2, 3] }},
       'renderbufferStorageMultisample': {5: { enums: [0, 2], numbers: [1, 3, 4] }},  // WebGL2
+      'bindVertexBuffer': {1: { undef: [1]}},
+      'bindVertexBufferOES': {1: { undef: [1]}},
 
       // Frame buffer operations (clear, blend, depth test, stencil)
 
@@ -2109,7 +2267,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
       //  Transform Feedback
 
-      'bindTransformFeedback': { 2: { enums: [0] }},  // WebGL2
+      'bindTransformFeedback': { 2: { enums: [0], undef: [1] }},  // WebGL2
       'beginTransformFeedback': { 1: { enums: [0] }},  // WebGL2
 
       // Uniform Buffer Objects and Transform Feedback Buffers
@@ -2127,6 +2285,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         convertToObjectIfArray(fnInfo, 'enums');
         convertToObjectIfArray(fnInfo, 'numbers');
         convertToObjectIfArray(fnInfo, 'arrays');
+        convertToObjectIfArray(fnInfo, 'undef');
       }
       if (/uniform(\d|Matrix)/.test(name)) {
         fnInfos.errorHelper = getUniformNameErrorMsg;
@@ -2228,7 +2387,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       if (!config.failUnsetUniforms) {
         return;
       }
-      const unsetUniforms = programToUnsetUniformsMap.get(sharedState.currentProgram);
+      const unsetUniforms = programToUnsetUniformsMap.get(webglState.currentProgram);
       if (unsetUniforms) {
         const uniformNames = [];
         for (const [name, {index, unset}] of unsetUniforms) {
@@ -2250,7 +2409,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       if (!config.failUnrenderableTextures) {
         return;
       }
-      const uniformSamplerInfos = programToUniformSamplerValues.get(sharedState.currentProgram);
+      const uniformSamplerInfos = programToUniformSamplerValues.get(webglState.currentProgram);
       const numTextureUnits = textureManager.numTextureUnits;
       for (const {type, values, name} of uniformSamplerInfos) {
         const bindPoint = getBindPointForSampler(type);
@@ -2281,7 +2440,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     function checkTextureTypeInSameSamplerLocation(ctx, funcName, args){
-      const uniformSamplerInfos = programToUniformSamplerValues.get(sharedState.currentProgram);
+      const uniformSamplerInfos = programToUniformSamplerValues.get(webglState.currentProgram);
       const uniformSamplersMap = new Map();
       for (const {type, values, name} of uniformSamplerInfos) {
         const value = values[0];
@@ -2298,7 +2457,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     function checkUnsetUniformsAndUnrenderableTextures(ctx, funcName, args) {
-      if (!sharedState.currentProgram) {
+      if (!webglState.currentProgram) {
         reportFunctionError(ctx, funcName, args, 'no current program');
         return;
       }
@@ -2340,10 +2499,10 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
     function markUniformRangeAsSet(webGLUniformLocation, count) {
       if (!webGLUniformLocation) {
-        throwOrWarn(config.failUndefinedUniforms, config.warnUndefinedUniforms, `attempt to set non-existent uniform on ${getWebGLObjectString(sharedState.currentProgram)}\nSee docs at https://github.com/greggman/webgl-lint/ for how to turn off this check using "warnUndefinedUniforms: false"`);
+        throwOrWarn(config.failUndefinedUniforms, config.warnUndefinedUniforms, `attempt to set non-existent uniform on ${getWebGLObjectString(webglState.currentProgram)}\nSee docs at https://github.com/greggman/webgl-lint/ for how to turn off this check using "warnUndefinedUniforms: false"`);
         return;
       }
-      const unsetUniforms = programToUnsetUniformsMap.get(sharedState.currentProgram);
+      const unsetUniforms = programToUnsetUniformsMap.get(webglState.currentProgram);
       if (!unsetUniforms) {
         // no unset uniforms
         return;
@@ -2367,7 +2526,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         // have all uniforms in this program been set?
         if (!unsetUniforms.size) {
           // yes, so no checking needed for this program anymore
-          programToUnsetUniformsMap.delete(sharedState.currentProgram);
+          programToUnsetUniformsMap.delete(webglState.currentProgram);
         }
       }
     }
@@ -2440,7 +2599,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
     function recordSamplerValues(webglUniformLocation, newValues) {
       const name = locationsToNamesMap.get(webglUniformLocation);
-      const uniformInfos = programToUniformInfoMap.get(sharedState.currentProgram);
+      const uniformInfos = programToUniformInfoMap.get(webglState.currentProgram);
       const {index, type, values} = uniformInfos.get(name);
       if (!uniformTypeIsSampler(type)) {
         return;
@@ -2474,6 +2633,71 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     const postChecks = {
+      enable(gl, funcName, args) {
+        const [pname] = args;
+        if (!!webglState.enabled[pname] === true) {
+          ++redundantStateSetting.enableDisable;
+        } else {
+          webglState.enabled[pname] = true;
+        }
+      },
+      disable(gl, funcName, args) {
+        const [pname] = args;
+        if (!!webglState.enabled[pname] === false) {
+          ++redundantStateSetting.enableDisable;
+        } else {
+          webglState.enabled[pname] = false;
+        }
+      },
+      bindBuffer(gl, funcName, args) {
+        const [target, buffer] = args;
+        switch (target) {
+          case gl.ELEMENT_ARRAY_BUFFER:
+            // handled by VertexArrayManager
+            break;
+          default:
+            if (isObjectRefEqual(webglState.buffers[target], buffer)) {
+              ++redundantStateSetting.bindBuffer;
+            } else {
+              webglState.buffers[target] = createWeakRef(buffer);
+            }
+        }
+      },
+      bindFramebuffer(gl, funcName, args) {
+        const [target, framebuffer] = args;
+        switch (target) {
+          case gl.READ_FRAMEBUFFER:
+            if (isObjectRefEqual(webglState.currentReadFramebuffer, framebuffer)) {
+              ++redundantStateSetting.bindFramebuffer;
+            } else {
+              webglState.currentReadFramebuffer = createWeakRef(framebuffer);
+            }
+            break;
+          case gl.DRAW_FRAMEBUFFER:
+            if (isObjectRefEqual(webglState.currentDrawFramebuffer, framebuffer)) {
+              ++redundantStateSetting.bindFramebuffer;
+            } else {
+              webglState.currentDrawFramebuffer = createWeakRef(framebuffer);
+            }
+            break;
+          case gl.FRAMEBUFFER:
+            if (isObjectRefEqual(webglState.currentDrawFramebuffer, framebuffer) && 
+                isObjectRefEqual(webglState.currentDrawFramebuffer, framebuffer)) {
+              ++redundantStateSetting.bindFramebuffer;
+            } else {
+              webglState.currentDrawFramebuffer = createWeakRef(framebuffer);
+              webglState.currentReadFramebuffer = createWeakRef(framebuffer);
+            }
+        }
+      },
+      bindRenderbuffer(gl, funcName, args) {
+        const [target, renderbuffer] = args;
+        if (isObjectRefEqual(webglState.currentRenderbuffer, renderbuffer)) {
+          ++redundantStateSetting.bindRenderbuffer;
+        } else {
+          webglState.currentRenderbuffer = createWeakRef(renderbuffer);
+        }
+      },
       // WebGL1
       //   void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
       //   void bufferData(GLenum target, [AllowShared] BufferSource? srcData, GLenum usage);
@@ -2705,13 +2929,17 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
       useProgram(ctx, funcName, args) {
         const [program] = args;
-        sharedState.currentProgram = program;
+        if (webglState.currentProgram === program) {
+          ++redundantStateSetting.useProgram;
+        } else {
+          webglState.currentProgram = program;
+        }
       },
 
       deleteProgram(ctx, funcName, args) {
         const [program] = args;
-        if (sharedState.currentProgram === program) {
-          sharedState.currentProgram = undefined;
+        if (webglState.currentProgram === program) {
+          webglState.currentProgram = undefined;
         }
         discardInfoForProgram(program);
       },
@@ -2735,16 +2963,17 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       deleteVertexArray: makeDeleteWrapper,
       deleteVertexArrayOES: makeDeleteWrapper,
     };
-    Object.entries(textureManager.postChecks).forEach(([funcName, func]) => {
-      const existingFn = postChecks[funcName] || noop;
-      postChecks[funcName] = function(...args) {
-        existingFn(...args);
-        if (config.failUnrenderableTextures) {
-          func(...args);
-        }
-      };
+    [textureManager, vertexArrayManager].forEach(manager => {
+      Object.entries(manager.postChecks).forEach(([funcName, func]) => {
+        const existingFn = postChecks[funcName] || noop;
+        postChecks[funcName] = function(...args) {
+          existingFn(...args);
+          if (config.failUnrenderableTextures) {
+            func(...args);
+          }
+        };
+      });
     });
-
     /*
     function getWebGLObject(gl, funcName, args, value) {
       const funcInfos = glFunctionInfos[funcName];
@@ -2922,7 +3151,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       if (!webglUniformLocation) {
         return;
       }
-      const uniformInfos = programToUniformInfoMap.get(sharedState.currentProgram);
+      const uniformInfos = programToUniformInfoMap.get(webglState.currentProgram);
       if (!uniformInfos) {
         return;
       }
@@ -3043,11 +3272,11 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           reportFunctionError(ctx, funcName, args, `no version of function '${funcName}' takes ${args.length} arguments`);
           return;
         } else {
-          const {numbers = {}, arrays = {}} = funcInfo;
+          const {numbers = {}, arrays = {}, undef = {}} = funcInfo;
           for (let ndx = 0; ndx < args.length; ++ndx) {
             const arg = args[ndx];
             // check the no arguments are undefined
-            if (arg === undefined) {
+            if (arg === undefined && !undef[ndx]) {
               reportFunctionError(ctx, funcName, args, `argument ${ndx} is undefined`);
               return;
             }
@@ -3123,7 +3352,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       ctx[funcName] = function(...args) {
         preCheck(ctx, funcName, args);
         checkArgs(ctx, funcName, args);
-        if (sharedState.currentProgram && isDrawFunction(funcName)) {
+        if (webglState.currentProgram && isDrawFunction(funcName)) {
           const msgs = checkAttributesForBufferOverflow(baseContext, funcName, args, getWebGLObjectString, getIndicesForBuffer);
           if (msgs.length) {
             reportFunctionError(ctx, funcName, args, msgs.join('\n'));
@@ -3136,7 +3365,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           glErrorShadow[err] = true;
           const msgs = [glEnumToString(err)];
           if (isDrawFunction(funcName)) {
-            if (sharedState.currentProgram) {
+            if (webglState.currentProgram) {
               msgs.push(...checkFramebufferFeedback(gl, getWebGLObjectString));
             }
           }

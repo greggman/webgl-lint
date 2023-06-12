@@ -328,7 +328,8 @@ function getDimensionsString(type, width, height, depth) {
 }
 
 export class TextureManager {
-  constructor(gl) {
+  constructor(gl, redundantStateSetting) {
+    this.redundantStateSetting = redundantStateSetting;
     const isWebGL2 = isWebGL2Check(gl);
     const needPOT = !isWebGL2;
     const extensions = new Set();
@@ -607,6 +608,7 @@ export class TextureManager {
       recomputeRenderability(textureInfo);
     }
 
+
     this.postChecks = {
       activeTexture(ctx, funcName, args) {
         const unit = args[0] - TEXTURE0;
@@ -616,15 +618,20 @@ export class TextureManager {
 
       bindTexture(ctx, funcName, args) {
         const [target, texture] = args;
-        activeTextureUnit.set(getBindPointForTarget(target), texture);
-        if (texture) {
-          const textureInfo = textureToTextureInfoMap.get(texture);
-          if (textureInfo.type) {
-            if (textureInfo.type !== target) {
-              throw new Error('should never get here');
+        const bindPoint = getBindPointForTarget(target);
+        if (activeTextureUnit.get(bindPoint) === texture) {
+          ++redundantStateSetting.bindTexture;
+        } else {
+          activeTextureUnit.set(bindPoint, texture);
+          if (texture) {
+            const textureInfo = textureToTextureInfoMap.get(texture);
+            if (textureInfo.type) {
+              if (textureInfo.type !== target) {
+                throw new Error('should never get here');
+              }
+            } else {
+              textureInfo.type = target;
             }
-          } else {
-            textureInfo.type = target;
           }
         }
       },
@@ -668,7 +675,11 @@ export class TextureManager {
 
       bindSampler(ctx, funcName, args) {
         const [unit, sampler] = args;
-        textureUnits[unit].set('SAMPLER', sampler);
+        if (sampler === textureUnits[unit].get('SAMPLER')) {
+          ++redundantStateSetting.bindSampler;
+        } else {
+          textureUnits[unit].set('SAMPLER', sampler);
+        }
       },
 
       samplerParameteri(ctx, funcName, args) {

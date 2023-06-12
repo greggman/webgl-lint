@@ -4,6 +4,12 @@ import {createContext} from '../webgl.js';
 
 describe('buffer tests', () => {
 
+  it('test bindBuffer with null and undefined', () => {
+    const {gl} = createContext();
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, undefined);
+  });
+
   it('test bufferData with different BufferSource', () => {
     const {gl} = createContext();
 

@@ -30,8 +30,10 @@ import {
   uniformTypeIsSampler,
 } from './samplers.js';
 import {TextureManager} from './texture-manager.js';
+import {VertexArrayManager} from './vertex-array-manager.js';
 import {
   addEnumsFromAPI,
+  createWeakRef,
   enumArrayToString,
   getBindingQueryEnumForBindPoint,
   getDrawFunctionArgs,
@@ -40,6 +42,7 @@ import {
   isArrayThatCanHaveBadValues,
   isBuiltIn,
   isDrawFunction,
+  isObjectRefEqual,
   isTypedArray,
   isWebGL2,
   makeBitFieldToStringFunc,
@@ -130,7 +133,26 @@ function throwIfNotWebGLObject(webglObject) {
   }
 }
 
+function createVertexArray() {
+  return {
+    elementArrayBuffer: null,
+    vertexAttribs: [],
+  };
+}
+
 const augmentedSet = new Set();
+
+const zeroRedundantState = {
+  useProgram: 0,
+  bindBuffer: 0,
+  bindFramebuffer: 0,
+  bindRenderbuffer: 0,
+  bindSampler: 0,
+  bindTexture: 0,
+  bindVertexArray: 0,
+  enableDisable: 0,
+  vertexAttribPointer: 0,
+};
 
 /**
  * Given a WebGL context replaces all the functions with wrapped functions
@@ -150,6 +172,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
   addEnumsFromAPI(ctx);
 
   function createSharedState(ctx) {
+    const defaultVertexArray = createVertexArray();
+    const redundantStateSetting = { ...zeroRedundantState };
     const sharedState = {
       baseContext: ctx,
       config: options,
@@ -182,11 +206,17 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
                 sharedState.ignoredUniforms.add(name);
               }
             },
+            getAndResetRedundantCallInfo() {
+              const info = { ...redundantStateSetting };
+              Object.assign(redundantStateSetting, zeroRedundantState);
+              return info;
+            },
           },
         },
       },
       idCounts: {},
-      textureManager: new TextureManager(ctx),
+      textureManager: new TextureManager(ctx, redundantStateSetting),
+      vertexArrayManager: new VertexArrayManager(ctx, redundantStateSetting),
       bufferToIndices: new Map(),
       ignoredUniforms: new Set(),
       // Okay or bad? This is a map of all WebGLUniformLocation object looked up
@@ -236,6 +266,18 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
       // }
       /** @type {WebGLProgram, UniformSamplerInfo[]} */
       programToUniformSamplerValues: new Map(),
+      // state for state tracking
+      defaultVertexArray,
+      webglState: {
+        currentProgram: null,
+        buffers: {},
+        currentReadFramebuffer: null,
+        currentDrawFramebuffer: null,
+        currentRenderbuffer: null,
+        textureUnits: [],
+        enabled: {},
+      },
+      redundantStateSetting,
     };
     return sharedState;
   }
@@ -255,8 +297,11 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
     programToUniformSamplerValues,
     programToUnsetUniformsMap,
     textureManager,
+    vertexArrayManager,
     webglObjectToNamesMap,
     idCounts,
+    webglState,
+    redundantStateSetting,
   } = sharedState;
 
   const extensionFuncs = {
@@ -335,7 +380,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
 
     // Textures
 
-    'bindTexture': {2: { enums: [0] }},
+    'bindTexture': {2: { enums: [0], undef: [1] }},
     'activeTexture': {1: { enums: [0, 1] }},
     'getTexParameter': {2: { enums: [0, 1] }},
     'texParameterf': {3: { enums: [0, 1] }},
@@ -387,7 +432,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
 
     // Buffer objects
 
-    'bindBuffer': {2: { enums: [0] }},
+    'bindBuffer': {2: { enums: [0], undef: [1] }},
     'bufferData': {
       3: { enums: [0, 2], numbers: [-1], arrays: [-1] },
       4: { enums: [0, 2], numbers: [-1, 3], arrays: { 1: checkBufferSourceWithOffset } },  // WebGL2
@@ -415,8 +460,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
       7: { enums: [4, 5], numbers: [0, 1, 2, 3, -6] },
       8: { enums: [4, 5], numbers: [0, 1, 2, 3, 7] },  // WebGL2
     },
-    'bindRenderbuffer': {2: { enums: [0] }},
-    'bindFramebuffer': {2: { enums: [0] }},
+    'bindRenderbuffer': {2: { enums: [0], undef: [1] }},
+    'bindFramebuffer': {2: { enums: [0], undef: [1] }},
     'blitFramebuffer': {10: { enums: { 8: destBufferBitFieldToString, 9:true }, numbers: [0, 1, 2, 3, 4, 5, 6, 7]}},  // WebGL2
     'checkFramebufferStatus': {1: { enums: [0] }},
     'framebufferRenderbuffer': {4: { enums: [0, 1, 2], }},
@@ -430,6 +475,8 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
     'readBuffer': {1: { enums: [0] }},  // WebGL2
     'renderbufferStorage': {4: { enums: [0, 1], numbers: [2, 3] }},
     'renderbufferStorageMultisample': {5: { enums: [0, 2], numbers: [1, 3, 4] }},  // WebGL2
+    'bindVertexBuffer': {1: { undef: [1]}},
+    'bindVertexBufferOES': {1: { undef: [1]}},
 
     // Frame buffer operations (clear, blend, depth test, stencil)
 
@@ -651,7 +698,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
 
     //  Transform Feedback
 
-    'bindTransformFeedback': { 2: { enums: [0] }},  // WebGL2
+    'bindTransformFeedback': { 2: { enums: [0], undef: [1] }},  // WebGL2
     'beginTransformFeedback': { 1: { enums: [0] }},  // WebGL2
 
     // Uniform Buffer Objects and Transform Feedback Buffers
@@ -669,6 +716,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
       convertToObjectIfArray(fnInfo, 'enums');
       convertToObjectIfArray(fnInfo, 'numbers');
       convertToObjectIfArray(fnInfo, 'arrays');
+      convertToObjectIfArray(fnInfo, 'undef');
     }
     if (/uniform(\d|Matrix)/.test(name)) {
       fnInfos.errorHelper = getUniformNameErrorMsg;
@@ -770,7 +818,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
     if (!config.failUnsetUniforms) {
       return;
     }
-    const unsetUniforms = programToUnsetUniformsMap.get(sharedState.currentProgram);
+    const unsetUniforms = programToUnsetUniformsMap.get(webglState.currentProgram);
     if (unsetUniforms) {
       const uniformNames = [];
       for (const [name, {index, unset}] of unsetUniforms) {
@@ -792,7 +840,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
     if (!config.failUnrenderableTextures) {
       return;
     }
-    const uniformSamplerInfos = programToUniformSamplerValues.get(sharedState.currentProgram);
+    const uniformSamplerInfos = programToUniformSamplerValues.get(webglState.currentProgram);
     const numTextureUnits = textureManager.numTextureUnits;
     for (const {type, values, name} of uniformSamplerInfos) {
       const bindPoint = getBindPointForSampler(type);
@@ -823,7 +871,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
   }
 
   function checkTextureTypeInSameSamplerLocation(ctx, funcName, args){
-    const uniformSamplerInfos = programToUniformSamplerValues.get(sharedState.currentProgram);
+    const uniformSamplerInfos = programToUniformSamplerValues.get(webglState.currentProgram);
     const uniformSamplersMap = new Map();
     for (const {type, values, name} of uniformSamplerInfos) {
       const value = values[0];
@@ -840,7 +888,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
   }
 
   function checkUnsetUniformsAndUnrenderableTextures(ctx, funcName, args) {
-    if (!sharedState.currentProgram) {
+    if (!webglState.currentProgram) {
       reportFunctionError(ctx, funcName, args, 'no current program');
       return;
     }
@@ -882,10 +930,10 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
 
   function markUniformRangeAsSet(webGLUniformLocation, count) {
     if (!webGLUniformLocation) {
-      throwOrWarn(config.failUndefinedUniforms, config.warnUndefinedUniforms, `attempt to set non-existent uniform on ${getWebGLObjectString(sharedState.currentProgram)}\nSee docs at https://github.com/greggman/webgl-lint/ for how to turn off this check using "warnUndefinedUniforms: false"`);
+      throwOrWarn(config.failUndefinedUniforms, config.warnUndefinedUniforms, `attempt to set non-existent uniform on ${getWebGLObjectString(webglState.currentProgram)}\nSee docs at https://github.com/greggman/webgl-lint/ for how to turn off this check using "warnUndefinedUniforms: false"`);
       return;
     }
-    const unsetUniforms = programToUnsetUniformsMap.get(sharedState.currentProgram);
+    const unsetUniforms = programToUnsetUniformsMap.get(webglState.currentProgram);
     if (!unsetUniforms) {
       // no unset uniforms
       return;
@@ -909,7 +957,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
       // have all uniforms in this program been set?
       if (!unsetUniforms.size) {
         // yes, so no checking needed for this program anymore
-        programToUnsetUniformsMap.delete(sharedState.currentProgram);
+        programToUnsetUniformsMap.delete(webglState.currentProgram);
       }
     }
   }
@@ -982,7 +1030,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
 
   function recordSamplerValues(webglUniformLocation, newValues) {
     const name = locationsToNamesMap.get(webglUniformLocation);
-    const uniformInfos = programToUniformInfoMap.get(sharedState.currentProgram);
+    const uniformInfos = programToUniformInfoMap.get(webglState.currentProgram);
     const {index, type, values} = uniformInfos.get(name);
     if (!uniformTypeIsSampler(type)) {
       return;
@@ -1016,6 +1064,71 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
   }
 
   const postChecks = {
+    enable(gl, funcName, args) {
+      const [pname] = args;
+      if (!!webglState.enabled[pname] === true) {
+        ++redundantStateSetting.enableDisable;
+      } else {
+        webglState.enabled[pname] = true;
+      }
+    },
+    disable(gl, funcName, args) {
+      const [pname] = args;
+      if (!!webglState.enabled[pname] === false) {
+        ++redundantStateSetting.enableDisable;
+      } else {
+        webglState.enabled[pname] = false;
+      }
+    },
+    bindBuffer(gl, funcName, args) {
+      const [target, buffer] = args;
+      switch (target) {
+        case gl.ELEMENT_ARRAY_BUFFER:
+          // handled by VertexArrayManager
+          break;
+        default:
+          if (isObjectRefEqual(webglState.buffers[target], buffer)) {
+            ++redundantStateSetting.bindBuffer;
+          } else {
+            webglState.buffers[target] = createWeakRef(buffer);
+          }
+      }
+    },
+    bindFramebuffer(gl, funcName, args) {
+      const [target, framebuffer] = args;
+      switch (target) {
+        case gl.READ_FRAMEBUFFER:
+          if (isObjectRefEqual(webglState.currentReadFramebuffer, framebuffer)) {
+            ++redundantStateSetting.bindFramebuffer;
+          } else {
+            webglState.currentReadFramebuffer = createWeakRef(framebuffer);
+          }
+          break;
+        case gl.DRAW_FRAMEBUFFER:
+          if (isObjectRefEqual(webglState.currentDrawFramebuffer, framebuffer)) {
+            ++redundantStateSetting.bindFramebuffer;
+          } else {
+            webglState.currentDrawFramebuffer = createWeakRef(framebuffer);
+          }
+          break;
+        case gl.FRAMEBUFFER:
+          if (isObjectRefEqual(webglState.currentDrawFramebuffer, framebuffer) &&
+              isObjectRefEqual(webglState.currentDrawFramebuffer, framebuffer)) {
+            ++redundantStateSetting.bindFramebuffer;
+          } else {
+            webglState.currentDrawFramebuffer = createWeakRef(framebuffer);
+            webglState.currentReadFramebuffer = createWeakRef(framebuffer);
+          }
+      }
+    },
+    bindRenderbuffer(gl, funcName, args) {
+      const [, renderbuffer] = args;
+      if (isObjectRefEqual(webglState.currentRenderbuffer, renderbuffer)) {
+        ++redundantStateSetting.bindRenderbuffer;
+      } else {
+        webglState.currentRenderbuffer = createWeakRef(renderbuffer);
+      }
+    },
     // WebGL1
     //   void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
     //   void bufferData(GLenum target, [AllowShared] BufferSource? srcData, GLenum usage);
@@ -1247,13 +1360,17 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
 
     useProgram(ctx, funcName, args) {
       const [program] = args;
-      sharedState.currentProgram = program;
+      if (webglState.currentProgram === program) {
+        ++redundantStateSetting.useProgram;
+      } else {
+        webglState.currentProgram = program;
+      }
     },
 
     deleteProgram(ctx, funcName, args) {
       const [program] = args;
-      if (sharedState.currentProgram === program) {
-        sharedState.currentProgram = undefined;
+      if (webglState.currentProgram === program) {
+        webglState.currentProgram = undefined;
       }
       discardInfoForProgram(program);
     },
@@ -1277,16 +1394,17 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
     deleteVertexArray: makeDeleteWrapper,
     deleteVertexArrayOES: makeDeleteWrapper,
   };
-  Object.entries(textureManager.postChecks).forEach(([funcName, func]) => {
-    const existingFn = postChecks[funcName] || noop;
-    postChecks[funcName] = function(...args) {
-      existingFn(...args);
-      if (config.failUnrenderableTextures) {
-        func(...args);
-      }
-    };
+  [textureManager, vertexArrayManager].forEach(manager => {
+    Object.entries(manager.postChecks).forEach(([funcName, func]) => {
+      const existingFn = postChecks[funcName] || noop;
+      postChecks[funcName] = function(...args) {
+        existingFn(...args);
+        if (config.failUnrenderableTextures) {
+          func(...args);
+        }
+      };
+    });
   });
-
   /*
   function getWebGLObject(gl, funcName, args, value) {
     const funcInfos = glFunctionInfos[funcName];
@@ -1464,7 +1582,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
     if (!webglUniformLocation) {
       return;
     }
-    const uniformInfos = programToUniformInfoMap.get(sharedState.currentProgram);
+    const uniformInfos = programToUniformInfoMap.get(webglState.currentProgram);
     if (!uniformInfos) {
       return;
     }
@@ -1585,11 +1703,11 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
         reportFunctionError(ctx, funcName, args, `no version of function '${funcName}' takes ${args.length} arguments`);
         return;
       } else {
-        const {numbers = {}, arrays = {}} = funcInfo;
+        const {numbers = {}, arrays = {}, undef = {}} = funcInfo;
         for (let ndx = 0; ndx < args.length; ++ndx) {
           const arg = args[ndx];
           // check the no arguments are undefined
-          if (arg === undefined) {
+          if (arg === undefined && !undef[ndx]) {
             reportFunctionError(ctx, funcName, args, `argument ${ndx} is undefined`);
             return;
           }
@@ -1665,7 +1783,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
     ctx[funcName] = function(...args) {
       preCheck(ctx, funcName, args);
       checkArgs(ctx, funcName, args);
-      if (sharedState.currentProgram && isDrawFunction(funcName)) {
+      if (webglState.currentProgram && isDrawFunction(funcName)) {
         const msgs = checkAttributesForBufferOverflow(baseContext, funcName, args, getWebGLObjectString, getIndicesForBuffer);
         if (msgs.length) {
           reportFunctionError(ctx, funcName, args, msgs.join('\n'));
@@ -1678,7 +1796,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
         glErrorShadow[err] = true;
         const msgs = [glEnumToString(err)];
         if (isDrawFunction(funcName)) {
-          if (sharedState.currentProgram) {
+          if (webglState.currentProgram) {
             msgs.push(...checkFramebufferFeedback(gl, getWebGLObjectString));
           }
         }

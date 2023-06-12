@@ -16,6 +16,7 @@ import './tests/extension-enum-tests.js';
 import './tests/ignore-uniforms-tests.js';
 import './tests/naming-tests.js';
 import './tests/program-delete-tests.js';
+import './tests/redundant-state-tests.js';
 import './tests/report-vao-tests.js';
 import './tests/shader-fail-tests.js';
 import './tests/undefined-uniform-tests.js';

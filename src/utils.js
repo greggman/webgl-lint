@@ -343,3 +343,14 @@ const attrTypeMap = new Map([
 export function getAttributeTypeInfo(type) {
   return attrTypeMap.get(type);
 }
+
+export const createWeakRef = obj => obj ? new WeakRef(obj) : null;
+export const isObjectRefEqual = (ref, obj) => {
+  const refed = ref?.deref();
+  // check they both reference something or both don't reference something.
+  if (!!refed !== !!obj) {
+    return false;
+  }
+  return refed ? refed === obj : true;
+};
+
