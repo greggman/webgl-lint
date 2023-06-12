@@ -77,6 +77,7 @@ WebGL Lint adds a special extension `GMAN_debug_helper` with these functions
 * `getTagForObject(obj: WebGLObject): string` - see naming below
 * `setConfiguration(settings): void` - see configuration below
 * `disable(): void` - turns off the checking
+* `getAndResetRedundantCallInfo(): RedundantCallInfo` - see below
 
 ### Configuration
 
@@ -373,6 +374,61 @@ const buf = gl.createBuffer();
 ext.tagObject(buf, 'normals');
 console.log(ext.getTagForObject(buf));  // prints 'normals'
 ```
+
+## Checking for redundant calls
+
+An example of a redundant call is calling `gl.useProgram` with the same program
+or calling `gl.vertexAttribPointer` with the same parameters and the same buffer.
+You can get a count to date of the redundant state setting WebGL-Lint has detected
+by calling `ext.getAndResetRedundantCallInfo()`
+
+Example:
+
+```js
+function render() {
+  // .. do stuff with webgl ..
+
+  const info = ext.getAndResetRedundantCallInfo();
+  console.log(JSON.stringify(info));
+  requestAnimationFrame(render);
+}
+```
+
+Alternatively you can try adding this script to your page (**instead of `webgl-lint.js`**) and it will
+attempt to print redundant call info for you.
+
+```html
+<script type="module" src="https://greggman.github.io/webgl-lint/webgl-lint-check-redundant-state-setting.js"></script>
+```
+
+or
+
+```js
+import 'https://greggman.github.io/webgl-lint/webgl-lint-check-redundant-state-setting.js';
+```
+
+Note: WebGL-Lint does not check every possible redundant set setting. At the moment it checks
+
+* `bindBuffer`
+* `bindFramebuffer`
+* `bindRenderbuffer`
+* `bindSampler`
+* `bindTexture`
+* `bindVertexBuffer`
+* `enable`
+* `disable`
+* `vertexAttribPointer`
+* `vertexAttribIPointer`
+
+It's not important to avoid 100% of redundant state setting. Rather, you can use
+this feature to see if you have too much redundant state setting. For example if
+you're making 2000 draw calls and you see 500-5000 redundant state setting
+counts then you should probably look into adding some state tracking in your own
+code or organizing the way calls happen so state is not set. It's not so much
+that setting state more than once is bad, it's rather than it's just proof your
+code is doing extra work. If it's a lot of extra work then you probably want to
+look into it. If it's only a small amount of extra work then don't worry about
+it.
 
 # Suggestions?
 
