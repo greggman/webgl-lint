@@ -47,6 +47,7 @@ class VertexArray {
 
 export class VertexArrayManager {
   constructor(gl, redundantStateSetting) {
+    this.gl = gl;
     this.redundantStateSetting = redundantStateSetting;
     this.numAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
     this.vertexArrays = new WeakMap();
@@ -91,12 +92,14 @@ export class VertexArrayManager {
       deleteVertexArrayOES: deleteVertexArray,
       vertexAttribPointer: (ctx, funcName, args) => {
         const [index, size, type, normalize, stride, offset] = args;
-        this.currentVertexArray.setAttrib(this.redundantStateSetting, false, index, size, type, normalize, stride, offset, ctx.getParameter(gl.ARRAY_BUFFER_BINDING));
+        const gl = this.gl;
+        this.currentVertexArray.setAttrib(this.redundantStateSetting, false, index, size, type, normalize, stride, offset, gl.getParameter(gl.ARRAY_BUFFER_BINDING));
       },
       vertexAttribIPointer: (ctx, funcName, args) => {
         const [index, size, type, stride, offset] = args;
-        this.currentVertexArray.setAttrib(this.redundantStateSetting, true, index, size, type, false, stride, offset, ctx.getParameter(gl.ARRAY_BUFFER_BINDING));
-      }
+        const gl = this.gl;
+        this.currentVertexArray.setAttrib(this.redundantStateSetting, true, index, size, type, false, stride, offset, gl.getParameter(gl.ARRAY_BUFFER_BINDING));
+      },
     };
   }
 }
