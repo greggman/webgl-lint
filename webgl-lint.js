@@ -1,4 +1,4 @@
-/* webgl-lint@1.10.2, license MIT */
+/* webgl-lint@1.11.0, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -1396,7 +1396,11 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
 
         bindSampler(ctx, funcName, args) {
           const [unit, sampler] = args;
-          textureUnits[unit].set('SAMPLER', sampler);
+          if (sampler === textureUnits[unit].get('SAMPLER')) {
+            ++redundantStateSetting.bindSampler;
+          } else {
+            textureUnits[unit].set('SAMPLER', sampler);
+          }
         },
 
         samplerParameteri(ctx, funcName, args) {
@@ -1717,6 +1721,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     bindBuffer: 0,
     bindFramebuffer: 0,
     bindRenderbuffer: 0,
+    bindSampler: 0,
     bindTexture: 0,
     bindVertexArray: 0,
     enableDisable: 0,
@@ -2681,7 +2686,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
             }
             break;
           case gl.FRAMEBUFFER:
-            if (isObjectRefEqual(webglState.currentDrawFramebuffer, framebuffer) && 
+            if (isObjectRefEqual(webglState.currentDrawFramebuffer, framebuffer) &&
                 isObjectRefEqual(webglState.currentDrawFramebuffer, framebuffer)) {
               ++redundantStateSetting.bindFramebuffer;
             } else {
@@ -2691,7 +2696,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         }
       },
       bindRenderbuffer(gl, funcName, args) {
-        const [target, renderbuffer] = args;
+        const [, renderbuffer] = args;
         if (isObjectRefEqual(webglState.currentRenderbuffer, renderbuffer)) {
           ++redundantStateSetting.bindRenderbuffer;
         } else {
