@@ -1,4 +1,4 @@
-/* webgl-lint@1.11.1, license MIT */
+/* webgl-lint@1.11.2, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -813,6 +813,18 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
   }
 
+  const twoDFaceTargets = [
+    TEXTURE_2D$2,
+  ];
+  const cubeMapFaceTargets = [
+    TEXTURE_CUBE_MAP_POSITIVE_X$1,
+    TEXTURE_CUBE_MAP_NEGATIVE_X$1,
+    TEXTURE_CUBE_MAP_POSITIVE_Y$1,
+    TEXTURE_CUBE_MAP_NEGATIVE_Y$1,
+    TEXTURE_CUBE_MAP_POSITIVE_Z$1,
+    TEXTURE_CUBE_MAP_NEGATIVE_Z$1,
+  ];
+
   /*
   const targetToBindPointMap = new Map([
     [TEXTURE_2D, TEXTURE_2D],
@@ -968,10 +980,10 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
        [RGBA16I,            { textureFormat: RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [8],        type: [SHORT$1], }],
        [RGBA32I,            { textureFormat: RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [16],       type: [INT$1], }],
        [RGBA32UI,           { textureFormat: RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [16],       type: [UNSIGNED_INT$1], }],
-        // Sized Internal
-       [DEPTH_COMPONENT16,  { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: false, bytesPerElement: [2, 4],     type: [UNSIGNED_SHORT$1, UNSIGNED_INT$1], }],
-       [DEPTH_COMPONENT24,  { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [UNSIGNED_INT$1], }],
-       [DEPTH_COMPONENT32F, { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [FLOAT$1], }],
+        // Sized Internal                                                                         these are marked as not filterable but for some reason they apparently are?
+       [DEPTH_COMPONENT16,  { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: true/*false*/, bytesPerElement: [2, 4],     type: [UNSIGNED_SHORT$1, UNSIGNED_INT$1], }],
+       [DEPTH_COMPONENT24,  { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: true/*false*/, bytesPerElement: [4],        type: [UNSIGNED_INT$1], }],
+       [DEPTH_COMPONENT32F, { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: true/*false*/, bytesPerElement: [4],        type: [FLOAT$1], }],
        [DEPTH24_STENCIL8,   { textureFormat: DEPTH_STENCIL,   colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [UNSIGNED_INT_24_8], }],
        [DEPTH32F_STENCIL8,  { textureFormat: DEPTH_STENCIL,   colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [FLOAT_32_UNSIGNED_INT_24_8_REV], }],
     ]);
@@ -1432,8 +1444,11 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           const [target, levels, internalFormat, width, height] = args;
           let w = width;
           let h = height;
+          const faces = target === TEXTURE_CUBE_MAP$2 ? cubeMapFaceTargets : twoDFaceTargets;
           for (let level = 0; level < levels; ++level) {
-            setMipFaceInfoForTarget(target, level, internalFormat, w, h, 1);
+            for (const faceTarget of faces) {
+              setMipFaceInfoForTarget(faceTarget, level, internalFormat, w, h, 1);
+            }
             w = Math.max(1, (w / 2) | 0);
             h = Math.max(1, (h / 2) | 0);
           }
@@ -1768,46 +1783,51 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
             return result;
           } : origFn;
       }
+
+      const gman_debug_helper = {
+        ctx: {
+          tagObject(webglObject, name) {
+            throwIfNotWebGLObject(webglObject);
+            sharedState.webglObjectToNamesMap.set(webglObject, name);
+          },
+          untagObject(webglObject) {
+            throwIfNotWebGLObject(webglObject);
+            sharedState.webglObjectToNamesMap.delete(webglObject);
+          },
+          getTagForObject(webglObject) {
+            return sharedState.webglObjectToNamesMap.get(webglObject);
+          },
+          disable() {
+            removeChecks();
+          },
+          setConfiguration(config) {
+            for (const [key, value] of Object.entries(config)) {
+              if (!(key in sharedState.config)) {
+                throw new Error(`unknown configuration option: ${key}`);
+              }
+              sharedState.config[key] = value;
+            }
+            for (const name of sharedState.config.ignoreUniforms) {
+              sharedState.ignoredUniforms.add(name);
+            }
+          },
+          getAndResetRedundantCallInfo() {
+            const info = { ...redundantStateSetting };
+            Object.assign(redundantStateSetting, zeroRedundantState);
+            if (this._checksRemoved) {
+              for (const key of Object.keys(info)) {
+                info[key] = 'invalid is webgl-lint is no longer running. maxDrawCalls exceeded';
+              }
+            }
+            return info;
+          },
+        },
+      };
+
       const sharedState = {
         baseContext: ctx,
         config: options,
-        apis: {
-          // custom extension
-          gman_debug_helper: {
-            ctx: {
-              tagObject(webglObject, name) {
-                throwIfNotWebGLObject(webglObject);
-                sharedState.webglObjectToNamesMap.set(webglObject, name);
-              },
-              untagObject(webglObject) {
-                throwIfNotWebGLObject(webglObject);
-                sharedState.webglObjectToNamesMap.delete(webglObject);
-              },
-              getTagForObject(webglObject) {
-                return sharedState.webglObjectToNamesMap.get(webglObject);
-              },
-              disable() {
-                removeChecks();
-              },
-              setConfiguration(config) {
-                for (const [key, value] of Object.entries(config)) {
-                  if (!(key in sharedState.config)) {
-                    throw new Error(`unknown configuration option: ${key}`);
-                  }
-                  sharedState.config[key] = value;
-                }
-                for (const name of sharedState.config.ignoreUniforms) {
-                  sharedState.ignoredUniforms.add(name);
-                }
-              },
-              getAndResetRedundantCallInfo() {
-                const info = { ...redundantStateSetting };
-                Object.assign(redundantStateSetting, zeroRedundantState);
-                return info;
-              },
-            },
-          },
-        },
+        apis: { gman_debug_helper },
         idCounts: {},
         textureManager: new TextureManager(baseContext, redundantStateSetting),
         vertexArrayManager: new VertexArrayManager(baseContext, redundantStateSetting),
@@ -2116,15 +2136,15 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       'drawBuffers': {1: { enums: { 0: enumArrayToString, }, arrays: [0] }},  // WebGL2
       'clearBufferfv': {
         3: { enums: [0], numbers: [1], arrays: [2] },  // WebGL2
-        4: { enums: [0], numbers: [1, 2], arrays: [2] },  // WebGL2
+        4: { enums: [0], numbers: [1, 3], arrays: [2] },  // WebGL2
       },
       'clearBufferiv': {
         3: { enums: [0], numbers: [1], arrays: [2] },  // WebGL2
-        4: { enums: [0], numbers: [1, 2], arrays: [2] },  // WebGL2
+        4: { enums: [0], numbers: [1, 3], arrays: [2] },  // WebGL2
       },
       'clearBufferuiv': {
         3: { enums: [0], numbers: [1], arrays: [2] },  // WebGL2
-        4: { enums: [0], numbers: [1, 2], arrays: [2] },  // WebGL2
+        4: { enums: [0], numbers: [1, 3], arrays: [2] },  // WebGL2
       },
       'clearBufferfi': { 4: { enums: [0], numbers: [1, 2, 3] }},  // WebGL2
 
@@ -2338,6 +2358,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
         Object.assign(ctx, origFuncs);
         augmentedSet.delete(ctx);
       }
+      sharedState.apis.gman_debug_helper._checksRemoved = true;
       for (const key of [...Object.keys(sharedState)]) {
         delete sharedState[key];
       }
@@ -3328,7 +3349,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
               const isArrayLike = Array.isArray(arg) || isTypedArray(arg);
               if (arraySetting >= 0) {
                 if (!isArrayLike) {
-                  reportFunctionError(ctx, funcName, args, `argument ${ndx} is not am array or typedarray`);
+                  reportFunctionError(ctx, funcName, args, `argument ${ndx} is not an array or typedarray`);
                   return;
                 }
               }
