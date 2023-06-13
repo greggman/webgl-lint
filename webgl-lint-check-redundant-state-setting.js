@@ -9,6 +9,7 @@ HTMLCanvasElement.prototype.getContext = (function(origFn) {
     if (ctx && (contextType === 'webgl' || contextType === 'webgl2')) {
       if (glContextRefs.findIndex(ref => ref.deref() === ctx) < 0) {
         const ext = ctx.getExtension('GMAN_debug_helper');
+        ext.setConfiguration({maxDrawCalls: 0});
         glContextRefs.push({ref: new WeakRef(ctx), ext});
       }
     }
