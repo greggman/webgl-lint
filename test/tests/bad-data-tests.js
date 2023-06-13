@@ -1,6 +1,6 @@
 import {assertThrowsWith} from '../assert.js';
 import {describe, it} from '../mocha-support.js';
-import {createContext} from '../webgl.js';
+import {createContext, createContext2} from '../webgl.js';
 
 describe('bad data tests', () => {
 
@@ -31,6 +31,21 @@ describe('bad data tests', () => {
     assertThrowsWith(() => {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.FLOAT, new Float32Array([1, 2, 3 / 'foo', 4]));  // error
     }, [/texImage2D.*?float-texture.*?NaN/]);
+  });
+
+  it('test bad argument', () => {
+    const {gl} = createContext2();
+    if (!gl) {
+      return;
+    }
+    gl.clearBufferfv(gl.COLOR, 0, [0, 0, 0, 0]);
+    gl.clearBufferfv(gl.COLOR, 0, new Float32Array([0, 0, 0, 0]), 0);
+    assertThrowsWith(() => {
+      gl.clearBufferfv(gl.COLOR, 'foo', [0, 0, 0, 0]);
+    }, [/not a number/]);
+    assertThrowsWith(() => {
+      gl.clearBufferfv(gl.COLOR, 0, 0);
+    }, [/not an array or typedarray/]);
   });
 
 });

@@ -539,15 +539,15 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
     'drawBuffers': {1: { enums: { 0: enumArrayToString, }, arrays: [0] }},  // WebGL2
     'clearBufferfv': {
       3: { enums: [0], numbers: [1], arrays: [2] },  // WebGL2
-      4: { enums: [0], numbers: [1, 2], arrays: [2] },  // WebGL2
+      4: { enums: [0], numbers: [1, 3], arrays: [2] },  // WebGL2
     },
     'clearBufferiv': {
       3: { enums: [0], numbers: [1], arrays: [2] },  // WebGL2
-      4: { enums: [0], numbers: [1, 2], arrays: [2] },  // WebGL2
+      4: { enums: [0], numbers: [1, 3], arrays: [2] },  // WebGL2
     },
     'clearBufferuiv': {
       3: { enums: [0], numbers: [1], arrays: [2] },  // WebGL2
-      4: { enums: [0], numbers: [1, 2], arrays: [2] },  // WebGL2
+      4: { enums: [0], numbers: [1, 3], arrays: [2] },  // WebGL2
     },
     'clearBufferfi': { 4: { enums: [0], numbers: [1, 2, 3] }},  // WebGL2
 
