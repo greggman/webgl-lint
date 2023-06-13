@@ -92,6 +92,18 @@ function getFaceTarget(face, type) {
   }
 }
 
+const twoDFaceTargets = [
+  TEXTURE_2D,
+];
+const cubeMapFaceTargets = [
+  TEXTURE_CUBE_MAP_POSITIVE_X,
+  TEXTURE_CUBE_MAP_NEGATIVE_X,
+  TEXTURE_CUBE_MAP_POSITIVE_Y,
+  TEXTURE_CUBE_MAP_NEGATIVE_Y,
+  TEXTURE_CUBE_MAP_POSITIVE_Z,
+  TEXTURE_CUBE_MAP_NEGATIVE_Z,
+];
+
 /*
 const targetToBindPointMap = new Map([
   [TEXTURE_2D, TEXTURE_2D],
@@ -711,8 +723,11 @@ export class TextureManager {
         const [target, levels, internalFormat, width, height] = args;
         let w = width;
         let h = height;
+        const faces = target === TEXTURE_CUBE_MAP ? cubeMapFaceTargets : twoDFaceTargets;
         for (let level = 0; level < levels; ++level) {
-          setMipFaceInfoForTarget(target, level, internalFormat, w, h, 1);
+          for (const faceTarget of faces) {
+            setMipFaceInfoForTarget(faceTarget, level, internalFormat, w, h, 1);
+          }
           w = Math.max(1, (w / 2) | 0);
           h = Math.max(1, (h / 2) | 0);
         }

@@ -235,6 +235,7 @@ describe('unrenderable texture tests', () => {
       const tex = gl.createTexture();
       tagObject(tex, 'testTex');
       gl.bindTexture(gl.TEXTURE_CUBE_MAP, tex);
+      gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 
       gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
       assertThrowsWith(() => {
@@ -250,11 +251,48 @@ describe('unrenderable texture tests', () => {
       gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
       gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
       gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+      gl.drawArrays(gl.POINTS, 0, 1);
+
+      gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
       assertThrowsWith(() => {
         gl.drawArrays(gl.POINTS, 0, 1);
       }, [/mip level 1 does not exist/]);
 
       gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+      gl.drawArrays(gl.POINTS, 0, 1);
+
+
+      gl.deleteTexture(tex);
+    });
+
+    it('test cubemaps texStorage', () => {
+      const {gl2: gl, tagObject} = contexts;
+      if (!gl) {
+        return;
+      }
+      const vs = `
+      void main() {
+        gl_Position = vec4(0);
+      }
+      `;
+
+      const fs = `
+      precision mediump float;
+      uniform samplerCube u_diffuse;
+      void main() {
+        gl_FragColor = textureCube(u_diffuse, vec3(0));
+      }
+      `;
+
+      const prg = twgl.createProgram(gl, [vs, fs]);
+      tagObject(prg, 'noTexPrg');
+      gl.useProgram(prg);
+
+      const tex = gl.createTexture();
+      tagObject(tex, 'testTex');
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, tex);
+      gl.texStorage2D(gl.TEXTURE_CUBE_MAP, 2, gl.RGBA8, 2, 2);
       gl.drawArrays(gl.POINTS, 0, 1);
 
       gl.deleteTexture(tex);
