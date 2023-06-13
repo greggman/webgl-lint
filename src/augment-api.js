@@ -191,46 +191,51 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
           return result;
         } : origFn;
     }
+
+    const gman_debug_helper = {
+      ctx: {
+        tagObject(webglObject, name) {
+          throwIfNotWebGLObject(webglObject);
+          sharedState.webglObjectToNamesMap.set(webglObject, name);
+        },
+        untagObject(webglObject) {
+          throwIfNotWebGLObject(webglObject);
+          sharedState.webglObjectToNamesMap.delete(webglObject);
+        },
+        getTagForObject(webglObject) {
+          return sharedState.webglObjectToNamesMap.get(webglObject);
+        },
+        disable() {
+          removeChecks();
+        },
+        setConfiguration(config) {
+          for (const [key, value] of Object.entries(config)) {
+            if (!(key in sharedState.config)) {
+              throw new Error(`unknown configuration option: ${key}`);
+            }
+            sharedState.config[key] = value;
+          }
+          for (const name of sharedState.config.ignoreUniforms) {
+            sharedState.ignoredUniforms.add(name);
+          }
+        },
+        getAndResetRedundantCallInfo() {
+          const info = { ...redundantStateSetting };
+          Object.assign(redundantStateSetting, zeroRedundantState);
+          if (this._checksRemoved) {
+            for (const key of Object.keys(info)) {
+              info[key] = 'invalid is webgl-lint is no longer running. maxDrawCalls exceeded';
+            }
+          }
+          return info;
+        },
+      },
+    };
+
     const sharedState = {
       baseContext: ctx,
       config: options,
-      apis: {
-        // custom extension
-        gman_debug_helper: {
-          ctx: {
-            tagObject(webglObject, name) {
-              throwIfNotWebGLObject(webglObject);
-              sharedState.webglObjectToNamesMap.set(webglObject, name);
-            },
-            untagObject(webglObject) {
-              throwIfNotWebGLObject(webglObject);
-              sharedState.webglObjectToNamesMap.delete(webglObject);
-            },
-            getTagForObject(webglObject) {
-              return sharedState.webglObjectToNamesMap.get(webglObject);
-            },
-            disable() {
-              removeChecks();
-            },
-            setConfiguration(config) {
-              for (const [key, value] of Object.entries(config)) {
-                if (!(key in sharedState.config)) {
-                  throw new Error(`unknown configuration option: ${key}`);
-                }
-                sharedState.config[key] = value;
-              }
-              for (const name of sharedState.config.ignoreUniforms) {
-                sharedState.ignoredUniforms.add(name);
-              }
-            },
-            getAndResetRedundantCallInfo() {
-              const info = { ...redundantStateSetting };
-              Object.assign(redundantStateSetting, zeroRedundantState);
-              return info;
-            },
-          },
-        },
-      },
+      apis: { gman_debug_helper },
       idCounts: {},
       textureManager: new TextureManager(baseContext, redundantStateSetting),
       vertexArrayManager: new VertexArrayManager(baseContext, redundantStateSetting),
@@ -761,6 +766,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
       Object.assign(ctx, origFuncs);
       augmentedSet.delete(ctx);
     }
+    sharedState.apis.gman_debug_helper._checksRemoved = true;
     for (const key of [...Object.keys(sharedState)]) {
       delete sharedState[key];
     }
@@ -1751,7 +1757,7 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
             const isArrayLike = Array.isArray(arg) || isTypedArray(arg);
             if (arraySetting >= 0) {
               if (!isArrayLike) {
-                reportFunctionError(ctx, funcName, args, `argument ${ndx} is not am array or typedarray`);
+                reportFunctionError(ctx, funcName, args, `argument ${ndx} is not an array or typedarray`);
                 return;
               }
             }
