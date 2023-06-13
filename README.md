@@ -414,7 +414,7 @@ Note: WebGL-Lint does not check every possible redundant set setting. At the mom
 * `bindRenderbuffer`
 * `bindSampler`
 * `bindTexture`
-* `bindVertexBuffer`
+* `bindVertexArray`
 * `enable`
 * `disable`
 * `vertexAttribPointer`
