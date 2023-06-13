@@ -259,10 +259,10 @@ function createTextureInternalFormatInfoMap() {
      [RGBA16I,            { textureFormat: RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [8],        type: [SHORT], }],
      [RGBA32I,            { textureFormat: RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [16],       type: [INT], }],
      [RGBA32UI,           { textureFormat: RGBA_INTEGER,    colorRenderable: true,  textureFilterable: false, bytesPerElement: [16],       type: [UNSIGNED_INT], }],
-      // Sized Internal
-     [DEPTH_COMPONENT16,  { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: false, bytesPerElement: [2, 4],     type: [UNSIGNED_SHORT, UNSIGNED_INT], }],
-     [DEPTH_COMPONENT24,  { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [UNSIGNED_INT], }],
-     [DEPTH_COMPONENT32F, { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [FLOAT], }],
+      // Sized Internal                                                                         these are marked as not filterable but for some reason they apparently are?
+     [DEPTH_COMPONENT16,  { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: true/*false*/, bytesPerElement: [2, 4],     type: [UNSIGNED_SHORT, UNSIGNED_INT], }],
+     [DEPTH_COMPONENT24,  { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: true/*false*/, bytesPerElement: [4],        type: [UNSIGNED_INT], }],
+     [DEPTH_COMPONENT32F, { textureFormat: DEPTH_COMPONENT, colorRenderable: true,  textureFilterable: true/*false*/, bytesPerElement: [4],        type: [FLOAT], }],
      [DEPTH24_STENCIL8,   { textureFormat: DEPTH_STENCIL,   colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [UNSIGNED_INT_24_8], }],
      [DEPTH32F_STENCIL8,  { textureFormat: DEPTH_STENCIL,   colorRenderable: true,  textureFilterable: false, bytesPerElement: [4],        type: [FLOAT_32_UNSIGNED_INT_24_8_REV], }],
   ]);
