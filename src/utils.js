@@ -354,3 +354,6 @@ export const isObjectRefEqual = (ref, obj) => {
   return refed ? refed === obj : true;
 };
 
+export function getWithDefault(v, defaultValue) {
+  return v === 'undefined' ? defaultValue : v;
+}

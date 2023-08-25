@@ -3,7 +3,7 @@ import {
   getNumberTypeForUniformSamplerType,
   getUniformTypeForUniformSamplerType,
 } from './samplers.js';
-import {glEnumToString, isWebGL2 as isWebGL2Check} from './utils.js';
+import {getWithDefault, glEnumToString, isWebGL2 as isWebGL2Check} from './utils.js';
 
 function createTextureUnits(gl) {
   const textureUnits = [];
@@ -365,7 +365,7 @@ export class TextureManager {
     function computeRenderability(textureInfo, parameters) {
       const {type, mips} = textureInfo;
       const baseLevel = parameters.get(TEXTURE_BASE_LEVEL) || 0;
-      const maxLevel = parameters.get(TEXTURE_MAX_LEVEL) || maxMips;
+      const maxLevel = getWithDefault(parameters.get(TEXTURE_MAX_LEVEL), maxMips);
       if (maxLevel < baseLevel) {
         return `TEXTURE_MAX_LEVEL(${maxLevel}) is less than TEXTURE_BASE_LEVEL(${baseLevel})`;
       }
@@ -754,7 +754,7 @@ export class TextureManager {
         const textureInfo = getTextureInfoForTarget(target);
         const {parameters} = textureInfo;
         const baseLevel = parameters.get(TEXTURE_BASE_LEVEL) || 0;
-        const maxLevel = parameters.get(TEXTURE_MAX_LEVEL) || maxMips;
+        const maxLevel = getWithDefault(parameters.get(TEXTURE_MAX_LEVEL), maxMips);
         const mipInfo = getMipInfoForTarget(target, baseLevel);
         const {width, height, depth, internalFormat, type} = mipInfo;
         const numMipsNeeded = Math.min(computeNumMipsNeeded(width, height, depth), (maxLevel + 1) - baseLevel);
