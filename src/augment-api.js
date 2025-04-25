@@ -1052,6 +1052,9 @@ export function augmentAPI(ctx, nameOfClass, options = {}) {  // eslint-disable-
   }
 
   function recordSamplerValues(webglUniformLocation, newValues) {
+    if (!webglUniformLocation) {
+        return;
+    }
     const name = locationsToNamesMap.get(webglUniformLocation);
     const uniformInfos = programToUniformInfoMap.get(webglState.currentProgram);
     const {index, type, values} = uniformInfos.get(name);
