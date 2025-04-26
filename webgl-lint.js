@@ -1,4 +1,4 @@
-/* webgl-lint@1.11.3, license MIT */
+/* webgl-lint@1.11.4, license MIT */
 (function (factory) {
   typeof define === 'function' && define.amd ? define(factory) :
   factory();
@@ -332,7 +332,7 @@
   };
 
   function getWithDefault(v, defaultValue) {
-    return v === 'undefined' ? defaultValue : v;
+    return v === undefined ? defaultValue : v;
   }
 
   const VERTEX_ATTRIB_ARRAY_DIVISOR = 0x88FE;
@@ -1080,7 +1080,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
       this.numTextureUnits = textureUnits.length;
 
       function recomputeRenderability(textureInfo) {
-        textureInfo.notRenderable = computeRenderability(textureInfo, textureInfo.parameters);
+        textureInfo.notRenderableReason = computeRenderability(textureInfo, textureInfo.parameters);
       }
 
       function recomputeAllTextureUnrenderability() {
@@ -1329,7 +1329,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
              ? `${reason} with sampler ${getWebGLObjectString(sampler)} bound to texture unit ${texUnit}`
              : reason;
         } else {
-          return textureInfo.notRenderable;
+          return textureInfo.notRenderableReason;
         }
       };
 
@@ -1377,7 +1377,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
           // class TextureInfo {
           //   mips: Array<Array<MipInfo>>  // indexed by face index
           //   parameters: Map<number, number>
-          //   renderable: bool,
+          //   notRenderableReason: falsey | string(reason),
           //   target: type of texture (ie, TEXTURE_2D)
           // }
           const textureInfo = {
@@ -1388,7 +1388,7 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
               [TEXTURE_WRAP_S, REPEAT],
               [TEXTURE_WRAP_T, REPEAT],
             ]),
-            renderable: false,
+            notRenderableReason: 'texture has not been initialized',
           };
           textureToTextureInfoMap.set(result, textureInfo);
         },
@@ -2648,6 +2648,9 @@ needs ${sizeNeeded} bytes for draw but buffer is only ${bufferSize} bytes`);
     }
 
     function recordSamplerValues(webglUniformLocation, newValues) {
+      if (!webglUniformLocation) {
+          return;
+      }
       const name = locationsToNamesMap.get(webglUniformLocation);
       const uniformInfos = programToUniformInfoMap.get(webglState.currentProgram);
       const {index, type, values} = uniformInfos.get(name);
