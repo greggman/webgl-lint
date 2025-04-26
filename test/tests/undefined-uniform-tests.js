@@ -65,6 +65,35 @@ describe('undefined uniform tests', () => {
     ]);
   });
 
+  it('warns when setting an undefined uniform integer', () => {
+    // needed because integer uniform could be a sample
+    const {gl, tagObject} = createContext();
+    const prg = twgl.createProgram(gl, [
+      `
+        void main() {
+           gl_Position = vec4(0, 0, 0, 1);
+        }
+      `,
+      `
+        precision mediump float;
+        uniform int foo;
+        void main() {
+          gl_FragColor = vec4(float(foo));
+        }
+      `,
+    ]);
+    tagObject(prg, 'point program');
+    gl.useProgram(prg);
+    const loc = gl.getUniformLocation(prg, 'bar');
+    assertEqual(loc, null);
+    assertWarnsWith(() => {
+      gl.uniform1i(loc, 1);
+    }, [
+      /attempt to set non-existent uniform/,
+      /point program/,
+    ]);
+  });
+
   it('does not warn when querying the location of an ignored undefined uniform', () => {
     const {gl, ext, tagObject} = createContext();
     if (ext) {
