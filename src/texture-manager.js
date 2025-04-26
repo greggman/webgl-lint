@@ -355,7 +355,7 @@ export class TextureManager {
     this.numTextureUnits = textureUnits.length;
 
     function recomputeRenderability(textureInfo) {
-      textureInfo.notRenderable = computeRenderability(textureInfo, textureInfo.parameters);
+      textureInfo.notRenderableReason = computeRenderability(textureInfo, textureInfo.parameters);
     }
 
     function recomputeAllTextureUnrenderability() {
@@ -604,7 +604,7 @@ export class TextureManager {
            ? `${reason} with sampler ${getWebGLObjectString(sampler)} bound to texture unit ${texUnit}`
            : reason;
       } else {
-        return textureInfo.notRenderable;
+        return textureInfo.notRenderableReason;
       }
     };
 
@@ -652,7 +652,7 @@ export class TextureManager {
         // class TextureInfo {
         //   mips: Array<Array<MipInfo>>  // indexed by face index
         //   parameters: Map<number, number>
-        //   renderable: bool,
+        //   notRenderableReason: falsey | string(reason),
         //   target: type of texture (ie, TEXTURE_2D)
         // }
         const textureInfo = {
@@ -663,7 +663,7 @@ export class TextureManager {
             [TEXTURE_WRAP_S, REPEAT],
             [TEXTURE_WRAP_T, REPEAT],
           ]),
-          renderable: false,
+          notRenderableReason: 'texture has not been initialized',
         };
         textureToTextureInfoMap.set(result, textureInfo);
       },

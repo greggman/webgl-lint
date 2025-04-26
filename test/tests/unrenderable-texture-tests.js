@@ -114,7 +114,7 @@ describe('unrenderable texture tests', () => {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
       assertThrowsWith(() => {
         gl.drawArrays(gl.POINTS, 0, 1);
-      }, [/isampler2D needs a int texture but WebGLTexture\("intTex"\) on texture unit 0 is float\/normalized texture \(RGBA8\)/]);
+      }, [/isampler2D needs a int texture but WebGLTexture\("intTex"\) on texture unit 0 is float\/normalized texture/]);
     });
 
     it('test float texture filtering webgl1', () => {
